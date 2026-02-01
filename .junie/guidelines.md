@@ -98,6 +98,7 @@ This project has domain-specific skills available. You MUST activate the relevan
 # PHP
 
 - Always use curly braces for control structures, even for single-line bodies.
+- Prefer using import statements (`use`) and short names over full FQN (Fully Qualified Names) in both tests and code, including PHPDoc blocks.
 
 ## Constructors
 
@@ -151,6 +152,7 @@ protected function isAccessible(User $user, ?string $path = null): bool
 - Avoid `DB::`; prefer `Model::query()`. Generate code that leverages Laravel's ORM capabilities rather than bypassing them.
 - Generate code that prevents N+1 query problems by using eager loading.
 - Use Laravel's query builder for very complex database operations.
+- Do not include the `down` method when creating or modifying migrations.
 
 ### Model Creation
 
@@ -183,9 +185,10 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 ## Testing
 
-- When creating models for tests, use the factories for the models. Check if the factory has custom states that can be used before manually setting up the model.
+- When creating models for tests or seeders, use the factories for the models. You MUST create state methods in model factories for commonly overridden attributes instead of relying on changing the attributes in the `create()` or `make()` methods.
 - Faker: Use methods such as `$this->faker->word()` or `fake()->randomDigit()`. Follow existing conventions whether to use `$this->faker` or `fake()`.
 - When creating tests, make use of `php artisan make:test [options] {name}` to create a feature test, and pass `--unit` to create a unit test. Most tests should be feature tests.
+- When creating multiple records using a model factory, use the `count()` method just before the `create()` method instead of specifying the number in the `factory()` method.
 
 ## Vite Error
 
@@ -204,7 +207,7 @@ protected function isAccessible(User $user, ?string $path = null): bool
 - Middleware are configured declaratively in `bootstrap/app.php` using `Application::configure()->withMiddleware()`.
 - `bootstrap/app.php` is the file to register middleware, exceptions, and routing files.
 - `bootstrap/providers.php` contains application specific service providers.
-- The `app\Console\Kernel.php` file no longer exists; use `bootstrap/app.php` or `routes/console.php` for console configuration.
+- The `app/Console/Kernel.php` file no longer exists; use `bootstrap/app.php` or `routes/console.php` for console configuration.
 - Console commands in `app/Console/Commands/` are automatically available and do not require manual registration.
 
 ## Database
@@ -214,7 +217,10 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 ### Models
 
+- You MUST specify the factory type for the `HasFactory` trait using the `/** @use HasFactory<TFactory> */` PHPdoc annotation.
 - Casts can and likely should be set in a `casts()` method on a model rather than the `$casts` property. Follow existing conventions from other models.
+- When creating or updating an Eloquent model with timestamp or datetime fields, you MUST cast them as `immutable_datetime` in the `casts()` method to ensure they return `CarbonImmutable` instances.
+- You MUST add or update PHPDoc comments for all Eloquent models' properties and relationships when creating or modifying them. Use `@property` for database columns and `@property-read` for relationships.
 
 === pint/core rules ===
 
