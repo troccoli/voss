@@ -41,11 +41,11 @@ class DatabaseSeeder extends Seeder
                 ->count(12)
                 ->create();
 
-            // Create staff for each team
-            Staff::factory()->for($team)->create(['name' => 'Coach '.$team->name]);
-            Staff::factory()->for($team)->count(2)->create(['name' => 'Assistant Coach '.$team->name]);
-            Staff::factory()->for($team)->create(['name' => 'Therapist '.$team->name]);
-            Staff::factory()->for($team)->create(['name' => 'Doctor '.$team->name]);
+            // Create 5 staff for each team
+            Staff::factory()
+                ->for($team)
+                ->count(5)
+                ->create();
         });
 
         // Create officials
