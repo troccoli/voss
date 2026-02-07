@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class PlayerFactory extends Factory
 {
+    use WithLocales;
+
     /**
      * Define the model's default state.
      *
@@ -24,5 +26,21 @@ class PlayerFactory extends Factory
             'last_name' => $this->faker->lastName(),
             'number' => $this->faker->numberBetween(1, 99),
         ];
+    }
+
+    /**
+     * Indicate that the player should have a name consistent with the given locale.
+     */
+    public function withLocale(string $locale): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'first_name' => fake($locale)->firstName(),
+            'last_name' => fake($locale)->lastName(),
+        ]);
+    }
+
+    public function forCountry(string $code): static
+    {
+        return $this->withLocale($this->getLocaleForCountry($code));
     }
 }

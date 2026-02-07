@@ -39,3 +39,24 @@ test('a volleyball match has a country code', function () {
 
     expect($match->country_code)->toBe('USA');
 });
+
+test('a volleyball match factory generates a 3-letter country code by default', function () {
+    $match = VolleyballMatch::factory()->create();
+
+    expect(strlen($match->country_code))->toBe(3);
+});
+
+test('a volleyball match has a match number between 1 and 99', function () {
+    $match = VolleyballMatch::factory()->withMatchNumber(42)->create();
+
+    expect($match->match_number)->toBe(42)
+        ->and($match->match_number)->toBeGreaterThanOrEqual(1)
+        ->and($match->match_number)->toBeLessThanOrEqual(99);
+});
+
+test('match number is cast to integer', function () {
+    $match = VolleyballMatch::factory()->create(['match_number' => '50']);
+
+    expect($match->match_number)->toBeInt()
+        ->toBe(50);
+});

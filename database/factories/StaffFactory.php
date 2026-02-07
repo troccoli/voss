@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class StaffFactory extends Factory
 {
+    use WithLocales;
+
     /**
      * Define the model's default state.
      *
@@ -23,5 +25,21 @@ class StaffFactory extends Factory
             'first_name' => $this->faker->firstName(),
             'last_name' => $this->faker->lastName(),
         ];
+    }
+
+    /**
+     * Indicate that the staff should have a name consistent with the given locale.
+     */
+    public function withLocale(string $locale): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'first_name' => fake($locale)->firstName(),
+            'last_name' => fake($locale)->lastName(),
+        ]);
+    }
+
+    public function forCountry(string $code): static
+    {
+        return $this->withLocale($this->getLocaleForCountry($code));
     }
 }

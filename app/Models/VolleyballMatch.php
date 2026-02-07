@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $championship_id
  * @property int $home_team_id
  * @property int $away_team_id
- * @property string $match_number
+ * @property int $match_number
  * @property string $country_code
  * @property string $city
  * @property string $hall
@@ -46,6 +46,7 @@ class VolleyballMatch extends Model
     protected function casts(): array
     {
         return [
+            'match_number' => 'integer',
             'match_date_time' => 'immutable_datetime',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',

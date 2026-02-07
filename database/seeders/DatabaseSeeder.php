@@ -29,7 +29,6 @@ class DatabaseSeeder extends Seeder
     {
         // Create a championship
         $championship = Championship::factory()
-            ->named('Volleyball World League 2026')
             ->create();
 
         // Create teams and players
@@ -38,12 +37,14 @@ class DatabaseSeeder extends Seeder
             // Create 12 players for each team
             Player::factory()
                 ->for($team)
+                ->forCountry($team->country_code)
                 ->count(12)
                 ->create();
 
             // Create 5 staff for each team
             Staff::factory()
                 ->for($team)
+                ->forCountry($team->country_code)
                 ->count(5)
                 ->create();
         });
@@ -56,7 +57,6 @@ class DatabaseSeeder extends Seeder
         $match1 = VolleyballMatch::factory()
             ->for($championship)
             ->betweenTeams($teams[0], $teams[1])
-            ->withMatchNumber('M01')
             ->at('Milan', 'Allianz Cloud')
             ->scheduledAt(now()->addDays(1))
             ->create();
@@ -64,17 +64,20 @@ class DatabaseSeeder extends Seeder
         $match2 = VolleyballMatch::factory()
             ->for($championship)
             ->betweenTeams($teams[2], $teams[3])
-            ->withMatchNumber('M02')
             ->at('Milan', 'Allianz Cloud')
             ->scheduledAt(now()->addDays(2))
             ->create();
 
         // Assign officials, players and staff to matches
+        /** @var VolleyballMatch $match */
         foreach ([$match1, $match2] as $match) {
             // Officials
             $roles = OfficialRole::cases();
             /** @var Collection<int, Official> $shuffledOfficials */
-            $shuffledOfficials = $officials->shuffle();
+            $shuffledOfficials = $officials
+                ->reject(fn (Official $official) => $official->country_code === $match->homeTeam->country_code)
+                ->reject(fn (Official $official) => $official->country_code === $match->awayTeam->country_code)
+                ->shuffle();
             foreach ($roles as $index => $role) {
                 /** @var Official $official */
                 $official = $shuffledOfficials[$index];

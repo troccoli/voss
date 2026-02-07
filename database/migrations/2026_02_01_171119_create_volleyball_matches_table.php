@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('championship_id')->constrained()->cascadeOnDelete();
             $table->foreignId('home_team_id')->constrained('teams')->cascadeOnDelete();
             $table->foreignId('away_team_id')->constrained('teams')->cascadeOnDelete();
-            $table->string('match_number');
-            $table->string('country_code');
+            $table->unsignedTinyInteger('match_number');
+            $table->char('country_code', 3);
             $table->string('city');
             $table->string('hall');
             $table->dateTime('match_date_time');

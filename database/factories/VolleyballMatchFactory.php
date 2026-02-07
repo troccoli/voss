@@ -24,14 +24,14 @@ class VolleyballMatchFactory extends Factory
             'championship_id' => Championship::factory(),
             'home_team_id' => Team::factory(),
             'away_team_id' => Team::factory(),
-            'match_number' => (string) $this->faker->numberBetween(1, 100),
-            'country_code' => $this->faker->countryCode(),
-            'city' => $this->faker->city(),
-            'hall' => $this->faker->company().' Arena',
+            'match_number' => $this->faker->numberBetween(1, 99),
+            'country_code' => $this->faker->countryISOAlpha3(),
+            'city' => str($this->faker->city())->limit(limit: 14, end: ''),
+            'hall' => str($this->faker->company())->limit(limit: 10, end: ''),
             'match_date_time' => $this->faker->dateTimeBetween('-1 month', '+1 month'),
-            'division' => $this->faker->randomElement(['Division 1', 'Division 2', 'Pro League']),
+            'category' => $this->faker->randomElement(['Senior', 'Junior', 'Youth']),
             'pool' => $this->faker->randomElement(['A', 'B', 'C', 'D']),
-            'category' => $this->faker->randomElement(['Men', 'Women']),
+            'division' => $this->faker->randomElement(['Men', 'Women']),
         ];
     }
 
@@ -49,7 +49,7 @@ class VolleyballMatchFactory extends Factory
     /**
      * Set the match number.
      */
-    public function withMatchNumber(string $number): static
+    public function withMatchNumber(int $number): static
     {
         return $this->state(fn (array $attributes) => [
             'match_number' => $number,

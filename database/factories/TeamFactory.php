@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class TeamFactory extends Factory
 {
+    use WithLocales;
+
     /**
      * Define the model's default state.
      *
@@ -17,8 +19,11 @@ class TeamFactory extends Factory
      */
     public function definition(): array
     {
+        $code = $this->randomCountryCode();
+
         return [
-            'name' => $this->faker->city().' Volleyball Club',
+            'name' => $this->countries[$code],
+            'country_code' => $code,
         ];
     }
 }
