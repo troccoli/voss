@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('match_staff', function (Blueprint $table) {
+        Schema::create('game_staff', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('volleyball_match_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('game_id')->constrained()->cascadeOnDelete();
             $table->foreignId('staff_id')->constrained()->cascadeOnDelete();
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
             $table->string('role'); // App\Enums\StaffRole
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('match_staff');
+        Schema::dropIfExists('game_staff');
     }
 };

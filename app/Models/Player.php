@@ -8,25 +8,22 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
- * @property int $id
  * @property int $team_id
  * @property string $first_name
  * @property string $last_name
- * @property int $number
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read Team $team
- * @property-read Collection<int, MatchPlayer> $matchEntries
+ * @property-read Collection<int, Game> $games
+ * @property-read RosterPlayer $roster
  */
 class Player extends Model
 {
     /** @use HasFactory<PlayerFactory> */
     use HasFactory;
-
-    protected $guarded = [];
 
     /**
      * @return array<string, string>
@@ -34,7 +31,6 @@ class Player extends Model
     protected function casts(): array
     {
         return [
-            'number' => 'integer',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
         ];
@@ -49,10 +45,14 @@ class Player extends Model
     }
 
     /**
-     * @return HasMany<MatchPlayer, $this>
+     * @return BelongsToMany<Game, $this, RosterPlayer, 'roster'>
      */
-    public function matchEntries(): HasMany
+    public function games(): BelongsToMany
     {
-        return $this->hasMany(MatchPlayer::class);
+        return $this->belongsToMany(Game::class)
+            ->using(RosterPlayer::class)
+            ->as('roster')
+            ->withPivot('number', 'is_captain', 'is_libero', 'team_id')
+            ->withTimestamps();
     }
 }

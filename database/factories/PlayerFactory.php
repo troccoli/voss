@@ -24,7 +24,6 @@ class PlayerFactory extends Factory
             'team_id' => Team::factory(),
             'first_name' => $this->faker->firstName(),
             'last_name' => $this->faker->lastName(),
-            'number' => $this->faker->numberBetween(1, 99),
         ];
     }
 

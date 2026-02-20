@@ -6,12 +6,12 @@ trait WithLocales
 {
     /** @var array<string, string> */
     private array $countries = [
-        'ARG' => 'Argentina', 'BEL' => 'Belgium', 'BRA' => 'Brazil', 'CAN' => 'Canada',
-        'HRV' => 'Croatia', 'CYP' => 'Cyprus', 'CZE' => 'Czech Republic', 'DNK' => 'Denmark',
-        'EST' => 'Estonia', 'FIN' => 'Finland', 'FRA' => 'France', 'DEU' => 'Germany',
-        'HUN' => 'Hungary', 'ISL' => 'Iceland', 'IND' => 'India', 'ITA' => 'Italy',
-        'LVA' => 'Latvia', 'LTU' => 'Lithuania', 'NLD' => 'Netherlands', 'NOR' => 'Norway',
-        'POL' => 'Poland', 'PRT' => 'Portugal', 'SVN' => 'Slovenia', 'ZAF' => 'South Africa',
+        'ARG' => 'Argentina', 'BEL' => 'Belgium',  'CAN' => 'Canada',
+        'DNK' => 'Denmark',
+        'FRA' => 'France', 'DEU' => 'Germany',
+        'HUN' => 'Hungary',  'ITA' => 'Italy',
+        'NLD' => 'Netherlands',
+        'PRT' => 'Portugal',
         'ESP' => 'Spain', 'SWE' => 'Sweden', 'CHE' => 'Switzerland', 'GBR' => 'United Kingdom',
         'USA' => 'United States',
     ];

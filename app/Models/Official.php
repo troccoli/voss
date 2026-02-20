@@ -7,23 +7,21 @@ use Database\Factories\OfficialFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
- * @property int $id
  * @property string $first_name
  * @property string $last_name
  * @property string $country_code
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, MatchOfficial> $matches
+ * @property-read Collection<int, Game> $games
+ * @property-read GameOfficial $assignment
  */
 class Official extends Model
 {
     /** @use HasFactory<OfficialFactory> */
     use HasFactory;
-
-    protected $guarded = [];
 
     /**
      * @return array<string, string>
@@ -37,10 +35,14 @@ class Official extends Model
     }
 
     /**
-     * @return HasMany<MatchOfficial, $this>
+     * @return BelongsToMany<Game, $this, GameOfficial, 'assignment'>
      */
-    public function matches(): HasMany
+    public function games(): BelongsToMany
     {
-        return $this->hasMany(MatchOfficial::class);
+        return $this->belongsToMany(Game::class)
+            ->using(GameOfficial::class)
+            ->as('assignment')
+            ->withPivot('role')
+            ->withTimestamps();
     }
 }

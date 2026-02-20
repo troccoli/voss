@@ -3,16 +3,18 @@
 namespace Database\Factories;
 
 use App\Models\Championship;
+use App\Models\Game;
 use App\Models\Team;
-use App\Models\VolleyballMatch;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<VolleyballMatch>
+ * @extends Factory<Game>
  */
-class VolleyballMatchFactory extends Factory
+class GameFactory extends Factory
 {
+    use WithLocales;
+
     /**
      * Define the model's default state.
      *
@@ -20,15 +22,17 @@ class VolleyballMatchFactory extends Factory
      */
     public function definition(): array
     {
+        $code = $this->randomCountryCode();
+
         return [
             'championship_id' => Championship::factory(),
             'home_team_id' => Team::factory(),
             'away_team_id' => Team::factory(),
-            'match_number' => $this->faker->numberBetween(1, 99),
-            'country_code' => $this->faker->countryISOAlpha3(),
-            'city' => str($this->faker->city())->limit(limit: 14, end: ''),
-            'hall' => str($this->faker->company())->limit(limit: 10, end: ''),
-            'match_date_time' => $this->faker->dateTimeBetween('-1 month', '+1 month'),
+            'number' => $this->faker->numberBetween(1, 99),
+            'country_code' => $code,
+            'city' => str(fake($this->getLocaleForCountry($code))->city())->limit(limit: 14, end: ''),
+            'hall' => str(fake($this->getLocaleForCountry($code))->company())->limit(limit: 10, end: ''),
+            'date_time' => $this->faker->dateTimeBetween('-1 month', '+1 month'),
             'category' => $this->faker->randomElement(['Senior', 'Junior', 'Youth']),
             'pool' => $this->faker->randomElement(['A', 'B', 'C', 'D']),
             'division' => $this->faker->randomElement(['Men', 'Women']),
@@ -41,8 +45,8 @@ class VolleyballMatchFactory extends Factory
     public function betweenTeams(Team $homeTeam, Team $awayTeam): static
     {
         return $this->state(fn (array $attributes) => [
-            'home_team_id' => $homeTeam->id,
-            'away_team_id' => $awayTeam->id,
+            'home_team_id' => $homeTeam->getKey(),
+            'away_team_id' => $awayTeam->getKey(),
         ]);
     }
 
@@ -52,7 +56,7 @@ class VolleyballMatchFactory extends Factory
     public function withMatchNumber(int $number): static
     {
         return $this->state(fn (array $attributes) => [
-            'match_number' => $number,
+            'number' => $number,
         ]);
     }
 
@@ -83,7 +87,7 @@ class VolleyballMatchFactory extends Factory
     public function scheduledAt(DateTimeInterface $dateTime): static
     {
         return $this->state(fn (array $attributes) => [
-            'match_date_time' => $dateTime,
+            'date_time' => $dateTime,
         ]);
     }
 }

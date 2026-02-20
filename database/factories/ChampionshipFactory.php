@@ -18,7 +18,7 @@ class ChampionshipFactory extends Factory
     public function definition(): array
     {
         /** @var string $name */
-        $name = $this->faker->words(3, true);
+        $name = str($this->faker->words(3, true))->title(); /** @phpstan-ignore argument.type */
 
         return [
             'name' => $name.' Championship',

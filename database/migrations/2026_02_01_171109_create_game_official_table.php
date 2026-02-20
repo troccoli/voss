@@ -11,12 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('match_officials', function (Blueprint $table) {
+        Schema::create('game_official', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('volleyball_match_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('game_id')->constrained()->cascadeOnDelete();
             $table->foreignId('official_id')->constrained()->cascadeOnDelete();
             $table->string('role'); // App\Enums\OfficialRole
             $table->timestamps();
         });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('game_official');
     }
 };

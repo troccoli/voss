@@ -16,7 +16,6 @@ return new class extends Migration
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
             $table->string('first_name');
             $table->string('last_name');
-            $table->integer('number');
             $table->timestamps();
         });
     }
