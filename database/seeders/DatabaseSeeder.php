@@ -5,15 +5,12 @@ namespace Database\Seeders;
 use App\Enums\OfficialRole;
 use App\Enums\StaffRole;
 use App\Models\Championship;
-use App\Models\MatchOfficial;
-use App\Models\MatchPlayer;
-use App\Models\MatchStaff;
+use App\Models\Game;
 use App\Models\Official;
 use App\Models\Player;
 use App\Models\Staff;
 use App\Models\Team;
 use App\Models\User;
-use App\Models\VolleyballMatch;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
@@ -27,92 +24,76 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create a championship
-        $championship = Championship::factory()
-            ->named('Volleyball World League 2026')
-            ->create();
+        /** @var Championship $championship */
+        $championship = Championship::factory()->create();
 
         // Create teams and players
         /** @var Team[] $teams */
-        $teams = Team::factory()->count(4)->create()->each(function (Team $team) {
-            // Create 12 players for each team
+        $teams = Team::factory()->count(2)->create()->each(function (Team $team) {
             Player::factory()
                 ->for($team)
-                ->count(12)
+                ->forCountry($team->country_code)
+                ->count(14)
                 ->create();
 
-            // Create staff for each team
-            Staff::factory()->for($team)->create(['name' => 'Coach '.$team->name]);
-            Staff::factory()->for($team)->count(2)->create(['name' => 'Assistant Coach '.$team->name]);
-            Staff::factory()->for($team)->create(['name' => 'Therapist '.$team->name]);
-            Staff::factory()->for($team)->create(['name' => 'Doctor '.$team->name]);
+            Staff::factory()
+                ->for($team)
+                ->forCountry($team->country_code)
+                ->count(5)
+                ->create();
         });
 
-        // Create officials
         /** @var Collection<int, Official> $officials */
-        $officials = Official::factory()->count(10)->create();
+        $officials = Official::factory()->count(8)->create();
 
-        // Create some matches
-        $match1 = VolleyballMatch::factory()
-            ->for($championship)
+        /** @var Game $game */
+        $game = Game::factory()
+            ->for($championship, 'championship')
             ->betweenTeams($teams[0], $teams[1])
-            ->withMatchNumber('M01')
-            ->at('Milan', 'Allianz Cloud')
             ->scheduledAt(now()->addDays(1))
             ->create();
 
-        $match2 = VolleyballMatch::factory()
-            ->for($championship)
-            ->betweenTeams($teams[2], $teams[3])
-            ->withMatchNumber('M02')
-            ->at('Milan', 'Allianz Cloud')
-            ->scheduledAt(now()->addDays(2))
-            ->create();
-
         // Assign officials, players and staff to matches
-        foreach ([$match1, $match2] as $match) {
-            // Officials
-            $roles = OfficialRole::cases();
-            /** @var Collection<int, Official> $shuffledOfficials */
-            $shuffledOfficials = $officials->shuffle();
-            foreach ($roles as $index => $role) {
-                /** @var Official $official */
-                $official = $shuffledOfficials[$index];
-                MatchOfficial::factory()
-                    ->for($match, 'match')
-                    ->for($official, 'official')
-                    ->withRole($role)
-                    ->create();
+        $roles = OfficialRole::cases();
+        /** @var Collection<int, Official> $shuffledOfficials */
+        $shuffledOfficials = $officials
+            ->reject(fn (Official $official) => $official->country_code === $game->homeTeam->country_code)
+            ->reject(fn (Official $official) => $official->country_code === $game->awayTeam->country_code)
+            ->shuffle();
+        foreach ($roles as $index => $role) {
+            /** @var Official $official */
+            $official = $shuffledOfficials[$index];
+            $game->addOfficial($official, $role);
+        }
+
+        // Players and Staff for both teams
+        foreach ([$game->homeTeam, $game->awayTeam] as $team) {
+            $usedNumbers = [];
+            /** @var Player $player */
+            $captain = mt_rand(1, 14);
+            do {
+                $libero1 = mt_rand(1, 14);
+                $libero2 = mt_rand(1, 14);
+            } while ($captain === $libero1 || $captain === $libero2 || $libero1 === $libero2);
+            foreach ($team->players as $index => $player) {
+                $playerNumber = fake()->unique()->numberBetween(1, 99);
+                $game->addPlayer(
+                    player: $player,
+                    number: $playerNumber,
+                    isCaptain: $index === $captain,
+                    isLibero: $index === $libero1 || $index === $libero2
+                );
             }
 
-            // Players and Staff for both teams
-            foreach ([$match->homeTeam, $match->awayTeam] as $team) {
-                foreach ($team->players as $index => $player) {
-                    MatchPlayer::factory()->create([
-                        'volleyball_match_id' => $match->id,
-                        'player_id' => $player->id,
-                        'team_id' => $team->id,
-                        'number' => $player->number,
-                        'is_captain' => $index === 0,
-                        'is_libero' => $index >= 10,
-                    ]);
-                }
-
-                $staffRoles = [
-                    StaffRole::Coach,
-                    StaffRole::AssistantCoach,
-                    StaffRole::AssistantCoach,
-                    StaffRole::Therapist,
-                    StaffRole::Doctor,
-                ];
-                foreach ($team->staff as $index => $staff) {
-                    MatchStaff::factory()->create([
-                        'volleyball_match_id' => $match->id,
-                        'staff_id' => $staff->id,
-                        'team_id' => $team->id,
-                        'role' => $staffRoles[$index] ?? StaffRole::Coach,
-                    ]);
-                }
+            $staffRoles = [
+                StaffRole::Coach,
+                StaffRole::AssistantCoach,
+                StaffRole::AssistantCoach,
+                StaffRole::Therapist,
+                StaffRole::Doctor,
+            ];
+            foreach ($team->staff as $index => $staff) {
+                $game->addStaff(staff: $staff, role: $staffRoles[$index]);
             }
         }
 

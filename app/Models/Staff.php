@@ -8,23 +8,22 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
- * @property int $id
  * @property int $team_id
- * @property string $name
+ * @property string $first_name
+ * @property string $last_name
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read Team $team
- * @property-read Collection<int, MatchStaff> $matchEntries
+ * @property-read Collection<int, Game> $games
+ * @property-read RosterStaff $roster
  */
 class Staff extends Model
 {
     /** @use HasFactory<StaffFactory> */
     use HasFactory;
-
-    protected $guarded = [];
 
     protected function casts(): array
     {
@@ -43,10 +42,14 @@ class Staff extends Model
     }
 
     /**
-     * @return HasMany<MatchStaff, $this>
+     * @return BelongsToMany<Game, $this, RosterStaff, 'roster'>
      */
-    public function matchEntries(): HasMany
+    public function games(): BelongsToMany
     {
-        return $this->hasMany(MatchStaff::class);
+        return $this->belongsToMany(Game::class)
+            ->using(RosterStaff::class)
+            ->as('roster')
+            ->withPivot('role', 'team_id')
+            ->withTimestamps();
     }
 }

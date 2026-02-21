@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class OfficialFactory extends Factory
 {
+    use WithLocales;
+
     /**
      * Define the model's default state.
      *
@@ -17,8 +19,12 @@ class OfficialFactory extends Factory
      */
     public function definition(): array
     {
+        $code = $this->randomCountryCode();
+
         return [
-            'name' => $this->faker->name(),
+            'first_name' => fake($this->getLocaleForCountry($code))->firstName(),
+            'last_name' => fake($this->getLocaleForCountry($code))->lastName(),
+            'country_code' => $code,
         ];
     }
 }

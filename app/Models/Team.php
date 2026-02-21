@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * @property int $id
  * @property string $name
+ * @property string $country_code
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read Collection<int, Player> $players
@@ -21,8 +21,6 @@ class Team extends Model
 {
     /** @use HasFactory<TeamFactory> */
     use HasFactory;
-
-    protected $guarded = [];
 
     /**
      * @return array<string, string>

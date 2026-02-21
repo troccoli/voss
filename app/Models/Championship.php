@@ -10,18 +10,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * @property int $id
  * @property string $name
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, VolleyballMatch> $matches
+ * @property-read Collection<int, Game> $games
  */
 class Championship extends Model
 {
     /** @use HasFactory<ChampionshipFactory> */
     use HasFactory;
-
-    protected $guarded = [];
 
     /**
      * @return array<string, string>
@@ -35,10 +32,10 @@ class Championship extends Model
     }
 
     /**
-     * @return HasMany<VolleyballMatch, $this>
+     * @return HasMany<Game, $this>
      */
-    public function matches(): HasMany
+    public function games(): HasMany
     {
-        return $this->hasMany(VolleyballMatch::class);
+        return $this->hasMany(Game::class);
     }
 }

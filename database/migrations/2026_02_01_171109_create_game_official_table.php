@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('staff', function (Blueprint $table) {
+        Schema::create('game_official', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('team_id')->constrained()->cascadeOnDelete();
-            $table->string('first_name');
-            $table->string('last_name');
+            $table->foreignId('game_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('official_id')->constrained()->cascadeOnDelete();
+            $table->string('role'); // App\Enums\OfficialRole
             $table->timestamps();
         });
     }
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('staff');
+        Schema::dropIfExists('game_official');
     }
 };
