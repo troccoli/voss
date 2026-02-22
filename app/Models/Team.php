@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Carbon\CarbonImmutable;
 use Database\Factories\TeamFactory;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,8 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $country_code
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, Player> $players
- * @property-read Collection<int, Staff> $staff
+ * @property-read EloquentCollection<int, Player> $players
+ * @property-read EloquentCollection<int, Staff> $staff
  */
 class Team extends Model
 {
