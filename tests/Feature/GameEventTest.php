@@ -3,6 +3,7 @@
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
+use App\Events\Payloads\GameWonPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\RallyWonPayload;
 use App\Events\Payloads\SetWonPayload;
@@ -311,5 +312,20 @@ test('a set won event can be recorded with the correct type and empty payload', 
     $event = $game->events->first();
     expect($event->type)->toBe(GameEventType::SetWon)
         ->and($event->payload)->toBeInstanceOf(SetWonPayload::class)
+        ->and($event->payload->toArray())->toBe([]);
+});
+
+test('a game won event can be recorded with the correct type and empty payload', function () {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    $game->recordGameWon();
+
+    expect($game->events)->toHaveCount(1);
+
+    $event = $game->events->first();
+    expect($event->type)->toBe(GameEventType::GameWon)
+        ->and($event->payload)->toBeInstanceOf(GameWonPayload::class)
         ->and($event->payload->toArray())->toBe([]);
 });

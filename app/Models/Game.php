@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\OfficialRole;
 use App\Enums\StaffRole;
+use App\Models\Concerns\RecordsGameWon;
 use App\Models\Concerns\RecordsLineup;
 use App\Models\Concerns\RecordsRallyWon;
 use App\Models\Concerns\RecordsSetWon;
@@ -50,6 +51,7 @@ class Game extends Model
     /** @use HasFactory<GameFactory> */
     use HasFactory;
 
+    use RecordsGameWon;
     use RecordsLineup;
     use RecordsRallyWon;
     use RecordsSetWon;

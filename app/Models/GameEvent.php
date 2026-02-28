@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\GameEventType;
 use App\Events\Payloads\GameEventPayload;
+use App\Events\Payloads\GameWonPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\RallyWonPayload;
 use App\Events\Payloads\SetWonPayload;
@@ -61,6 +62,7 @@ class GameEvent extends Model
                     GameEventType::SubstitutionCompleted => SubstitutionCompletedPayload::fromArray($data),
                     GameEventType::TimeOutRequested => TimeOutRequestedPayload::fromArray($data),
                     GameEventType::SetWon => SetWonPayload::fromArray($data),
+                    GameEventType::GameWon => GameWonPayload::fromArray($data),
                 };
             },
             set: fn (GameEventPayload $value): string => json_encode($value->toArray(), JSON_THROW_ON_ERROR),
