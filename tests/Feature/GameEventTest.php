@@ -6,6 +6,7 @@ use App\Enums\TeamSide;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\RallyWonPayload;
 use App\Events\Payloads\SubstitutionCompletedPayload;
+use App\Events\Payloads\TimeOutRequestedPayload;
 use App\Events\Payloads\TossCompletedPayload;
 use App\Models\Game;
 use App\Models\GameEvent;
@@ -260,6 +261,35 @@ test('substitution event stores the correct team', function (TeamAB $team) {
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
     $game->recordSubstitution($team, playerOut: 3, playerIn: 9);
+
+    $event = $game->events->first();
+    expect($event->payload->team)->toBe($team);
+})->with([
+    'team A' => [TeamAB::TeamA],
+    'team B' => [TeamAB::TeamB],
+]);
+
+test('a time-out request can be recorded with the correct type and payload', function () {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    $game->recordTimeOut(TeamAB::TeamA);
+
+    expect($game->events)->toHaveCount(1);
+
+    $event = $game->events->first();
+    expect($event->type)->toBe(GameEventType::TimeOutRequested)
+        ->and($event->payload)->toBeInstanceOf(TimeOutRequestedPayload::class)
+        ->and($event->payload->team)->toBe(TeamAB::TeamA);
+});
+
+test('time-out requested event stores the requesting team', function (TeamAB $team) {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    $game->recordTimeOut($team);
 
     $event = $game->events->first();
     expect($event->payload->team)->toBe($team);
