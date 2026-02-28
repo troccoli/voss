@@ -7,6 +7,7 @@ use App\Events\Payloads\GameEndedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Events\Payloads\SetEndedPayload;
+use App\Events\Payloads\SetStartedPayload;
 use App\Events\Payloads\SubstitutionCompletedPayload;
 use App\Events\Payloads\TimeOutRequestedPayload;
 use App\Events\Payloads\TossCompletedPayload;
@@ -299,6 +300,21 @@ test('time-out requested event stores the requesting team', function (TeamAB $te
     'team A' => [TeamAB::TeamA],
     'team B' => [TeamAB::TeamB],
 ]);
+
+test('a set started event can be recorded with the correct type and empty payload', function () {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    $game->recordSetStarted();
+
+    expect($game->events)->toHaveCount(1);
+
+    $event = $game->events->first();
+    expect($event->type)->toBe(GameEventType::SetStarted)
+        ->and($event->payload)->toBeInstanceOf(SetStartedPayload::class)
+        ->and($event->payload->toArray())->toBe([]);
+});
 
 test('a set ended event can be recorded with the correct type and empty payload', function () {
     $homeTeam = Team::factory()->create();

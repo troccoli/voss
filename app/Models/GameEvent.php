@@ -8,6 +8,7 @@ use App\Events\Payloads\GameEventPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Events\Payloads\SetEndedPayload;
+use App\Events\Payloads\SetStartedPayload;
 use App\Events\Payloads\SubstitutionCompletedPayload;
 use App\Events\Payloads\TimeOutRequestedPayload;
 use App\Events\Payloads\TossCompletedPayload;
@@ -61,6 +62,7 @@ class GameEvent extends Model
                     GameEventType::RallyEnded => RallyEndedPayload::fromArray($data),
                     GameEventType::SubstitutionCompleted => SubstitutionCompletedPayload::fromArray($data),
                     GameEventType::TimeOutRequested => TimeOutRequestedPayload::fromArray($data),
+                    GameEventType::SetStarted => SetStartedPayload::fromArray($data),
                     GameEventType::SetEnded => SetEndedPayload::fromArray($data),
                     GameEventType::GameEnded => GameEndedPayload::fromArray($data),
                 };

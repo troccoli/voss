@@ -8,6 +8,7 @@ use App\Models\Concerns\RecordsEndOfGame;
 use App\Models\Concerns\RecordsEndOfRally;
 use App\Models\Concerns\RecordsEndOfSet;
 use App\Models\Concerns\RecordsLineup;
+use App\Models\Concerns\RecordsStartOfSet;
 use App\Models\Concerns\RecordsSubstitution;
 use App\Models\Concerns\RecordsTimeOut;
 use App\Models\Concerns\RecordsToss;
@@ -55,6 +56,7 @@ class Game extends Model
     use RecordsEndOfRally;
     use RecordsEndOfSet;
     use RecordsLineup;
+    use RecordsStartOfSet;
     use RecordsSubstitution;
     use RecordsTimeOut;
     use RecordsToss;
