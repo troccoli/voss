@@ -6,4 +6,5 @@ enum GameEventType: string
 {
     case TossCompleted = 'toss_completed';
     case LineupSubmitted = 'lineup_submitted';
+    case RallyWon = 'rally_won';
 }

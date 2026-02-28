@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\OfficialRole;
 use App\Enums\StaffRole;
 use App\Models\Concerns\RecordsLineup;
+use App\Models\Concerns\RecordsRallyWon;
 use App\Models\Concerns\RecordsToss;
 use Carbon\CarbonImmutable;
 use Database\Factories\GameFactory;
@@ -47,6 +48,7 @@ class Game extends Model
     use HasFactory;
 
     use RecordsLineup;
+    use RecordsRallyWon;
     use RecordsToss;
 
     /**

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\GameEventType;
 use App\Events\Payloads\GameEventPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
+use App\Events\Payloads\RallyWonPayload;
 use App\Events\Payloads\TossCompletedPayload;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -53,6 +54,7 @@ class GameEvent extends Model
                 return match ($this->type) {
                     GameEventType::TossCompleted => TossCompletedPayload::fromArray($data),
                     GameEventType::LineupSubmitted => LineupSubmittedPayload::fromArray($data),
+                    GameEventType::RallyWon => RallyWonPayload::fromArray($data),
                 };
             },
             set: fn (GameEventPayload $value): string => json_encode($value->toArray(), JSON_THROW_ON_ERROR),

@@ -4,6 +4,7 @@ use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Events\Payloads\LineupSubmittedPayload;
+use App\Events\Payloads\RallyWonPayload;
 use App\Events\Payloads\TossCompletedPayload;
 use App\Models\Game;
 use App\Models\GameEvent;
@@ -187,6 +188,35 @@ test('a lineup submitted before the toss throws a LogicException', function () {
     expect(fn () => $game->recordLineup(1, TeamAB::TeamA, $positions))
         ->toThrow(\LogicException::class, 'A lineup cannot be submitted before the toss has been recorded.');
 });
+
+test('a rally outcome can be recorded with the correct type and payload', function () {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    $game->recordRallyWon(TeamAB::TeamA);
+
+    expect($game->events)->toHaveCount(1);
+
+    $event = $game->events->first();
+    expect($event->type)->toBe(GameEventType::RallyWon)
+        ->and($event->payload)->toBeInstanceOf(RallyWonPayload::class)
+        ->and($event->payload->team)->toBe(TeamAB::TeamA);
+});
+
+test('rally won event stores the winning team', function (TeamAB $team) {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    $game->recordRallyWon($team);
+
+    $event = $game->events->first();
+    expect($event->payload->team)->toBe($team);
+})->with([
+    'team A' => [TeamAB::TeamA],
+    'team B' => [TeamAB::TeamB],
+]);
 
 test('a lineup with a player not on the team roster throws an InvalidArgumentException', function () {
     $homeTeam = Team::factory()->create();
