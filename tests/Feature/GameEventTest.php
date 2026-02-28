@@ -5,6 +5,7 @@ use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\RallyWonPayload;
+use App\Events\Payloads\SubstitutionCompletedPayload;
 use App\Events\Payloads\TossCompletedPayload;
 use App\Models\Game;
 use App\Models\GameEvent;
@@ -235,3 +236,34 @@ test('a lineup with a player not on the team roster throws an InvalidArgumentExc
     expect(fn () => $game->recordLineup(1, TeamAB::TeamA, $positions))
         ->toThrow(\InvalidArgumentException::class, 'is not on the roster for the specified team.');
 });
+
+test('a substitution can be recorded with the correct type and payload', function () {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    $game->recordSubstitution(TeamAB::TeamA, playerOut: 5, playerIn: 12);
+
+    expect($game->events)->toHaveCount(1);
+
+    $event = $game->events->first();
+    expect($event->type)->toBe(GameEventType::SubstitutionCompleted)
+        ->and($event->payload)->toBeInstanceOf(SubstitutionCompletedPayload::class)
+        ->and($event->payload->team)->toBe(TeamAB::TeamA)
+        ->and($event->payload->playerOut)->toBe(5)
+        ->and($event->payload->playerIn)->toBe(12);
+});
+
+test('substitution event stores the correct team', function (TeamAB $team) {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    $game->recordSubstitution($team, playerOut: 3, playerIn: 9);
+
+    $event = $game->events->first();
+    expect($event->payload->team)->toBe($team);
+})->with([
+    'team A' => [TeamAB::TeamA],
+    'team B' => [TeamAB::TeamB],
+]);
