@@ -6,9 +6,9 @@ enum GameEventType: string
 {
     case TossCompleted = 'toss_completed';
     case LineupSubmitted = 'lineup_submitted';
-    case RallyWon = 'rally_won';
+    case RallyEnded = 'rally_ended';
     case SubstitutionCompleted = 'substitution_completed';
     case TimeOutRequested = 'time_out_requested';
-    case SetWon = 'set_won';
-    case GameWon = 'game_won';
+    case SetEnded = 'set_ended';
+    case GameEnded = 'game_ended';
 }

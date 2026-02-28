@@ -4,10 +4,10 @@ namespace App\Models;
 
 use App\Enums\OfficialRole;
 use App\Enums\StaffRole;
-use App\Models\Concerns\RecordsGameWon;
+use App\Models\Concerns\RecordsEndOfGame;
+use App\Models\Concerns\RecordsEndOfRally;
+use App\Models\Concerns\RecordsEndOfSet;
 use App\Models\Concerns\RecordsLineup;
-use App\Models\Concerns\RecordsRallyWon;
-use App\Models\Concerns\RecordsSetWon;
 use App\Models\Concerns\RecordsSubstitution;
 use App\Models\Concerns\RecordsTimeOut;
 use App\Models\Concerns\RecordsToss;
@@ -51,10 +51,10 @@ class Game extends Model
     /** @use HasFactory<GameFactory> */
     use HasFactory;
 
-    use RecordsGameWon;
+    use RecordsEndOfGame;
+    use RecordsEndOfRally;
+    use RecordsEndOfSet;
     use RecordsLineup;
-    use RecordsRallyWon;
-    use RecordsSetWon;
     use RecordsSubstitution;
     use RecordsTimeOut;
     use RecordsToss;

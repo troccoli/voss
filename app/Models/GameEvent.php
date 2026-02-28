@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use App\Enums\GameEventType;
+use App\Events\Payloads\GameEndedPayload;
 use App\Events\Payloads\GameEventPayload;
-use App\Events\Payloads\GameWonPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
-use App\Events\Payloads\RallyWonPayload;
-use App\Events\Payloads\SetWonPayload;
+use App\Events\Payloads\RallyEndedPayload;
+use App\Events\Payloads\SetEndedPayload;
 use App\Events\Payloads\SubstitutionCompletedPayload;
 use App\Events\Payloads\TimeOutRequestedPayload;
 use App\Events\Payloads\TossCompletedPayload;
@@ -58,11 +58,11 @@ class GameEvent extends Model
                 return match ($this->type) {
                     GameEventType::TossCompleted => TossCompletedPayload::fromArray($data),
                     GameEventType::LineupSubmitted => LineupSubmittedPayload::fromArray($data),
-                    GameEventType::RallyWon => RallyWonPayload::fromArray($data),
+                    GameEventType::RallyEnded => RallyEndedPayload::fromArray($data),
                     GameEventType::SubstitutionCompleted => SubstitutionCompletedPayload::fromArray($data),
                     GameEventType::TimeOutRequested => TimeOutRequestedPayload::fromArray($data),
-                    GameEventType::SetWon => SetWonPayload::fromArray($data),
-                    GameEventType::GameWon => GameWonPayload::fromArray($data),
+                    GameEventType::SetEnded => SetEndedPayload::fromArray($data),
+                    GameEventType::GameEnded => GameEndedPayload::fromArray($data),
                 };
             },
             set: fn (GameEventPayload $value): string => json_encode($value->toArray(), JSON_THROW_ON_ERROR),

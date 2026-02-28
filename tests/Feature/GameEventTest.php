@@ -3,10 +3,10 @@
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
-use App\Events\Payloads\GameWonPayload;
+use App\Events\Payloads\GameEndedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
-use App\Events\Payloads\RallyWonPayload;
-use App\Events\Payloads\SetWonPayload;
+use App\Events\Payloads\RallyEndedPayload;
+use App\Events\Payloads\SetEndedPayload;
 use App\Events\Payloads\SubstitutionCompletedPayload;
 use App\Events\Payloads\TimeOutRequestedPayload;
 use App\Events\Payloads\TossCompletedPayload;
@@ -193,27 +193,27 @@ test('a lineup submitted before the toss throws a LogicException', function () {
         ->toThrow(\LogicException::class, 'A lineup cannot be submitted before the toss has been recorded.');
 });
 
-test('a rally outcome can be recorded with the correct type and payload', function () {
+test('a rally ended event can be recorded with the correct type and payload', function () {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
-    $game->recordRallyWon(TeamAB::TeamA);
+    $game->recordRallyWinner(TeamAB::TeamA);
 
     expect($game->events)->toHaveCount(1);
 
     $event = $game->events->first();
-    expect($event->type)->toBe(GameEventType::RallyWon)
-        ->and($event->payload)->toBeInstanceOf(RallyWonPayload::class)
+    expect($event->type)->toBe(GameEventType::RallyEnded)
+        ->and($event->payload)->toBeInstanceOf(RallyEndedPayload::class)
         ->and($event->payload->team)->toBe(TeamAB::TeamA);
 });
 
-test('rally won event stores the winning team', function (TeamAB $team) {
+test('rally ended event stores the winning team', function (TeamAB $team) {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
-    $game->recordRallyWon($team);
+    $game->recordRallyWinner($team);
 
     $event = $game->events->first();
     expect($event->payload->team)->toBe($team);
@@ -300,32 +300,32 @@ test('time-out requested event stores the requesting team', function (TeamAB $te
     'team B' => [TeamAB::TeamB],
 ]);
 
-test('a set won event can be recorded with the correct type and empty payload', function () {
+test('a set ended event can be recorded with the correct type and empty payload', function () {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
-    $game->recordSetWon();
+    $game->recordSetEnded();
 
     expect($game->events)->toHaveCount(1);
 
     $event = $game->events->first();
-    expect($event->type)->toBe(GameEventType::SetWon)
-        ->and($event->payload)->toBeInstanceOf(SetWonPayload::class)
+    expect($event->type)->toBe(GameEventType::SetEnded)
+        ->and($event->payload)->toBeInstanceOf(SetEndedPayload::class)
         ->and($event->payload->toArray())->toBe([]);
 });
 
-test('a game won event can be recorded with the correct type and empty payload', function () {
+test('a game ended event can be recorded with the correct type and empty payload', function () {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
-    $game->recordGameWon();
+    $game->recordGameEnded();
 
     expect($game->events)->toHaveCount(1);
 
     $event = $game->events->first();
-    expect($event->type)->toBe(GameEventType::GameWon)
-        ->and($event->payload)->toBeInstanceOf(GameWonPayload::class)
+    expect($event->type)->toBe(GameEventType::GameEnded)
+        ->and($event->payload)->toBeInstanceOf(GameEndedPayload::class)
         ->and($event->payload->toArray())->toBe([]);
 });

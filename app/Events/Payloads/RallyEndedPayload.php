@@ -4,7 +4,7 @@ namespace App\Events\Payloads;
 
 use App\Enums\TeamAB;
 
-final readonly class RallyWonPayload implements GameEventPayload
+final readonly class RallyEndedPayload implements GameEventPayload
 {
     public function __construct(
         public TeamAB $team,

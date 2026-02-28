@@ -2,7 +2,7 @@
 
 namespace App\Events\Payloads;
 
-final readonly class SetWonPayload implements GameEventPayload
+final readonly class SetEndedPayload implements GameEventPayload
 {
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): static

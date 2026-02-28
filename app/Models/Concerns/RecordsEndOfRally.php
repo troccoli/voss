@@ -4,18 +4,18 @@ namespace App\Models\Concerns;
 
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
-use App\Events\Payloads\RallyWonPayload;
+use App\Events\Payloads\RallyEndedPayload;
 
 /**
  * @mixin \App\Models\Game
  */
-trait RecordsRallyWon
+trait RecordsEndOfRally
 {
-    public function recordRallyWon(TeamAB $team): void
+    public function recordRallyWinner(TeamAB $team): void
     {
         $this->events()->create([
-            'type' => GameEventType::RallyWon,
-            'payload' => new RallyWonPayload(
+            'type' => GameEventType::RallyEnded,
+            'payload' => new RallyEndedPayload(
                 team: $team,
             ),
         ]);
