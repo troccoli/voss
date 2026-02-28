@@ -6,6 +6,7 @@ use App\Enums\OfficialRole;
 use App\Enums\StaffRole;
 use App\Models\Concerns\RecordsLineup;
 use App\Models\Concerns\RecordsRallyWon;
+use App\Models\Concerns\RecordsSetWon;
 use App\Models\Concerns\RecordsSubstitution;
 use App\Models\Concerns\RecordsTimeOut;
 use App\Models\Concerns\RecordsToss;
@@ -51,6 +52,7 @@ class Game extends Model
 
     use RecordsLineup;
     use RecordsRallyWon;
+    use RecordsSetWon;
     use RecordsSubstitution;
     use RecordsTimeOut;
     use RecordsToss;

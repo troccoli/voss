@@ -5,6 +5,7 @@ use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\RallyWonPayload;
+use App\Events\Payloads\SetWonPayload;
 use App\Events\Payloads\SubstitutionCompletedPayload;
 use App\Events\Payloads\TimeOutRequestedPayload;
 use App\Events\Payloads\TossCompletedPayload;
@@ -297,3 +298,18 @@ test('time-out requested event stores the requesting team', function (TeamAB $te
     'team A' => [TeamAB::TeamA],
     'team B' => [TeamAB::TeamB],
 ]);
+
+test('a set won event can be recorded with the correct type and empty payload', function () {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    $game->recordSetWon();
+
+    expect($game->events)->toHaveCount(1);
+
+    $event = $game->events->first();
+    expect($event->type)->toBe(GameEventType::SetWon)
+        ->and($event->payload)->toBeInstanceOf(SetWonPayload::class)
+        ->and($event->payload->toArray())->toBe([]);
+});

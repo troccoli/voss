@@ -9,4 +9,5 @@ enum GameEventType: string
     case RallyWon = 'rally_won';
     case SubstitutionCompleted = 'substitution_completed';
     case TimeOutRequested = 'time_out_requested';
+    case SetWon = 'set_won';
 }
