@@ -5,6 +5,7 @@ namespace App\Models\Concerns;
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Events\Payloads\SubstitutionCompletedPayload;
+use App\Services\GameState\GameEventRuleValidator;
 
 /**
  * @mixin \App\Models\Game
@@ -13,6 +14,8 @@ trait RecordsSubstitution
 {
     public function recordSubstitution(TeamAB $team, int $playerOut, int $playerIn): void
     {
+        app(GameEventRuleValidator::class)->assertCanRecordSubstitution($this);
+
         $this->events()->create([
             'type' => GameEventType::SubstitutionCompleted,
             'payload' => new SubstitutionCompletedPayload(

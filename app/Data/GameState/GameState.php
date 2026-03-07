@@ -1,0 +1,108 @@
+<?php
+
+namespace App\Data\GameState;
+
+use App\Enums\TeamAB;
+use App\Models\GameStateSnapshot;
+
+class GameState
+{
+    /** @var array<int, int> */
+    public array $rotationTeamA = [];
+
+    /** @var array<int, int> */
+    public array $rotationTeamB = [];
+
+    public function __construct(
+        public int $setNumber = 0,
+        public int $scoreTeamA = 0,
+        public int $scoreTeamB = 0,
+        public int $setsWonTeamA = 0,
+        public int $setsWonTeamB = 0,
+        public int $timeoutsTeamA = 0,
+        public int $timeoutsTeamB = 0,
+        public int $substitutionsTeamA = 0,
+        public int $substitutionsTeamB = 0,
+        public ?TeamAB $servingTeam = null,
+        public bool $setInProgress = false,
+        public bool $gameEnded = false,
+    ) {}
+
+    public static function initial(): self
+    {
+        return new self;
+    }
+
+    public static function fromSnapshot(GameStateSnapshot $snapshot): self
+    {
+        $state = new self(
+            setNumber: $snapshot->set_number,
+            scoreTeamA: $snapshot->score_team_a,
+            scoreTeamB: $snapshot->score_team_b,
+            setsWonTeamA: $snapshot->sets_won_team_a,
+            setsWonTeamB: $snapshot->sets_won_team_b,
+            timeoutsTeamA: $snapshot->timeouts_team_a,
+            timeoutsTeamB: $snapshot->timeouts_team_b,
+            substitutionsTeamA: $snapshot->substitutions_team_a,
+            substitutionsTeamB: $snapshot->substitutions_team_b,
+            servingTeam: $snapshot->serving_team,
+            setInProgress: $snapshot->set_in_progress,
+            gameEnded: $snapshot->game_ended,
+        );
+
+        $state->rotationTeamA = self::normalizeRotation($snapshot->rotation_team_a);
+        $state->rotationTeamB = self::normalizeRotation($snapshot->rotation_team_b);
+
+        return $state;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSnapshotAttributes(): array
+    {
+        return [
+            'set_number' => $this->setNumber,
+            'score_team_a' => $this->scoreTeamA,
+            'score_team_b' => $this->scoreTeamB,
+            'sets_won_team_a' => $this->setsWonTeamA,
+            'sets_won_team_b' => $this->setsWonTeamB,
+            'timeouts_team_a' => $this->timeoutsTeamA,
+            'timeouts_team_b' => $this->timeoutsTeamB,
+            'substitutions_team_a' => $this->substitutionsTeamA,
+            'substitutions_team_b' => $this->substitutionsTeamB,
+            'serving_team' => $this->servingTeam,
+            'rotation_team_a' => $this->rotationTeamA,
+            'rotation_team_b' => $this->rotationTeamB,
+            'set_in_progress' => $this->setInProgress,
+            'game_ended' => $this->gameEnded,
+        ];
+    }
+
+    public function resetCurrentSetCounters(): void
+    {
+        $this->scoreTeamA = 0;
+        $this->scoreTeamB = 0;
+        $this->timeoutsTeamA = 0;
+        $this->timeoutsTeamB = 0;
+        $this->substitutionsTeamA = 0;
+        $this->substitutionsTeamB = 0;
+    }
+
+    /**
+     * @param  array<int|string, int|string>  $positions
+     * @return array<int, int>
+     */
+    private static function normalizeRotation(array $positions): array
+    {
+        $normalized = [];
+
+        foreach ($positions as $position => $playerId) {
+            $normalized[(int) $position] = (int) $playerId;
+        }
+
+        ksort($normalized);
+
+        return $normalized;
+    }
+}

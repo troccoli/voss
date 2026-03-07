@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Data\GameState\GameState;
 use App\Enums\OfficialRole;
 use App\Enums\StaffRole;
 use App\Models\Concerns\RecordsEndOfGame;
@@ -46,6 +47,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read EloquentCollection<int, Staff> $homeStaff
  * @property-read EloquentCollection<int, Staff> $awayStaff
  * @property-read EloquentCollection<int, GameEvent> $events
+ * @property-read EloquentCollection<int, GameStateSnapshot> $stateSnapshots
  */
 class Game extends Model
 {
@@ -204,5 +206,40 @@ class Game extends Model
     public function events(): HasMany
     {
         return $this->hasMany(GameEvent::class)->orderBy('created_at')->orderBy('id');
+    }
+
+    /**
+     * @return HasMany<GameStateSnapshot, $this>
+     */
+    public function stateSnapshots(): HasMany
+    {
+        return $this->hasMany(GameStateSnapshot::class)
+            ->orderBy('created_at')
+            ->orderBy('game_event_id');
+    }
+
+    public function snapshotAt(?CarbonImmutable $at = null): ?GameStateSnapshot
+    {
+        $query = $this->stateSnapshots();
+
+        if ($at !== null) {
+            $query->where('created_at', '<=', $at);
+        }
+
+        /** @var GameStateSnapshot|null */
+        return $query
+            ->reorder()
+            ->orderByDesc('created_at')
+            ->orderByDesc('game_event_id')
+            ->first();
+    }
+
+    public function stateAt(?CarbonImmutable $at = null): GameState
+    {
+        $snapshot = $this->snapshotAt($at);
+
+        return $snapshot === null
+            ? GameState::initial()
+            : GameState::fromSnapshot($snapshot);
     }
 }

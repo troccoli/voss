@@ -8,6 +8,7 @@ use App\Enums\TeamSide;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\TossCompletedPayload;
 use App\Models\GameEvent;
+use App\Services\GameState\GameEventRuleValidator;
 use Illuminate\Support\Collection;
 use LogicException;
 
@@ -19,6 +20,8 @@ trait RecordsLineup
     /** @param array<int, int> $positions */
     public function recordLineup(int $set, TeamAB $team, array $positions): void
     {
+        app(GameEventRuleValidator::class)->assertCanRecordLineup($this, $set);
+
         $tossPayload = $this->getLatestTossPayload();
         $validPlayerIds = $this->resolveRosterForTeam($team, $tossPayload);
 
