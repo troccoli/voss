@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Events\Payloads;
 
 final readonly class GameEndedPayload implements GameEventPayload

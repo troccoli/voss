@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\GameState;
 
 use App\Data\GameState\GameState;
@@ -7,6 +9,7 @@ use App\Models\Game;
 use App\Models\GameEvent;
 use App\Models\GameStateSnapshot;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 
 class GameStateRecalculator
 {
@@ -22,7 +25,7 @@ class GameStateRecalculator
 
         $events = GameEvent::query()
             ->where('game_id', $game->getKey())
-            ->when($upTo !== null, fn ($query) => $query->where('created_at', '<=', $upTo))
+            ->when($upTo !== null, fn (Builder $query): Builder => $query->where('created_at', '<=', $upTo))
             ->orderBy('created_at')
             ->orderBy('id')
             ->get();
