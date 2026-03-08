@@ -58,7 +58,7 @@ class GameStateProjector
         return GameStateSnapshot::query()->create([
             'game_id' => $event->game_id,
             'game_event_id' => $event->getKey(),
-            ...$state->toSnapshotAttributes(),
+            ...$state->toAttributes(),
             'created_at' => $event->created_at,
         ]);
     }

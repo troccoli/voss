@@ -61,7 +61,7 @@ class GameState
     /**
      * @return array<string, mixed>
      */
-    public function toSnapshotAttributes(): array
+    public function toAttributes(): array
     {
         return [
             'set_number' => $this->setNumber,
@@ -73,7 +73,7 @@ class GameState
             'timeouts_team_b' => $this->timeoutsTeamB,
             'substitutions_team_a' => $this->substitutionsTeamA,
             'substitutions_team_b' => $this->substitutionsTeamB,
-            'serving_team' => $this->servingTeam,
+            'serving_team' => $this->servingTeam?->value,
             'rotation_team_a' => $this->rotationTeamA,
             'rotation_team_b' => $this->rotationTeamB,
             'set_in_progress' => $this->setInProgress,

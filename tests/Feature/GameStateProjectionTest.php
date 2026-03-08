@@ -1,10 +1,14 @@
 <?php
 
 use App\Data\GameState\GameState;
+use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
+use App\Events\Payloads\SetStartedPayload;
 use App\Jobs\RecalculateGameStateSnapshots;
 use App\Models\Game;
+use App\Models\GameEvent;
+use App\Models\GameStateSnapshot;
 use App\Models\Player;
 use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -98,4 +102,38 @@ test('recalculation job rebuilds snapshots from scratch up to a cutoff time', fu
         ->and($latest->scoreTeamA)->toBe(1)
         ->and($latest->scoreTeamB)->toBe(0)
         ->and($latest->servingTeam)->toBe(TeamAB::TeamA);
+});
+
+test('game state snapshot accepts a serialized serving team and casts it back to enum', function (): void {
+    $game = Game::factory()->create();
+
+    $event = GameEvent::withoutEvents(fn (): GameEvent => GameEvent::query()->create([
+        'game_id' => $game->getKey(),
+        'type' => GameEventType::SetStarted,
+        'payload' => new SetStartedPayload,
+        'created_at' => now(),
+    ]));
+
+    $snapshot = GameStateSnapshot::query()->create([
+        'game_id' => $game->getKey(),
+        'game_event_id' => $event->getKey(),
+        'set_number' => 1,
+        'score_team_a' => 0,
+        'score_team_b' => 0,
+        'sets_won_team_a' => 0,
+        'sets_won_team_b' => 0,
+        'timeouts_team_a' => 0,
+        'timeouts_team_b' => 0,
+        'substitutions_team_a' => 0,
+        'substitutions_team_b' => 0,
+        'serving_team' => TeamAB::TeamB->value,
+        'rotation_team_a' => [],
+        'rotation_team_b' => [],
+        'set_in_progress' => true,
+        'game_ended' => false,
+        'created_at' => now(),
+    ]);
+
+    expect($snapshot->serving_team)->toBe(TeamAB::TeamB)
+        ->and($snapshot->getRawOriginal('serving_team'))->toBe(TeamAB::TeamB->value);
 });
