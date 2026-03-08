@@ -8,7 +8,7 @@ use App\Models\Player;
 use App\Models\Staff;
 use App\Services\Scoresheet\Contracts\ScoresheetSectionWriter;
 use App\Services\Scoresheet\ScoresheetPdf;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class TeamsWriter implements ScoresheetSectionWriter
 {
@@ -26,9 +26,9 @@ class TeamsWriter implements ScoresheetSectionWriter
     }
 
     /**
-     * @param  Collection<int, Player>  $players
+     * @param  EloquentCollection<int, Player>  $players
      */
-    private function writePlayers(ScoresheetPdf $pdf, Collection $players, int $x): void
+    private function writePlayers(ScoresheetPdf $pdf, EloquentCollection $players, int $x): void
     {
         $y = [
             171, 175, 180, 184, 188, 193, 197, 201, 206, 210, 214, 219, 223, 227,
@@ -73,9 +73,9 @@ class TeamsWriter implements ScoresheetSectionWriter
     }
 
     /**
-     * @param  Collection<int, Staff>  $staff
+     * @param  EloquentCollection<int, Staff>  $staff
      */
-    private function writeStaff(ScoresheetPdf $pdf, Collection $staff, int $x): void
+    private function writeStaff(ScoresheetPdf $pdf, EloquentCollection $staff, int $x): void
     {
         $firstAssistantCoach = true;
         $pdf->SetFontSize(8);

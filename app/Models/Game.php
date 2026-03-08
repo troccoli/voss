@@ -2,15 +2,25 @@
 
 namespace App\Models;
 
+use App\Data\GameState\GameState;
 use App\Enums\OfficialRole;
 use App\Enums\StaffRole;
+use App\Models\Concerns\RecordsEndOfGame;
+use App\Models\Concerns\RecordsEndOfRally;
+use App\Models\Concerns\RecordsEndOfSet;
+use App\Models\Concerns\RecordsLineup;
+use App\Models\Concerns\RecordsStartOfSet;
+use App\Models\Concerns\RecordsSubstitution;
+use App\Models\Concerns\RecordsTimeOut;
+use App\Models\Concerns\RecordsToss;
 use Carbon\CarbonImmutable;
 use Database\Factories\GameFactory;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $championship_id
@@ -29,18 +39,29 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property-read Championship $championship
  * @property-read Team $homeTeam
  * @property-read Team $awayTeam
- * @property-read Collection<int, Official> $officials
- * @property-read Collection<int, Player> $players
- * @property-read Collection<int, Player> $homePlayers
- * @property-read Collection<int, Player> $awayPlayers
- * @property-read Collection<int, Staff> $staff
- * @property-read Collection<int, Staff> $homeStaff
- * @property-read Collection<int, Staff> $awayStaff
+ * @property-read EloquentCollection<int, Official> $officials
+ * @property-read EloquentCollection<int, Player> $players
+ * @property-read EloquentCollection<int, Player> $homePlayers
+ * @property-read EloquentCollection<int, Player> $awayPlayers
+ * @property-read EloquentCollection<int, Staff> $staff
+ * @property-read EloquentCollection<int, Staff> $homeStaff
+ * @property-read EloquentCollection<int, Staff> $awayStaff
+ * @property-read EloquentCollection<int, GameEvent> $events
+ * @property-read EloquentCollection<int, GameStateSnapshot> $stateSnapshots
  */
 class Game extends Model
 {
     /** @use HasFactory<GameFactory> */
     use HasFactory;
+
+    use RecordsEndOfGame;
+    use RecordsEndOfRally;
+    use RecordsEndOfSet;
+    use RecordsLineup;
+    use RecordsStartOfSet;
+    use RecordsSubstitution;
+    use RecordsTimeOut;
+    use RecordsToss;
 
     /**
      * @return array<string, string>
@@ -177,5 +198,48 @@ class Game extends Model
     public function addOfficial(Official $official, OfficialRole $role): void
     {
         $this->officials()->attach($official, ['role' => $role]);
+    }
+
+    /**
+     * @return HasMany<GameEvent, $this>
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(GameEvent::class)->orderBy('created_at')->orderBy('id');
+    }
+
+    /**
+     * @return HasMany<GameStateSnapshot, $this>
+     */
+    public function stateSnapshots(): HasMany
+    {
+        return $this->hasMany(GameStateSnapshot::class)
+            ->orderBy('created_at')
+            ->orderBy('game_event_id');
+    }
+
+    public function snapshotAt(?CarbonImmutable $at = null): ?GameStateSnapshot
+    {
+        $query = $this->stateSnapshots();
+
+        if ($at !== null) {
+            $query->where('created_at', '<=', $at);
+        }
+
+        /** @var GameStateSnapshot|null */
+        return $query
+            ->reorder()
+            ->orderByDesc('created_at')
+            ->orderByDesc('game_event_id')
+            ->first();
+    }
+
+    public function stateAt(?CarbonImmutable $at = null): GameState
+    {
+        $snapshot = $this->snapshotAt($at);
+
+        return $snapshot === null
+            ? GameState::initial()
+            : GameState::fromSnapshot($snapshot);
     }
 }

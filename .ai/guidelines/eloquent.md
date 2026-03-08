@@ -13,3 +13,4 @@
 ## Eloquent
 
 - Always use `getKey()` to retrieve a model's primary key value, never `->id`. This works correctly regardless of the primary key column name.
+- Always import `Illuminate\Database\Eloquent\Collection` with the `EloquentCollection` alias: `use Illuminate\Database\Eloquent\Collection as EloquentCollection;`. This prevents naming collisions with `Illuminate\Support\Collection` when both are needed in the same file.
