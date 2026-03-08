@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\GameState;
 
 use App\Data\GameState\GameState;
@@ -12,6 +14,7 @@ use App\Events\Payloads\TimeOutRequestedPayload;
 use App\Events\Payloads\TossCompletedPayload;
 use App\Models\GameEvent;
 use App\Models\GameStateSnapshot;
+use Illuminate\Database\Eloquent\Builder;
 
 class GameStateProjector
 {
@@ -33,10 +36,10 @@ class GameStateProjector
     {
         $previousSnapshot = GameStateSnapshot::query()
             ->where('game_id', $event->game_id)
-            ->where(function ($query) use ($event): void {
+            ->where(function (Builder $query) use ($event): void {
                 $query
                     ->where('created_at', '<', $event->created_at)
-                    ->orWhere(function ($nestedQuery) use ($event): void {
+                    ->orWhere(function (Builder $nestedQuery) use ($event): void {
                         $nestedQuery
                             ->where('created_at', $event->created_at)
                             ->where('game_event_id', '<', $event->getKey());
