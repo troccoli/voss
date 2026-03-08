@@ -2,6 +2,9 @@ name: Tests
 
 on: push
 
+permissions:
+  contents: read
+
 env:
   node-dependencies-cache-name: cache-node-dependencies
   composer-packages-cache-name: cache-composer-packages

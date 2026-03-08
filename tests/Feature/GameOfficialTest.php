@@ -7,7 +7,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('a game can have all the required officials', function () {
+test('a game can have all the required officials', function (): void {
     $game = Game::factory()->create();
     $officials = Official::factory()->count(8)->create();
 

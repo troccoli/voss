@@ -17,11 +17,13 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  */
 class GameOfficial extends Pivot
 {
+    #[\Override]
     public $incrementing = true;
 
     /**
      * @return array<string, string>
      */
+    #[\Override]
     protected function casts(): array
     {
         return [

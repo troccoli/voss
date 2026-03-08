@@ -19,6 +19,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'name',
         'email',
@@ -30,6 +31,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    #[\Override]
     protected $hidden = [
         'password',
         'remember_token',
@@ -40,6 +42,7 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
+    #[\Override]
     protected function casts(): array
     {
         return [

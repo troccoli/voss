@@ -6,7 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('a game has a home team and an away team', function () {
+test('a game has a home team and an away team', function (): void {
     $homeTeam = Team::factory()->create(['name' => 'Home Team']);
     $awayTeam = Team::factory()->create(['name' => 'Away Team']);
 
@@ -20,33 +20,33 @@ test('a game has a home team and an away team', function () {
         ->and($game->awayTeam->getKey())->toBe($awayTeam->getKey());
 });
 
-test('a game can be created with default factory', function () {
+test('a game can be created with default factory', function (): void {
     $game = Game::factory()->create();
 
     expect($game->homeTeam)->toBeInstanceOf(Team::class)
         ->and($game->awayTeam)->toBeInstanceOf(Team::class);
 });
 
-test('a game has a match date time', function () {
+test('a game has a match date time', function (): void {
     $dateTime = now()->addDays(1)->startOfSecond();
     $game = Game::factory()->scheduledAt($dateTime)->create();
 
     expect($game->date_time->toDateTimeString())->toBe($dateTime->toDateTimeString());
 });
 
-test('a game has a country code', function () {
+test('a game has a country code', function (): void {
     $game = Game::factory()->withCountryCode('USA')->create();
 
     expect($game->country_code)->toBe('USA');
 });
 
-test('a game factory generates a 3-letter country code by default', function () {
+test('a game factory generates a 3-letter country code by default', function (): void {
     $game = Game::factory()->create();
 
     expect(strlen($game->country_code))->toBe(3);
 });
 
-test('a game has a match number between 1 and 99', function () {
+test('a game has a match number between 1 and 99', function (): void {
     $game = Game::factory()->withMatchNumber(42)->create();
 
     expect($game->number)->toBe(42)
@@ -54,7 +54,7 @@ test('a game has a match number between 1 and 99', function () {
         ->and($game->number)->toBeLessThanOrEqual(99);
 });
 
-test('match number is cast to integer', function () {
+test('match number is cast to integer', function (): void {
     $game = Game::factory()->create(['number' => '50']);
 
     expect($game->number)->toBeInt()

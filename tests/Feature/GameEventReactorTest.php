@@ -9,7 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('in sets one to four the set auto-ends at 25 points with a two-point lead', function () {
+test('in sets one to four the set auto-ends at 25 points with a two-point lead', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -36,7 +36,7 @@ test('in sets one to four the set auto-ends at 25 points with a two-point lead',
         ->and($game->fresh()->stateAt()->setInProgress)->toBeFalse();
 });
 
-test('in the fifth set the set auto-ends at 15 points with a two-point lead', function () {
+test('in the fifth set the set auto-ends at 15 points with a two-point lead', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();

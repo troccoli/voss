@@ -31,6 +31,7 @@ class GameEvent extends Model
 {
     const UPDATED_AT = null;
 
+    #[\Override]
     protected static function booted(): void
     {
         static::updating(function (): never {
@@ -41,6 +42,7 @@ class GameEvent extends Model
     /**
      * @return array<string, string>
      */
+    #[\Override]
     protected function casts(): array
     {
         return [

@@ -19,8 +19,10 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  */
 class RosterPlayer extends Pivot
 {
+    #[\Override]
     public $incrementing = true;
 
+    #[\Override]
     protected function casts(): array
     {
         return [

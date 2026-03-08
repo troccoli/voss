@@ -1,4 +1,4 @@
-name: Static Analysis
+name: Rector
 
 on: push
 
@@ -6,11 +6,10 @@ permissions:
   contents: read
 
 env:
-  node-dependencies-cache-name: cache-node-dependencies
   composer-packages-cache-name: cache-composer-packages
 
 jobs:
-  larastan:
+  rector:
     runs-on: ubuntu-latest
 
     strategy:
@@ -40,9 +39,10 @@ jobs:
         with:
           path: ./vendor
           key: ${{ runner.os }}-php-${{ matrix.php-version }}-build-${{ env.composer-packages-cache-name }}-${{ hashFiles('**/composer.lock') }}
+
       - name: Install Composer dependencies
         if: steps.cache-composer-packages.outputs.cache-hit != 'true'
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-      - name: Analysis
-        run: ./vendor/bin/phpstan analyse --memory-limit=2G
+      - name: Rector
+        run: ./vendor/bin/rector process --dry-run --ansi
