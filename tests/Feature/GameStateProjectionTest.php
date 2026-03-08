@@ -12,7 +12,7 @@ use Illuminate\Support\Carbon;
 
 uses(RefreshDatabase::class);
 
-test('state snapshots are projected as game events are recorded', function () {
+test('state snapshots are projected as game events are recorded', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -67,7 +67,7 @@ test('state snapshots are projected as game events are recorded', function () {
         ->and($state->rotationTeamB[1])->toBe($awayPlayers[1]->getKey());
 });
 
-test('recalculation job rebuilds snapshots from scratch up to a cutoff time', function () {
+test('recalculation job rebuilds snapshots from scratch up to a cutoff time', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();

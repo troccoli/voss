@@ -15,6 +15,7 @@ class GeneratePdf extends Command
      *
      * @var string
      */
+    #[\Override]
     protected $signature = 'app:generate-pdf';
 
     /**
@@ -22,6 +23,7 @@ class GeneratePdf extends Command
      *
      * @var string
      */
+    #[\Override]
     protected $description = 'Command description';
 
     public function handle(ScoresheetGenerator $generator): void

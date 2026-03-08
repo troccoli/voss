@@ -1,0 +1,45 @@
+name: Rector
+
+on: push
+
+env:
+  composer-packages-cache-name: cache-composer-packages
+
+jobs:
+  rector:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: ['8.5']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: composer:v2
+
+      - name: Setup application
+        run: |
+          cp .env.ci .env
+
+      - name: Add Flux license
+        run: composer config http-basic.composer.fluxui.dev "${{ secrets.FLUX_USERNAME }}" "${{ secrets.FLUX_LICENSE_KEY }}"
+
+      - name: Check for cached Composer packages
+        id: cache-composer-packages
+        uses: actions/cache@v5
+        with:
+          path: ./vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-build-${{ env.composer-packages-cache-name }}-${{ hashFiles('**/composer.lock') }}
+
+      - name: Install Composer dependencies
+        if: steps.cache-composer-packages.outputs.cache-hit != 'true'
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Rector
+        run: ./vendor/bin/rector process --dry-run --ansi

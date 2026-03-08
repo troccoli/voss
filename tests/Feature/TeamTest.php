@@ -2,7 +2,7 @@
 
 use App\Models\Team;
 
-test('a team has a country code', function () {
+test('a team has a country code', function (): void {
     $team = Team::factory()->create([
         'name' => 'Italy',
         'country_code' => 'ITA',
@@ -12,7 +12,7 @@ test('a team has a country code', function () {
         ->and($team->name)->toBe('Italy');
 });
 
-test('factory generates valid matching country and code', function () {
+test('factory generates valid matching country and code', function (): void {
     $team = Team::factory()->create();
 
     expect($team->country_code)->toHaveLength(3)

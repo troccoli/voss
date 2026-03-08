@@ -9,7 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('a game has match players', function () {
+test('a game has match players', function (): void {
     $game = Game::factory()->create();
     $team = Team::factory()->create();
     $player = Player::factory()->for($team)->create();
@@ -21,7 +21,7 @@ test('a game has match players', function () {
         ->and($game->players->first()->roster->number)->toBe(10);
 });
 
-test('can override player number in game', function () {
+test('can override player number in game', function (): void {
     $game = Game::factory()->create();
     $team = Team::factory()->create();
     $player = Player::factory()->for($team)->create();
@@ -31,7 +31,7 @@ test('can override player number in game', function () {
     expect($game->players->first()->roster->number)->toBe(99);
 });
 
-test('a game has match staff', function () {
+test('a game has match staff', function (): void {
     $game = Game::factory()->create();
     $team = Team::factory()->create();
     $staff = Staff::factory()->for($team)->create();
@@ -43,7 +43,7 @@ test('a game has match staff', function () {
         ->and($game->staff->first()->roster->role)->toBe(StaffRole::Coach);
 });
 
-test('can access home and away rosters separately', function () {
+test('can access home and away rosters separately', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -60,7 +60,7 @@ test('can access home and away rosters separately', function () {
         ->and($game->awayPlayers->first()->getKey())->toBe($awayPlayer->getKey());
 });
 
-test('players are not captains or liberos by default in the player model', function () {
+test('players are not captains or liberos by default in the player model', function (): void {
     $player = Player::factory()->create();
 
     // In Eloquent, accessing a missing attribute returns null
@@ -68,7 +68,7 @@ test('players are not captains or liberos by default in the player model', funct
         ->and($player->is_libero)->toBeNull();
 });
 
-test('can set captain and libero in game roster', function () {
+test('can set captain and libero in game roster', function (): void {
     $game = Game::factory()->create();
     $team = Team::factory()->create();
     $player1 = Player::factory()->for($team)->create();

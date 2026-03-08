@@ -27,6 +27,7 @@ class Staff extends Model
     /** @use HasFactory<StaffFactory> */
     use HasFactory;
 
+    #[\Override]
     protected function casts(): array
     {
         return [

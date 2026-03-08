@@ -18,8 +18,10 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  */
 class RosterStaff extends Pivot
 {
+    #[\Override]
     public $incrementing = true;
 
+    #[\Override]
     protected function casts(): array
     {
         return [

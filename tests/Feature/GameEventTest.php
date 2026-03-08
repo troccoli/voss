@@ -33,7 +33,7 @@ function winSet(Game $game, TeamAB $winner): void
     }
 }
 
-test('a toss can be recorded with the correct type and payload', function () {
+test('a toss can be recorded with the correct type and payload', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -49,7 +49,7 @@ test('a toss can be recorded with the correct type and payload', function () {
         ->and($event->payload->serving)->toBe(TeamAB::TeamA);
 });
 
-test('team b is derived as the other team when team a is the away team', function () {
+test('team b is derived as the other team when team a is the away team', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -60,7 +60,7 @@ test('team b is derived as the other team when team a is the away team', functio
     expect($event->payload->teamA)->toBe(TeamSide::Away);
 });
 
-test('a lineup can be recorded for a set with correct type, set number, team, and positions', function () {
+test('a lineup can be recorded for a set with correct type, set number, team, and positions', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -86,7 +86,7 @@ test('a lineup can be recorded for a set with correct type, set number, team, an
         ->and($event->payload->positions)->toBe($positions);
 });
 
-test('events are returned in chronological insertion order', function () {
+test('events are returned in chronological insertion order', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -105,7 +105,7 @@ test('events are returned in chronological insertion order', function () {
         ->and($game->events->last()->type)->toBe(GameEventType::LineupSubmitted);
 });
 
-test('a game event cannot be modified after creation', function () {
+test('a game event cannot be modified after creation', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -118,7 +118,7 @@ test('a game event cannot be modified after creation', function () {
     expect(fn () => $event->save())->toThrow(\LogicException::class);
 });
 
-test('the type attribute is cast to a GameEventType enum', function () {
+test('the type attribute is cast to a GameEventType enum', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -130,7 +130,7 @@ test('the type attribute is cast to a GameEventType enum', function () {
         ->and($event->type)->toBe(GameEventType::TossCompleted);
 });
 
-test('events are isolated per game', function () {
+test('events are isolated per game', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
 
@@ -143,7 +143,7 @@ test('events are isolated per game', function () {
         ->and($game2->events)->toHaveCount(0);
 });
 
-test('a lineup with fewer than 6 positions throws an InvalidArgumentException', function () {
+test('a lineup with fewer than 6 positions throws an InvalidArgumentException', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -162,7 +162,7 @@ test('a lineup with fewer than 6 positions throws an InvalidArgumentException', 
         ->toThrow(\InvalidArgumentException::class, 'A lineup must have exactly 6 positions.');
 });
 
-test('a lineup with 0-based keys throws an InvalidArgumentException', function () {
+test('a lineup with 0-based keys throws an InvalidArgumentException', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -181,7 +181,7 @@ test('a lineup with 0-based keys throws an InvalidArgumentException', function (
         ->toThrow(\InvalidArgumentException::class, 'Lineup positions must be keyed 1 through 6.');
 });
 
-test('a lineup with a duplicate player ID throws an InvalidArgumentException', function () {
+test('a lineup with a duplicate player ID throws an InvalidArgumentException', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -201,7 +201,7 @@ test('a lineup with a duplicate player ID throws an InvalidArgumentException', f
         ->toThrow(\InvalidArgumentException::class, 'All 6 lineup positions must have different players.');
 });
 
-test('a lineup submitted before the toss is rejected', function () {
+test('a lineup submitted before the toss is rejected', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -213,7 +213,7 @@ test('a lineup submitted before the toss is rejected', function () {
         ->toThrow(InvalidGameEventTransition::class, 'A lineup cannot be submitted before the toss has been recorded.');
 });
 
-test('a rally ended event can be recorded with the correct type and payload', function () {
+test('a rally ended event can be recorded with the correct type and payload', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -227,7 +227,7 @@ test('a rally ended event can be recorded with the correct type and payload', fu
         ->and($event->payload->team)->toBe(TeamAB::TeamA);
 });
 
-test('rally ended event stores the winning team', function (TeamAB $team) {
+test('rally ended event stores the winning team', function (TeamAB $team): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -242,7 +242,7 @@ test('rally ended event stores the winning team', function (TeamAB $team) {
     'team B' => [TeamAB::TeamB],
 ]);
 
-test('a lineup with a player not on the team roster throws an InvalidArgumentException', function () {
+test('a lineup with a player not on the team roster throws an InvalidArgumentException', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -261,7 +261,7 @@ test('a lineup with a player not on the team roster throws an InvalidArgumentExc
         ->toThrow(\InvalidArgumentException::class, 'is not on the roster for the specified team.');
 });
 
-test('a substitution can be recorded with the correct type and payload', function () {
+test('a substitution can be recorded with the correct type and payload', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -277,7 +277,7 @@ test('a substitution can be recorded with the correct type and payload', functio
         ->and($event->payload->playerIn)->toBe(12);
 });
 
-test('substitution event stores the correct team', function (TeamAB $team) {
+test('substitution event stores the correct team', function (TeamAB $team): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -292,7 +292,7 @@ test('substitution event stores the correct team', function (TeamAB $team) {
     'team B' => [TeamAB::TeamB],
 ]);
 
-test('a time-out request can be recorded with the correct type and payload', function () {
+test('a time-out request can be recorded with the correct type and payload', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -306,7 +306,7 @@ test('a time-out request can be recorded with the correct type and payload', fun
         ->and($event->payload->team)->toBe(TeamAB::TeamA);
 });
 
-test('time-out requested event stores the requesting team', function (TeamAB $team) {
+test('time-out requested event stores the requesting team', function (TeamAB $team): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -321,7 +321,7 @@ test('time-out requested event stores the requesting team', function (TeamAB $te
     'team B' => [TeamAB::TeamB],
 ]);
 
-test('a set started event can be recorded with the correct type and empty payload', function () {
+test('a set started event can be recorded with the correct type and empty payload', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -337,7 +337,7 @@ test('a set started event can be recorded with the correct type and empty payloa
         ->and($event->payload->toArray())->toBe([]);
 });
 
-test('a set ended event can be recorded with the correct type and empty payload', function () {
+test('a set ended event can be recorded with the correct type and empty payload', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -351,7 +351,7 @@ test('a set ended event can be recorded with the correct type and empty payload'
         ->and($event->payload->toArray())->toBe([]);
 });
 
-test('a game ended event can be recorded with the correct type and empty payload', function () {
+test('a game ended event can be recorded with the correct type and empty payload', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -368,7 +368,7 @@ test('a game ended event can be recorded with the correct type and empty payload
         ->and($event->payload->toArray())->toBe([]);
 });
 
-test('a set cannot start before the toss', function () {
+test('a set cannot start before the toss', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -377,7 +377,7 @@ test('a set cannot start before the toss', function () {
         ->toThrow(InvalidGameEventTransition::class, 'A set cannot start before the toss has been recorded.');
 });
 
-test('a set cannot end before score reaches 25 with a two-point advantage', function () {
+test('a set cannot end before score reaches 25 with a two-point advantage', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
@@ -391,7 +391,7 @@ test('a set cannot end before score reaches 25 with a two-point advantage', func
         ->toThrow(InvalidGameEventTransition::class, 'A set can only end when a team has at least 25 points with a 2-point advantage.');
 });
 
-test('a game cannot end before one team has won three sets', function () {
+test('a game cannot end before one team has won three sets', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();

@@ -41,8 +41,8 @@ class ScoresheetPdf extends Fpdi
         $this->SetLineWidth($previousLineWidth);
     }
 
-    /** @phpstan-ignore-next-line  */
-    public function Write($h, $txt, $link = ''): void
+    #[\Override]
+    public function Write(mixed $h, mixed $txt, mixed $link = ''): void
     {
         parent::Write($h, iconv('UTF-8', 'ISO-8859-1//TRANSLIT', (string) $txt), $link);
     }
@@ -58,7 +58,7 @@ class ScoresheetPdf extends Fpdi
                 }
                 $this->Write(0, $character);
             }
-            $x = $x + $distances[$i % count($distances)];
+            $x += $distances[$i % count($distances)];
             $this->SetXY($x, $y);
         }
     }
