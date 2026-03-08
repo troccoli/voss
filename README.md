@@ -1,59 +1,73 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# VOSS
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Introduction
 
-## About Laravel
+VoSS, Volleyball Scoresheet System, is a Laravel 12 application to compile a volleyball scoresheet automatically.  
+Instead of storing only the latest match score, it stores each match action as an immutable event and derives the current state from that event history.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+The core domain includes:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Championships and games
+- Teams, players, staff, and officials assigned to a game
+- An event stream (`game_events`) for everything that happens during a match
+- Materialized state snapshots (`game_state_snapshots`) for fast reads
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## How The Architecture Works
 
-## Learning Laravel
+### Event System
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+The event system is an execution pipeline with four stages:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+1. Trigger: a domain action is invoked on `Game` (for example `recordToss()`, `recordRallyWinner()`, `recordLineup()`), via the `Records*` traits.
+2. Record: `GameEventRuleValidator` checks whether that transition is legal; if valid, a new immutable `GameEvent` row is written (`type`, typed `payload`, `created_at`).
+3. Project: when the row is created, `GameEventObserver::created()` immediately calls `GameStateProjector::projectAndStore()` to compute and persist the next `GameStateSnapshot`.
+4. Reactor: after projection, the same observer calls `GameEventReactor`, which may emit additional derived events; those events go through the exact same pipeline again (record -> project -> reactor).
 
-## Laravel Sponsors
+This flow guarantees that every accepted event is persisted, projected into read state, and evaluated for downstream automatic consequences in a consistent order.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Projector
 
-### Premium Partners
+A projector is the component that consumes an event stream and builds a queryable read model (the current match state).
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+We need a projector because events are stored as raw facts, not as the final scoreboard.  
+Without projection, every read would have to replay the full event history for a game to answer simple questions like "what is the score now?".
 
-## Contributing
+In this application, the projector turns each new event into an updated snapshot, which gives us:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- Fast reads of the current state (`Game::stateAt()` reads the latest snapshot)
+- Point-in-time state queries (`snapshotAt()` can read historical state)
+- Deterministic rebuilds (snapshots can be regenerated by replaying events)
+- Safer evolution of rules (if projection logic changes, snapshots can be recalculated from the immutable log)
 
-## Code of Conduct
+Technically, `GameStateProjector::projectAndStore()`:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+1. Loads the previous snapshot for the game.
+2. Rehydrates a `GameState` value object from that snapshot (or starts from `GameState::initial()`).
+3. Applies the incoming event to produce the next state.
+4. Persists one `game_state_snapshots` row linked to the source event (`game_event_id`).
 
-## Security Vulnerabilities
+Because snapshots are written incrementally, reads stay cheap and deterministic even as event history grows.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+For recovery/rebuilds, `RecalculateGameStateSnapshots` can replay events and regenerate snapshots from scratch.
 
-## License
+### Reactor
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+`GameEventReactor` exists to turn implicit domain consequences into explicit events.
+
+In practice, some match transitions are not independent user actions. They are outcomes that should happen automatically when the state reaches specific conditions. The reactor handles that in one place, inside the domain flow, instead of requiring every client/UI/integration to remember and implement the same follow-up logic.
+
+Why this is beneficial for the application:
+
+- Consistency: derived transitions are applied the same way regardless of who recorded the original event.
+- Simpler clients: consumers only record the direct action; the system records the required follow-up events.
+- Better audit trail: the event log contains both user-originated events and system-generated consequences.
+- Fewer edge-case bugs: business automation is centralized in domain services, not duplicated across controllers or frontends.
+- Replay safety: reactor-generated events are persisted as normal `GameEvent` rows, so projection, history queries, and snapshot rebuilds behave exactly the same for manual and automatic transitions.
+
+## Development
+
+```bash
+composer run setup
+composer run dev
+php artisan test --compact
+```
