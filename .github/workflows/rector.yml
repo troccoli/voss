@@ -2,6 +2,9 @@ name: Rector
 
 on: push
 
+permissions:
+  contents: read
+
 env:
   composer-packages-cache-name: cache-composer-packages
 
