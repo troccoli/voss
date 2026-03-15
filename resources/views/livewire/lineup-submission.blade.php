@@ -1,8 +1,6 @@
 <div>
     <flux:modal.trigger :name="$this->modalName()">
-        <flux:button variant="primary" icon="users">
-            {{ $this->buttonLabel() }}
-        </flux:button>
+        <flux:button variant="primary" icon="users">Submit Lineup</flux:button>
     </flux:modal.trigger>
 
     <flux:modal :name="$this->modalName()" class="min-w-[21rem]">
@@ -15,7 +13,7 @@
                         label="{{ $position }}"
                         label:class="mb-0!"
                         field:class="flex flex-col items-center"
-                        wire:key="{{ $this->team }}-position-{{ $position }}"
+                        wire:key="{{ $this->team->value }}-position-{{ $position }}"
                         name="lineup[{{ $position }}]"
                         wire:model="lineup.{{ $position }}"
                         class="h-12! w-12!"

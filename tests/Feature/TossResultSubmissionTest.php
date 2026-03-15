@@ -61,3 +61,12 @@ test('submitting toss result records the event against the provided game id', fu
     expect($targetGame->fresh()->events)->toHaveCount(1)
         ->and($otherGame->fresh()->events)->toHaveCount(0);
 });
+
+test('toss submit button is hidden when toss has already been recorded', function (): void {
+    $game = Game::factory()->create();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    Livewire::test(TossResultSubmission::class, ['gameId' => $game->getKey()])
+        ->assertDontSee('Submit Toss Result')
+        ->assertDontSee('Save Toss Result');
+});

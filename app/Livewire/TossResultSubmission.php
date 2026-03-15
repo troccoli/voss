@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
@@ -99,6 +101,20 @@ class TossResultSubmission extends Component
 
     public function render(): View
     {
-        return view('livewire.toss-result-submission');
+        return view('livewire.toss-result-submission', [
+            'hasSubmittedToss' => $this->hasSubmittedToss(),
+        ]);
+    }
+
+    private function hasSubmittedToss(): bool
+    {
+        if ($this->gameId === null) {
+            return false;
+        }
+
+        return Game::query()
+            ->whereKey($this->gameId)
+            ->whereHas('events', fn (Builder $query) => $query->where('type', GameEventType::TossCompleted))
+            ->exists();
     }
 }
