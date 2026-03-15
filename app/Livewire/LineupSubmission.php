@@ -6,6 +6,7 @@ namespace App\Livewire;
 
 use App\Enums\TeamAB;
 use Flux\Flux;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
@@ -71,7 +72,7 @@ class LineupSubmission extends Component
         Flux::modal($this->modalName())->close();
     }
 
-    public function render(): \Illuminate\Contracts\View\View
+    public function render(): View
     {
         return view('livewire.lineup-submission');
     }

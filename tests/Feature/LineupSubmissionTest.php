@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\TeamAB;
 use App\Livewire\LineupSubmission;
 use Illuminate\View\ViewException;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
 test('lineup submission renders team a button and modal', function (): void {
@@ -28,7 +29,7 @@ test('lineup submission renders team b button and modal', function (): void {
 });
 
 test('lineup submission rejects unsupported team value', function (): void {
-    expect(fn (): \Livewire\Features\SupportTesting\Testable => Livewire::test(LineupSubmission::class, ['team' => 'invalid']))
+    expect(fn (): Testable => Livewire::test(LineupSubmission::class, ['team' => 'invalid']))
         ->toThrow(ViewException::class, 'Unsupported team value for lineup submission.');
 });
 

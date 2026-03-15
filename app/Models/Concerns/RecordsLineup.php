@@ -9,13 +9,14 @@ use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\TossCompletedPayload;
+use App\Models\Game;
 use App\Models\GameEvent;
 use App\Services\GameState\GameEventRuleValidator;
 use Illuminate\Support\Collection;
 use LogicException;
 
 /**
- * @mixin \App\Models\Game
+ * @mixin Game
  */
 trait RecordsLineup
 {

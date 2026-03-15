@@ -9,6 +9,7 @@ use App\Enums\TeamSide;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
 use Flux\Flux;
+use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
@@ -96,7 +97,7 @@ class TossResultSubmission extends Component
         $this->serving = TeamAB::TeamA->value;
     }
 
-    public function render(): \Illuminate\Contracts\View\View
+    public function render(): View
     {
         return view('livewire.toss-result-submission');
     }

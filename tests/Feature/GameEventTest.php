@@ -115,7 +115,7 @@ test('a game event cannot be modified after creation', function (): void {
     $event = $game->events->first();
     $event->payload = new TossCompletedPayload(teamA: TeamSide::Away, serving: TeamAB::TeamB);
 
-    expect(fn () => $event->save())->toThrow(\LogicException::class);
+    expect(fn () => $event->save())->toThrow(LogicException::class);
 });
 
 test('the type attribute is cast to a GameEventType enum', function (): void {
@@ -159,7 +159,7 @@ test('a lineup with fewer than 6 positions throws an InvalidArgumentException', 
     $positions = $players->mapWithKeys(fn (Player $player, int $index) => [$index + 1 => $player->getKey()])->all();
 
     expect(fn () => $game->recordLineup(1, TeamAB::TeamA, $positions))
-        ->toThrow(\InvalidArgumentException::class, 'A lineup must have exactly 6 positions.');
+        ->toThrow(InvalidArgumentException::class, 'A lineup must have exactly 6 positions.');
 });
 
 test('a lineup with 0-based keys throws an InvalidArgumentException', function (): void {
@@ -178,7 +178,7 @@ test('a lineup with 0-based keys throws an InvalidArgumentException', function (
     $positions = $players->mapWithKeys(fn (Player $player, int $index) => [$index => $player->getKey()])->all();
 
     expect(fn () => $game->recordLineup(1, TeamAB::TeamA, $positions))
-        ->toThrow(\InvalidArgumentException::class, 'Lineup positions must be keyed 1 through 6.');
+        ->toThrow(InvalidArgumentException::class, 'Lineup positions must be keyed 1 through 6.');
 });
 
 test('a lineup with a duplicate player ID throws an InvalidArgumentException', function (): void {
@@ -198,7 +198,7 @@ test('a lineup with a duplicate player ID throws an InvalidArgumentException', f
     $positions = [1 => $firstPlayerId, 2 => $firstPlayerId, 3 => $players[2]->getKey(), 4 => $players[3]->getKey(), 5 => $players[4]->getKey(), 6 => $players[5]->getKey()];
 
     expect(fn () => $game->recordLineup(1, TeamAB::TeamA, $positions))
-        ->toThrow(\InvalidArgumentException::class, 'All 6 lineup positions must have different players.');
+        ->toThrow(InvalidArgumentException::class, 'All 6 lineup positions must have different players.');
 });
 
 test('a lineup submitted before the toss is rejected', function (): void {
@@ -258,7 +258,7 @@ test('a lineup with a player not on the team roster throws an InvalidArgumentExc
     $positions = $awayPlayers->mapWithKeys(fn (Player $player, int $index) => [$index + 1 => $player->getKey()])->all();
 
     expect(fn () => $game->recordLineup(1, TeamAB::TeamA, $positions))
-        ->toThrow(\InvalidArgumentException::class, 'is not on the roster for the specified team.');
+        ->toThrow(InvalidArgumentException::class, 'is not on the roster for the specified team.');
 });
 
 test('a substitution can be recorded with the correct type and payload', function (): void {
