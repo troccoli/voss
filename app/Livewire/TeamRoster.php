@@ -15,8 +15,6 @@ use Livewire\Component;
 
 class TeamRoster extends Component
 {
-    protected CacheRepository $cacheRepository;
-
     #[Reactive]
     #[Locked]
     public int $gameId;
@@ -28,14 +26,12 @@ class TeamRoster extends Component
     public bool $leftSide = true;
 
     public function mount(
-        CacheRepository $cacheRepository,
         ?int $gameId = null,
         TeamAB $team = TeamAB::TeamA,
         bool $leftSide = true,
     ): void {
         abort_if(is_null($gameId), 404);
 
-        $this->cacheRepository = $cacheRepository;
         $this->gameId = $gameId;
         $this->team = $team;
         $this->leftSide = $leftSide;
@@ -80,18 +76,23 @@ class TeamRoster extends Component
             ? $teamASide
             : $this->oppositeSide($teamASide);
 
-        return $this->cacheRepository->playersForSide($game, $targetSide);
+        return $this->cacheRepository()->playersForSide($game, $targetSide);
     }
 
     private function teamASideForTossSets(Game $game): TeamSide
     {
-        $tossPayload = $this->cacheRepository->latestTossPayload($game);
+        $tossPayload = $this->cacheRepository()->latestTossPayload($game);
 
         if ($tossPayload === null) {
             return TeamSide::Home;
         }
 
         return $tossPayload->teamA;
+    }
+
+    private function cacheRepository(): CacheRepository
+    {
+        return app(CacheRepository::class);
     }
 
     private function oppositeSide(TeamSide $side): TeamSide

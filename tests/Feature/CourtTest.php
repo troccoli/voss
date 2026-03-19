@@ -138,6 +138,42 @@ test('court uses toss assignment for first and fifth set side labels', function 
         ]);
 });
 
+test('court shows lineup position one as bottom left for the left side and top right for the right side', function (): void {
+    $game = gameWithNumberedRosters();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => [
+            'set_number' => 1,
+            'rotation_team_a' => [1 => 12],
+            'rotation_team_b' => [1 => 9],
+        ],
+    ])
+        ->assertSeeHtml('data-court-marker="left-team_a-1"')
+        ->assertSeeHtml('data-court-marker="right-team_b-1"')
+        ->assertSeeHtml('left-[12%] bottom-[14%]')
+        ->assertSeeHtml('right-[12%] top-[14%]');
+});
+
+test('court position one anchors follow the side after team swap', function (): void {
+    $game = gameWithNumberedRosters();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => [
+            'set_number' => 2,
+            'rotation_team_a' => [1 => 12],
+            'rotation_team_b' => [1 => 9],
+        ],
+    ])
+        ->assertSeeHtml('data-court-marker="left-team_b-1"')
+        ->assertSeeHtml('data-court-marker="right-team_a-1"')
+        ->assertSeeHtml('left-[12%] bottom-[14%]')
+        ->assertSeeHtml('right-[12%] top-[14%]');
+});
+
 function gameWithNumberedRosters(): Game
 {
     $homeTeam = Team::factory()->create();

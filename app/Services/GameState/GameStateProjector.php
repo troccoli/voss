@@ -77,13 +77,6 @@ class GameStateProjector
         /** @var LineupSubmittedPayload $payload */
         $payload = $event->payload;
 
-        if ($payload->set > $state->setNumber) {
-            $state->setNumber = $payload->set;
-            $state->resetCurrentSetCounters();
-            $state->rotationTeamA = [];
-            $state->rotationTeamB = [];
-        }
-
         if ($payload->team === TeamAB::TeamA) {
             $state->rotationTeamA = $payload->positions;
         } else {
@@ -148,8 +141,6 @@ class GameStateProjector
     {
         $state->setNumber = max(1, $state->setNumber + 1);
         $state->resetCurrentSetCounters();
-        $state->rotationTeamA = [];
-        $state->rotationTeamB = [];
         $state->setInProgress = true;
 
         return $state;
@@ -169,6 +160,8 @@ class GameStateProjector
                 : TeamAB::TeamA;
         }
 
+        $state->rotationTeamA = [];
+        $state->rotationTeamB = [];
         $state->setInProgress = false;
 
         return $state;

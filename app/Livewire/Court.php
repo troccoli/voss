@@ -40,7 +40,9 @@ class Court extends Component
     /**
      * @return array{
      *     leftTeam: TeamAB,
-     *     rightTeam: TeamAB
+     *     rightTeam: TeamAB,
+     *     leftRotation: array<int, int>,
+     *     rightRotation: array<int, int>
      * }
      */
     private function courtContext(): array
@@ -48,6 +50,8 @@ class Court extends Component
         $defaultContext = [
             'leftTeam' => TeamAB::TeamA,
             'rightTeam' => TeamAB::TeamB,
+            'leftRotation' => $this->rotationForTeam(TeamAB::TeamA),
+            'rightRotation' => $this->rotationForTeam(TeamAB::TeamB),
         ];
 
         if ($this->gameId === null) {
@@ -67,6 +71,8 @@ class Court extends Component
         return [
             'leftTeam' => TeamAB::TeamB,
             'rightTeam' => TeamAB::TeamA,
+            'leftRotation' => $this->rotationForTeam(TeamAB::TeamB),
+            'rightRotation' => $this->rotationForTeam(TeamAB::TeamA),
         ];
     }
 
@@ -117,5 +123,39 @@ class Court extends Component
 
         /** @var TossCompletedPayload */
         return $tossEvent->payload;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function rotationForTeam(TeamAB $team): array
+    {
+        $key = $team === TeamAB::TeamA ? 'rotation_team_a' : 'rotation_team_b';
+        $rotation = $this->gameState[$key] ?? [];
+
+        if (! is_array($rotation)) {
+            return [];
+        }
+
+        $normalizedRotation = [];
+
+        foreach ($rotation as $position => $number) {
+            if (! is_numeric((string) $position) || ! is_numeric((string) $number)) {
+                continue;
+            }
+
+            $normalizedPosition = (int) $position;
+            $normalizedNumber = (int) $number;
+
+            if ($normalizedPosition < 1 || $normalizedPosition > 6 || $normalizedNumber <= 0) {
+                continue;
+            }
+
+            $normalizedRotation[$normalizedPosition] = $normalizedNumber;
+        }
+
+        ksort($normalizedRotation);
+
+        return $normalizedRotation;
     }
 }

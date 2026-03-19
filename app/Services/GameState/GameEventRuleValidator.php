@@ -45,12 +45,18 @@ class GameEventRuleValidator
             $this->fail('A lineup cannot be submitted before the toss has been recorded.');
         }
 
-        if (! $state->setInProgress) {
-            $this->fail('A lineup can only be submitted during an active set.');
+        if ($state->gameEnded || $state->setsWonTeamA >= 3 || $state->setsWonTeamB >= 3) {
+            $this->fail('A lineup cannot be submitted after the game has ended.');
         }
 
-        if ($set !== $state->setNumber) {
-            $this->fail('The lineup set number must match the current active set.');
+        if ($state->setInProgress) {
+            $this->fail('A lineup can only be submitted before the set starts.');
+        }
+
+        $expectedSet = $state->setNumber + 1;
+
+        if ($set !== $expectedSet) {
+            $this->fail('The lineup set number must match the upcoming set.');
         }
     }
 

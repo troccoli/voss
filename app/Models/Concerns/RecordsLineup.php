@@ -26,7 +26,7 @@ trait RecordsLineup
         app(GameEventRuleValidator::class)->assertCanRecordLineup($this, $set);
 
         $tossPayload = $this->getLatestTossPayload();
-        $validPlayerIds = $this->resolveRosterForTeam($team, $tossPayload);
+        $validRosterNumbers = $this->resolveRosterNumbersForTeam($team, $tossPayload);
 
         $this->events()->create([
             'type' => GameEventType::LineupSubmitted,
@@ -34,7 +34,7 @@ trait RecordsLineup
                 set: $set,
                 team: $team,
                 positions: $positions,
-                validPlayerIds: $validPlayerIds,
+                validRosterNumbers: $validRosterNumbers,
             ),
         ]);
     }
@@ -58,14 +58,14 @@ trait RecordsLineup
     /**
      * @return Collection<int, int>
      */
-    private function resolveRosterForTeam(TeamAB $team, TossCompletedPayload $tossPayload): Collection
+    private function resolveRosterNumbersForTeam(TeamAB $team, TossCompletedPayload $tossPayload): Collection
     {
         $side = $team === TeamAB::TeamA
             ? $tossPayload->teamA
             : ($tossPayload->teamA === TeamSide::Home ? TeamSide::Away : TeamSide::Home);
 
         return $side === TeamSide::Home
-            ? $this->homePlayers()->pluck('players.id')
-            : $this->awayPlayers()->pluck('players.id');
+            ? $this->homePlayers()->wherePivot('is_libero', false)->pluck('game_player.number')
+            : $this->awayPlayers()->wherePivot('is_libero', false)->pluck('game_player.number');
     }
 }

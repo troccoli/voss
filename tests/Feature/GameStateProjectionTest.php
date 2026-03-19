@@ -32,26 +32,35 @@ test('state snapshots are projected as game events are recorded', function (): v
         $game->addPlayer($player, number: $index + 1);
     }
 
-    $homeLineup = $homePlayers
-        ->take(6)
-        ->mapWithKeys(fn (Player $player, int $index) => [$index + 1 => $player->getKey()])
-        ->all();
+    $homeLineup = [
+        1 => 1,
+        2 => 2,
+        3 => 3,
+        4 => 4,
+        5 => 5,
+        6 => 6,
+    ];
 
-    $awayLineup = $awayPlayers
-        ->mapWithKeys(fn (Player $player, int $index) => [$index + 1 => $player->getKey()])
-        ->all();
+    $awayLineup = [
+        1 => 1,
+        2 => 2,
+        3 => 3,
+        4 => 4,
+        5 => 5,
+        6 => 6,
+    ];
 
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
-    $game->recordSetStarted();
     $game->recordLineup(1, TeamAB::TeamA, $homeLineup);
     $game->recordLineup(1, TeamAB::TeamB, $awayLineup);
+    $game->recordSetStarted();
     $game->recordRallyWinner(TeamAB::TeamA);
     $game->recordRallyWinner(TeamAB::TeamB);
     $game->recordTimeOut(TeamAB::TeamB);
     $game->recordSubstitution(
         TeamAB::TeamA,
-        playerOut: $homePlayers->first()->getKey(),
-        playerIn: $homePlayers->last()->getKey(),
+        playerOut: 1,
+        playerIn: 7,
     );
 
     /** @var GameState $state */
@@ -67,8 +76,8 @@ test('state snapshots are projected as game events are recorded', function (): v
         ->and($state->substitutionsTeamA)->toBe(1)
         ->and($state->substitutionsTeamB)->toBe(0)
         ->and($state->servingTeam)->toBe(TeamAB::TeamB)
-        ->and($state->rotationTeamA[1])->toBe($homePlayers->last()->getKey())
-        ->and($state->rotationTeamB[1])->toBe($awayPlayers[1]->getKey());
+        ->and($state->rotationTeamA[1])->toBe(7)
+        ->and($state->rotationTeamB[1])->toBe(2);
 });
 
 test('recalculation job rebuilds snapshots from scratch up to a cutoff time', function (): void {

@@ -70,6 +70,19 @@ test('team roster resolves team a players from toss assignment', function (): vo
     ]);
 });
 
+test('team roster can render after a second Livewire request', function (): void {
+    $game = gameWithNumberedRostersForTeamRoster();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+    ])
+        ->assertSee('Team A')
+        ->call('$refresh')
+        ->assertSee('Team A');
+});
+
 function gameWithNumberedRostersForTeamRoster(): Game
 {
     $homeTeam = Team::factory()->create();
