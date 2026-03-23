@@ -34,3 +34,43 @@ test('game component uses the passed game id instead of the latest game', functi
         ->assertSet('gameId', $targetGame->getKey())
         ->assertSet('gameState.serving_team', TeamAB::TeamA->value);
 });
+
+test('game component renders sets and current set points for both teams', function (): void {
+    $game = GameModel::factory()->create();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    $game->recordSetStarted();
+
+    for ($index = 0; $index < 25; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+
+    $game->recordSetStarted();
+
+    for ($index = 0; $index < 7; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+
+    for ($index = 0; $index < 3; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamB);
+    }
+
+    Livewire::test(Game::class, ['game' => $game])
+        ->assertSet('gameState.sets_won_team_a', 1)
+        ->assertSet('gameState.sets_won_team_b', 0)
+        ->assertSet('gameState.score_team_a', 7)
+        ->assertSet('gameState.score_team_b', 3)
+        ->assertSee('Sets')
+        ->assertSee('Points')
+        ->assertSeeHtml('data-scoreboard-sets-team-a')
+        ->assertSeeHtml('data-scoreboard-sets-team-b')
+        ->assertSeeHtml('data-scoreboard-points-team-a')
+        ->assertSeeHtml('data-scoreboard-points-team-b')
+        ->assertSeeInOrder([
+            'Sets',
+            '1',
+            '0',
+            'Points',
+            '7',
+            '3',
+        ]);
+});
