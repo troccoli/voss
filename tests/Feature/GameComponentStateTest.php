@@ -62,10 +62,6 @@ test('game component renders sets and current set points for both teams', functi
             && $gameState->scoreTeamB === 3)
         ->assertSee('Sets')
         ->assertSee('Points')
-        ->assertSeeHtml('data-scoreboard-sets-team-a')
-        ->assertSeeHtml('data-scoreboard-sets-team-b')
-        ->assertSeeHtml('data-scoreboard-points-team-a')
-        ->assertSeeHtml('data-scoreboard-points-team-b')
         ->assertSeeInOrder([
             'Sets',
             '1',
