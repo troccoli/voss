@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Data\GameState\GameState;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Livewire\Court;
@@ -16,7 +17,7 @@ uses(RefreshDatabase::class);
 test('court shows team a on the left and team b on the right before toss', function (): void {
     $game = gameWithNumberedRosters();
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => ['set_number' => 0]])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 0])])
         ->assertSeeInOrder([
             'Team A',
             'Anderson 3',
@@ -37,7 +38,7 @@ test('court swaps team sides in sets two three and four', function (): void {
     $game = gameWithNumberedRosters();
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => ['set_number' => 2]])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 2])])
         ->assertSeeInOrder([
             'Team B',
             'Baker 2',
@@ -47,7 +48,7 @@ test('court swaps team sides in sets two three and four', function (): void {
             '12 Zephyr',
         ]);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => ['set_number' => 3]])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 3])])
         ->assertSeeInOrder([
             'Team A',
             'Anderson 3',
@@ -57,7 +58,7 @@ test('court swaps team sides in sets two three and four', function (): void {
             '9 Young',
         ]);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => ['set_number' => 4]])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 4])])
         ->assertSeeInOrder([
             'Team B',
             'Baker 2',
@@ -108,7 +109,7 @@ test('court alternates left and right rosters from set one to set four', functio
     ];
 
     foreach ($setExpectations as $setNumber => $expectedVisibleText) {
-        Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => ['set_number' => $setNumber]])
+        Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => $setNumber])])
             ->assertSeeInOrder($expectedVisibleText);
     }
 });
@@ -117,7 +118,7 @@ test('court uses toss assignment for first and fifth set side labels', function 
     $game = gameWithNumberedRosters();
     $game->recordToss(TeamSide::Away, TeamAB::TeamA);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => ['set_number' => 1]])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 1])])
         ->assertSeeInOrder([
             'Team B',
             'Anderson 3',
@@ -127,7 +128,7 @@ test('court uses toss assignment for first and fifth set side labels', function 
             '9 Young',
         ]);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => ['set_number' => 5]])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 5])])
         ->assertSeeInOrder([
             'Team B',
             'Anderson 3',
@@ -144,11 +145,11 @@ test('court shows lineup position one as bottom left for the left side and top r
 
     Livewire::test(Court::class, [
         'gameId' => $game->getKey(),
-        'gameState' => [
+        'gameState' => gameState([
             'set_number' => 1,
             'rotation_team_a' => [1 => 12],
             'rotation_team_b' => [1 => 9],
-        ],
+        ]),
     ])
         ->assertSeeHtml('data-court-marker="left-team_a-1"')
         ->assertSeeHtml('data-court-marker="right-team_b-1"')
@@ -162,11 +163,11 @@ test('court position one anchors follow the side after team swap', function (): 
 
     Livewire::test(Court::class, [
         'gameId' => $game->getKey(),
-        'gameState' => [
+        'gameState' => gameState([
             'set_number' => 2,
             'rotation_team_a' => [1 => 12],
             'rotation_team_b' => [1 => 9],
-        ],
+        ]),
     ])
         ->assertSeeHtml('data-court-marker="left-team_b-1"')
         ->assertSeeHtml('data-court-marker="right-team_a-1"')
@@ -196,4 +197,12 @@ function gameWithNumberedRosters(): Game
     $game->addPlayer($awayLibero, number: 20, isLibero: true);
 
     return $game;
+}
+
+/**
+ * @param  array<string, mixed>  $attributes
+ */
+function gameState(array $attributes): GameState
+{
+    return GameState::fromAttributes($attributes);
 }

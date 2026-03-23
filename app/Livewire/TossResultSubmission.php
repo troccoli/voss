@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
@@ -23,21 +24,16 @@ class TossResultSubmission extends Component
     #[Locked]
     public ?int $gameId = null;
 
-    /** @var array<string, mixed> */
     #[Reactive]
-    public array $gameState = [];
+    public ?GameState $gameState = null;
 
     public string $teamA = TeamSide::Home->value;
 
     public string $serving = TeamAB::TeamA->value;
 
-    /**
-     * @param  array<string, mixed>  $gameState
-     */
-    public function mount(?int $gameId = null, array $gameState = []): void
+    public function mount(?int $gameId = null): void
     {
         $this->gameId = $gameId;
-        $this->gameState = $gameState;
     }
 
     /**

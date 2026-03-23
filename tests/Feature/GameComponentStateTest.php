@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Data\GameState\GameState;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Livewire\Game;
@@ -17,10 +18,10 @@ test('game component hydrates state from the passed game', function (): void {
 
     Livewire::test(Game::class, ['game' => $game])
         ->assertSet('gameId', $game->getKey())
-        ->assertSet('gameState.serving_team', TeamAB::TeamB->value)
-        ->assertSet('gameState.set_number', 0)
-        ->assertSet('gameState.rotation_team_a', [])
-        ->assertSet('gameState.rotation_team_b', []);
+        ->assertSet('gameState', fn (GameState $gameState): bool => $gameState->servingTeam === TeamAB::TeamB
+            && $gameState->setNumber === 0
+            && $gameState->rotationTeamA === []
+            && $gameState->rotationTeamB === []);
 });
 
 test('game component uses the passed game id instead of the latest game', function (): void {
@@ -32,7 +33,7 @@ test('game component uses the passed game id instead of the latest game', functi
 
     Livewire::test(Game::class, ['game' => $targetGame])
         ->assertSet('gameId', $targetGame->getKey())
-        ->assertSet('gameState.serving_team', TeamAB::TeamA->value);
+        ->assertSet('gameState', fn (GameState $gameState): bool => $gameState->servingTeam === TeamAB::TeamA);
 });
 
 test('game component renders sets and current set points for both teams', function (): void {
@@ -55,10 +56,10 @@ test('game component renders sets and current set points for both teams', functi
     }
 
     Livewire::test(Game::class, ['game' => $game])
-        ->assertSet('gameState.sets_won_team_a', 1)
-        ->assertSet('gameState.sets_won_team_b', 0)
-        ->assertSet('gameState.score_team_a', 7)
-        ->assertSet('gameState.score_team_b', 3)
+        ->assertSet('gameState', fn (GameState $gameState): bool => $gameState->setsWonTeamA === 1
+            && $gameState->setsWonTeamB === 0
+            && $gameState->scoreTeamA === 7
+            && $gameState->scoreTeamB === 3)
         ->assertSee('Sets')
         ->assertSee('Points')
         ->assertSeeHtml('data-scoreboard-sets-team-a')

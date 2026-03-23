@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
@@ -19,17 +20,12 @@ class Court extends Component
     #[Reactive]
     public ?int $gameId = null;
 
-    /** @var array<string, mixed> */
     #[Reactive]
-    public array $gameState = [];
+    public ?GameState $gameState = null;
 
-    /**
-     * @param  array<string, mixed>  $gameState
-     */
-    public function mount(?int $gameId = null, array $gameState = []): void
+    public function mount(?int $gameId = null): void
     {
         $this->gameId = $gameId;
-        $this->gameState = $gameState;
     }
 
     public function render(): View
@@ -103,9 +99,7 @@ class Court extends Component
 
     private function setNumber(): int
     {
-        $setNumber = $this->gameState['set_number'] ?? 0;
-
-        return is_int($setNumber) ? $setNumber : 0;
+        return $this->resolvedGameState()->setNumber;
     }
 
     private function latestTossPayload(Game $game): ?TossCompletedPayload
@@ -130,32 +124,13 @@ class Court extends Component
      */
     private function rotationForTeam(TeamAB $team): array
     {
-        $key = $team === TeamAB::TeamA ? 'rotation_team_a' : 'rotation_team_b';
-        $rotation = $this->gameState[$key] ?? [];
+        return $team === TeamAB::TeamA
+            ? $this->resolvedGameState()->rotationTeamA
+            : $this->resolvedGameState()->rotationTeamB;
+    }
 
-        if (! is_array($rotation)) {
-            return [];
-        }
-
-        $normalizedRotation = [];
-
-        foreach ($rotation as $position => $number) {
-            if (! is_numeric((string) $position) || ! is_numeric((string) $number)) {
-                continue;
-            }
-
-            $normalizedPosition = (int) $position;
-            $normalizedNumber = (int) $number;
-
-            if ($normalizedPosition < 1 || $normalizedPosition > 6 || $normalizedNumber <= 0) {
-                continue;
-            }
-
-            $normalizedRotation[$normalizedPosition] = $normalizedNumber;
-        }
-
-        ksort($normalizedRotation);
-
-        return $normalizedRotation;
+    private function resolvedGameState(): GameState
+    {
+        return $this->gameState ?? GameState::initial();
     }
 }

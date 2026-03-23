@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
@@ -174,14 +175,14 @@ test('lineup submission is aware of the injected game context', function (): voi
     Livewire::test(LineupSubmission::class, [
         'team' => TeamAB::TeamA,
         'gameId' => $game->getKey(),
-        'gameState' => [
+        'gameState' => GameState::fromAttributes([
             'set_number' => 2,
             'serving_team' => TeamAB::TeamB->value,
-        ],
+        ]),
     ])
         ->assertSet('gameId', $game->getKey())
-        ->assertSet('gameState.set_number', 2)
-        ->assertSet('gameState.serving_team', TeamAB::TeamB->value);
+        ->assertSet('gameState', fn (GameState $gameState): bool => $gameState->setNumber === 2
+            && $gameState->servingTeam === TeamAB::TeamB);
 });
 
 test('lineup submission button is hidden after the lineup is already submitted for the same team and upcoming set', function (): void {
@@ -191,7 +192,7 @@ test('lineup submission button is hidden after the lineup is already submitted f
     Livewire::test(LineupSubmission::class, [
         'team' => TeamAB::TeamA,
         'gameId' => $game->getKey(),
-        'gameState' => $game->stateAt()->toAttributes(),
+        'gameState' => $game->stateAt(),
     ])
         ->assertDontSee('Submit Lineup')
         ->assertDontSee('Team A Lineup');
@@ -204,7 +205,7 @@ test('lineup submission button remains visible for the other team when only one 
     Livewire::test(LineupSubmission::class, [
         'team' => TeamAB::TeamB,
         'gameId' => $game->getKey(),
-        'gameState' => $game->stateAt()->toAttributes(),
+        'gameState' => $game->stateAt(),
     ])
         ->assertSee('Submit Lineup')
         ->assertSee('Team B Lineup');

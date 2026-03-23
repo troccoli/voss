@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Data\GameState\GameState;
 use App\Models\Game as GameModel;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
@@ -13,8 +14,7 @@ class Game extends Component
 {
     public int $gameId;
 
-    /** @var array<string, mixed> */
-    public array $gameState = [];
+    public GameState $gameState;
 
     public function mount(GameModel $game): void
     {
@@ -26,9 +26,7 @@ class Game extends Component
     public function synchronizeGameContext(): void
     {
         $game = GameModel::query()->findSole($this->gameId);
-        $state = $game->stateAt();
-
-        $this->gameState = $state->toAttributes();
+        $this->gameState = $game->stateAt();
     }
 
     public function render(): View

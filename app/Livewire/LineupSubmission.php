@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
@@ -27,23 +28,18 @@ class LineupSubmission extends Component
 
     public TeamAB $team = TeamAB::TeamA;
 
-    /** @var array<string, mixed> */
     #[Reactive]
-    public array $gameState = [];
+    public ?GameState $gameState = null;
 
     /** @var array<int, string> */
     public array $lineup = [];
 
-    /**
-     * @param  array<string, mixed>  $gameState
-     */
-    public function mount(TeamAB $team, ?int $gameId = null, array $gameState = []): void
+    public function mount(TeamAB $team, ?int $gameId = null): void
     {
         abort_if(is_null($gameId), 404);
 
         $this->team = $team;
         $this->gameId = $gameId;
-        $this->gameState = $gameState;
         $this->lineup = $this->defaultLineup();
     }
 
@@ -242,27 +238,22 @@ class LineupSubmission extends Component
 
     private function currentSetNumber(): int
     {
-        $setNumber = $this->gameState['set_number'] ?? 0;
-
-        if (is_int($setNumber)) {
-            return $setNumber;
-        }
-
-        return is_numeric($setNumber) ? (int) $setNumber : 0;
+        return $this->resolvedGameState()->setNumber;
     }
 
     private function isSetInProgress(): bool
     {
-        $setInProgress = $this->gameState['set_in_progress'] ?? false;
-
-        return (bool) $setInProgress;
+        return $this->resolvedGameState()->setInProgress;
     }
 
     private function isGameEnded(): bool
     {
-        $gameEnded = $this->gameState['game_ended'] ?? false;
+        return $this->resolvedGameState()->gameEnded;
+    }
 
-        return (bool) $gameEnded;
+    private function resolvedGameState(): GameState
+    {
+        return $this->gameState ?? GameState::initial();
     }
 
     /**
