@@ -1,4 +1,4 @@
-<div class="grid grid-cols-1 justify-items-center">
+<div class="grid h-full w-full grid-cols-1 content-center justify-items-center">
     @php
         $leftCourtPositionClasses = [
             1 => 'left-[12%] bottom-[14%]',

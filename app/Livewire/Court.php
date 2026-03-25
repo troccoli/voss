@@ -52,11 +52,7 @@ class Court extends Component
             'rightRotation' => $this->rotationForTeam(TeamAB::TeamB),
         ];
 
-        if ($this->gameId === null) {
-            return $defaultContext;
-        }
-
-        $game = Game::query()->find($this->gameId);
+        $game = $this->gameId === null ? null : Game::query()->find($this->gameId);
 
         if ($game === null) {
             return $defaultContext;
