@@ -37,6 +37,7 @@ class Court extends Component
      * @return array{
      *     leftTeam: TeamAB,
      *     rightTeam: TeamAB,
+     *     servingTeam: TeamAB|null,
      *     leftRotation: array<int, int>,
      *     rightRotation: array<int, int>
      * }
@@ -46,6 +47,7 @@ class Court extends Component
         $defaultContext = [
             'leftTeam' => TeamAB::TeamA,
             'rightTeam' => TeamAB::TeamB,
+            'servingTeam' => $this->resolvedGameState()->servingTeam,
             'leftRotation' => $this->rotationForTeam(TeamAB::TeamA),
             'rightRotation' => $this->rotationForTeam(TeamAB::TeamB),
         ];
@@ -67,6 +69,7 @@ class Court extends Component
         return [
             'leftTeam' => TeamAB::TeamB,
             'rightTeam' => TeamAB::TeamA,
+            'servingTeam' => $this->resolvedGameState()->servingTeam,
             'leftRotation' => $this->rotationForTeam(TeamAB::TeamB),
             'rightRotation' => $this->rotationForTeam(TeamAB::TeamA),
         ];

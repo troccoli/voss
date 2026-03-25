@@ -125,10 +125,7 @@ class GameState implements Wireable
         return $this->toAttributes();
     }
 
-    /**
-     * @param  mixed  $value
-     */
-    public static function fromLivewire($value): self
+    public static function fromLivewire(mixed $value): self
     {
         return is_array($value) ? self::fromAttributes($value) : self::initial();
     }

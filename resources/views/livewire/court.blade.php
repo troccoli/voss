@@ -1,4 +1,4 @@
-<div class="grid grid-cols-1">
+<div class="grid grid-cols-1 justify-items-center">
     @php
         $leftCourtPositionClasses = [
             1 => 'left-[12%] bottom-[14%]',
@@ -18,11 +18,19 @@
             6 => 'right-[12%] top-1/2 -translate-y-1/2',
         ];
 
+        $leftOutsidePositionClasses = [
+            1 => '-left-10 bottom-[14%]',
+        ];
+
+        $rightOutsidePositionClasses = [
+            1 => '-right-10 top-[14%]',
+        ];
+
         $leftMarkerTone = $leftTeam === \App\Enums\TeamAB::TeamA ? 'bg-blue-600' : 'bg-red-600';
         $rightMarkerTone = $rightTeam === \App\Enums\TeamAB::TeamA ? 'bg-blue-600' : 'bg-red-600';
     @endphp
 
-    <div class="flex w-[920px] items-start justify-between gap-4">
+    <div class="flex items-start gap-16">
         <livewire:team-roster
             :game-id="$gameId"
             :team="$leftTeam"
@@ -41,24 +49,38 @@
             <div class="absolute inset-y-[4px] left-2/3 w-[2px] -translate-x-1/2 bg-white"></div>
 
             @foreach ($leftRotation as $position => $number)
+                @php
+                    $isServingPlayer = $position === 1 && $servingTeam === $leftTeam;
+                    $markerPositionClass = $isServingPlayer
+                        ? ($leftOutsidePositionClasses[$position] ?? $leftCourtPositionClasses[$position] ?? '')
+                        : ($leftCourtPositionClasses[$position] ?? '');
+                @endphp
                 <div
                     data-court-marker="left-{{ $leftTeam->value }}-{{ $position }}"
                     data-court-side="left"
                     data-court-position="{{ $position }}"
                     data-court-team="{{ $leftTeam->value }}"
-                    class="absolute {{ $leftCourtPositionClasses[$position] ?? '' }} flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-sm font-semibold text-white shadow {{ $leftMarkerTone }}"
+                    data-court-serving-player="{{ (int) $isServingPlayer }}"
+                    class="absolute {{ $markerPositionClass }} flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-sm font-semibold text-white shadow {{ $leftMarkerTone }}"
                 >
                     {{ $number }}
                 </div>
             @endforeach
 
             @foreach ($rightRotation as $position => $number)
+                @php
+                    $isServingPlayer = $position === 1 && $servingTeam === $rightTeam;
+                    $markerPositionClass = $isServingPlayer
+                        ? ($rightOutsidePositionClasses[$position] ?? $rightCourtPositionClasses[$position] ?? '')
+                        : ($rightCourtPositionClasses[$position] ?? '');
+                @endphp
                 <div
                     data-court-marker="right-{{ $rightTeam->value }}-{{ $position }}"
                     data-court-side="right"
                     data-court-position="{{ $position }}"
                     data-court-team="{{ $rightTeam->value }}"
-                    class="absolute {{ $rightCourtPositionClasses[$position] ?? '' }} flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-sm font-semibold text-white shadow {{ $rightMarkerTone }}"
+                    data-court-serving-player="{{ (int) $isServingPlayer }}"
+                    class="absolute {{ $markerPositionClass }} flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-sm font-semibold text-white shadow {{ $rightMarkerTone }}"
                 >
                     {{ $number }}
                 </div>
@@ -72,6 +94,7 @@
             :key="'team-roster-right'"
         />
     </div>
+
     <div class="flex w-[530px] mt-4 mx-auto justify-between">
         <livewire:lineup-submission
             :team="\App\Enums\TeamAB::TeamA"
@@ -82,6 +105,7 @@
             :team="\App\Enums\TeamAB::TeamB"
             :game-id="$gameId"
             :game-state="$gameState"
-            :key="'lineup-submission-team-b'" />
+            :key="'lineup-submission-team-b'"
+        />
     </div>
 </div>
