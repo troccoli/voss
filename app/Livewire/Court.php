@@ -7,7 +7,6 @@ namespace App\Livewire;
 use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
-use App\Enums\TeamSide;
 use App\Events\Payloads\TossCompletedPayload;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
@@ -76,6 +75,7 @@ class Court extends Component
      *     leftTeam: TeamAB,
      *     rightTeam: TeamAB,
      *     servingTeam: TeamAB|null,
+     *     showRosters: bool,
      *     canRecordRallyWinner: bool,
      *     leftRotation: array<int, int>,
      *     rightRotation: array<int, int>
@@ -85,11 +85,13 @@ class Court extends Component
     {
         $game = $this->activeGame();
         $canRecordRallyWinner = $this->canRecordRallyWinner($game);
+        $showRosters = $game !== null && $this->latestTossPayload($game) !== null;
 
         $defaultContext = [
             'leftTeam' => TeamAB::TeamA,
             'rightTeam' => TeamAB::TeamB,
             'servingTeam' => $this->resolvedGameState()->servingTeam,
+            'showRosters' => $showRosters,
             'canRecordRallyWinner' => $canRecordRallyWinner,
             'leftRotation' => $this->rotationForTeam(TeamAB::TeamA),
             'rightRotation' => $this->rotationForTeam(TeamAB::TeamB),
@@ -99,7 +101,7 @@ class Court extends Component
             return $defaultContext;
         }
 
-        if ($this->isTeamAOnLeft($game)) {
+        if ($this->isTeamAOnLeft()) {
             return $defaultContext;
         }
 
@@ -107,46 +109,25 @@ class Court extends Component
             'leftTeam' => TeamAB::TeamB,
             'rightTeam' => TeamAB::TeamA,
             'servingTeam' => $this->resolvedGameState()->servingTeam,
+            'showRosters' => $showRosters,
             'canRecordRallyWinner' => $canRecordRallyWinner,
             'leftRotation' => $this->rotationForTeam(TeamAB::TeamB),
             'rightRotation' => $this->rotationForTeam(TeamAB::TeamA),
         ];
     }
 
-    private function isTeamAOnLeft(Game $game): bool
+    private function isTeamAOnLeft(): bool
     {
-        $baseTeamAOnLeft = $this->teamASideForTossSets($game) === TeamSide::Home;
-        $setNumber = $this->setNumber();
+        $completedSets = $this->completedSetCount();
 
-        if ($setNumber >= 2 && $setNumber <= 4) {
-            return $setNumber % 2 === 1
-                ? $baseTeamAOnLeft
-                : ! $baseTeamAOnLeft;
-        }
-
-        return $baseTeamAOnLeft;
-    }
-
-    private function teamASideForTossSets(Game $game): TeamSide
-    {
-        $tossPayload = $this->latestTossPayload($game);
-
-        if ($tossPayload === null) {
-            return TeamSide::Home;
-        }
-
-        return $tossPayload->teamA;
-    }
-
-    private function setNumber(): int
-    {
-        return $this->resolvedGameState()->setNumber;
+        return $completedSets % 2 === 0;
     }
 
     private function latestTossPayload(Game $game): ?TossCompletedPayload
     {
         /** @var GameEvent|null $tossEvent */
         $tossEvent = $game->events()
+            ->reorder()
             ->where('type', GameEventType::TossCompleted)
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -173,6 +154,13 @@ class Court extends Component
     private function resolvedGameState(): GameState
     {
         return $this->gameState ?? GameState::initial();
+    }
+
+    private function completedSetCount(): int
+    {
+        $state = $this->resolvedGameState();
+
+        return $state->setsWonTeamA + $state->setsWonTeamB;
     }
 
     private function canRecordRallyWinner(?Game $activeGame = null): bool

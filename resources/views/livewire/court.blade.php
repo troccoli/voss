@@ -31,12 +31,16 @@
     @endphp
 
     <div class="flex items-start gap-16">
-        <livewire:team-roster
-            :game-id="$gameId"
-            :team="$leftTeam"
-            :left-side="true"
-            :key="'team-roster-left'"
-        />
+        @if ($showRosters)
+            <livewire:team-roster
+                :game-id="$gameId"
+                :team="$leftTeam"
+                :left-side="true"
+                :key="'team-roster-left'"
+            />
+        @else
+            <div class="w-[160px]"></div>
+        @endif
 
         <div class="flex flex-col items-center">
             <section
@@ -119,12 +123,16 @@
             @enderror
         </div>
 
-        <livewire:team-roster
-            :game-id="$gameId"
-            :team="$rightTeam"
-            :left-side="false"
-            :key="'team-roster-right'"
-        />
+        @if ($showRosters)
+            <livewire:team-roster
+                :game-id="$gameId"
+                :team="$rightTeam"
+                :left-side="false"
+                :key="'team-roster-right'"
+            />
+        @else
+            <div class="w-[160px]"></div>
+        @endif
     </div>
 
     <div class="flex w-[530px] mt-4 mx-auto justify-between">

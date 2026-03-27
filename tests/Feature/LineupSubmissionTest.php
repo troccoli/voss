@@ -71,8 +71,16 @@ function prepareGameForLineupSubmission(): Game
     return $game;
 }
 
-test('lineup submission renders team a button and modal', function (): void {
+test('lineup submission is hidden before toss is submitted', function (): void {
     $game = Game::factory()->create();
+
+    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA, 'gameId' => $game->getKey()])
+        ->assertDontSee('Submit Lineup')
+        ->assertDontSee('Team A Lineup');
+});
+
+test('lineup submission renders team a button and modal after toss is submitted', function (): void {
+    $game = prepareGameForLineupSubmission();
 
     Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA, 'gameId' => $game->getKey()])
         ->assertSee('Submit Lineup')
@@ -83,8 +91,8 @@ test('lineup submission renders team a button and modal', function (): void {
         ->assertSee('Submit');
 });
 
-test('lineup submission renders team b button and modal', function (): void {
-    $game = Game::factory()->create();
+test('lineup submission renders team b button and modal after toss is submitted', function (): void {
+    $game = prepareGameForLineupSubmission();
 
     Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamB, 'gameId' => $game->getKey()])
         ->assertSee('Submit Lineup')

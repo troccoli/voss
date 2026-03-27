@@ -16,10 +16,28 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-test('court shows team a on the left and team b on the right before toss', function (): void {
+test('court does not show player lists before toss is submitted', function (): void {
     $game = gameWithNumberedRosters();
 
     Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 0])])
+        ->assertDontSee('Submit Lineup')
+        ->assertDontSee('Anderson 3')
+        ->assertDontSee('Zephyr 12')
+        ->assertDontSee('2 Baker')
+        ->assertDontSee('9 Young')
+        ->assertDontSee('1 Libero')
+        ->assertDontSee('20 Keeper')
+        ->assertDontSee('Anna')
+        ->assertDontSee('Beth')
+        ->assertDontSee('Dora')
+        ->assertDontSee('Etta');
+});
+
+test('court shows player lists after toss is submitted', function (): void {
+    $game = gameWithNumberedRosters();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 1])])
         ->assertSeeInOrder([
             'Team A',
             'Anderson 3',
@@ -28,6 +46,7 @@ test('court shows team a on the left and team b on the right before toss', funct
             '2 Baker',
             '9 Young',
         ])
+        ->assertSee('Submit Lineup')
         ->assertDontSee('1 Libero')
         ->assertDontSee('20 Keeper')
         ->assertDontSee('Anna')
@@ -40,7 +59,7 @@ test('court swaps team sides in sets two three and four', function (): void {
     $game = gameWithNumberedRosters();
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 2])])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 2, 'sets_won_team_a' => 1])])
         ->assertSeeInOrder([
             'Team B',
             'Baker 2',
@@ -50,7 +69,7 @@ test('court swaps team sides in sets two three and four', function (): void {
             '12 Zephyr',
         ]);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 3])])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 3, 'sets_won_team_a' => 1, 'sets_won_team_b' => 1])])
         ->assertSeeInOrder([
             'Team A',
             'Anderson 3',
@@ -60,7 +79,7 @@ test('court swaps team sides in sets two three and four', function (): void {
             '9 Young',
         ]);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 4])])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 4, 'sets_won_team_a' => 2, 'sets_won_team_b' => 1])])
         ->assertSeeInOrder([
             'Team B',
             'Baker 2',
@@ -76,68 +95,74 @@ test('court alternates left and right rosters from set one to set four', functio
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     $setExpectations = [
-        1 => [
+        1 => ['set_number' => 1, 'sets_won_team_a' => 0, 'sets_won_team_b' => 0, 'expected' => [
             'Team A',
             'Anderson 3',
             'Zephyr 12',
             'Team B',
             '2 Baker',
             '9 Young',
-        ],
-        2 => [
+        ]],
+        2 => ['set_number' => 2, 'sets_won_team_a' => 1, 'sets_won_team_b' => 0, 'expected' => [
             'Team B',
             'Baker 2',
             'Young 9',
             'Team A',
             '3 Anderson',
             '12 Zephyr',
-        ],
-        3 => [
+        ]],
+        3 => ['set_number' => 3, 'sets_won_team_a' => 1, 'sets_won_team_b' => 1, 'expected' => [
             'Team A',
             'Anderson 3',
             'Zephyr 12',
             'Team B',
             '2 Baker',
             '9 Young',
-        ],
-        4 => [
+        ]],
+        4 => ['set_number' => 4, 'sets_won_team_a' => 2, 'sets_won_team_b' => 1, 'expected' => [
             'Team B',
             'Baker 2',
             'Young 9',
             'Team A',
             '3 Anderson',
             '12 Zephyr',
-        ],
+        ]],
     ];
 
-    foreach ($setExpectations as $setNumber => $expectedVisibleText) {
-        Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => $setNumber])])
-            ->assertSeeInOrder($expectedVisibleText);
+    foreach ($setExpectations as $state) {
+        Livewire::test(Court::class, [
+            'gameId' => $game->getKey(),
+            'gameState' => gameState([
+                'set_number' => $state['set_number'],
+                'sets_won_team_a' => $state['sets_won_team_a'],
+                'sets_won_team_b' => $state['sets_won_team_b'],
+            ]),
+        ])->assertSeeInOrder($state['expected']);
     }
 });
 
-test('court uses toss assignment for first and fifth set side labels', function (): void {
+test('court keeps team a on the left in first and fifth sets regardless of toss side assignment', function (): void {
     $game = gameWithNumberedRosters();
     $game->recordToss(TeamSide::Away, TeamAB::TeamA);
 
     Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 1])])
         ->assertSeeInOrder([
-            'Team B',
-            'Anderson 3',
-            'Zephyr 12',
             'Team A',
-            '2 Baker',
-            '9 Young',
+            'Baker 2',
+            'Young 9',
+            'Team B',
+            '3 Anderson',
+            '12 Zephyr',
         ]);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 5])])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 5, 'sets_won_team_a' => 2, 'sets_won_team_b' => 2])])
         ->assertSeeInOrder([
-            'Team B',
-            'Anderson 3',
-            'Zephyr 12',
             'Team A',
-            '2 Baker',
-            '9 Young',
+            'Baker 2',
+            'Young 9',
+            'Team B',
+            '3 Anderson',
+            '12 Zephyr',
         ]);
 });
 
@@ -167,6 +192,7 @@ test('court position one anchors follow the side after team swap', function (): 
         'gameId' => $game->getKey(),
         'gameState' => gameState([
             'set_number' => 2,
+            'sets_won_team_a' => 1,
             'rotation_team_a' => [1 => 12],
             'rotation_team_b' => [1 => 9],
         ]),
@@ -205,6 +231,7 @@ test('court shows serving team position one outside the court after side swap', 
         'gameId' => $game->getKey(),
         'gameState' => gameState([
             'set_number' => 2,
+            'sets_won_team_a' => 1,
             'serving_team' => TeamAB::TeamA->value,
             'rotation_team_a' => [1 => 12],
             'rotation_team_b' => [1 => 9],
@@ -215,6 +242,28 @@ test('court shows serving team position one outside the court after side swap', 
         ->assertSeeHtml('-right-10 top-[14%]')
         ->assertSeeHtml('data-court-marker="left-team_b-1"')
         ->assertSeeHtml('left-[12%] bottom-[14%]');
+});
+
+test('court swaps sides as soon as a set ends before the next set starts', function (): void {
+    $game = gameWithNumberedRosters();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState([
+            'set_number' => 1,
+            'sets_won_team_a' => 1,
+            'set_in_progress' => false,
+        ]),
+    ])
+        ->assertSeeInOrder([
+            'Team B',
+            'Baker 2',
+            'Young 9',
+            'Team A',
+            '3 Anderson',
+            '12 Zephyr',
+        ]);
 });
 
 test('court shows rally winner buttons only while a set is in progress', function (): void {

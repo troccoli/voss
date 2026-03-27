@@ -11,13 +11,10 @@ use App\Models\Player;
 use App\Models\Team;
 use App\Services\CacheRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
-test('players for side are cached per game and side', function (): void {
-    Cache::flush();
-
+test('players for side returns non-libero players for each side', function (): void {
     $game = gameWithNumberedRostersForCacheRepository();
     $repository = app(CacheRepository::class);
 
@@ -27,31 +24,25 @@ test('players for side are cached per game and side', function (): void {
     expect(collect($homePlayers)->pluck('number')->all())->toBe([3, 12])
         ->and(collect($homePlayers)->pluck('last_name')->all())->toBe(['Anderson', 'Zephyr'])
         ->and(collect($awayPlayers)->pluck('number')->all())->toBe([2, 9])
-        ->and(collect($awayPlayers)->pluck('last_name')->all())->toBe(['Baker', 'Young'])
-        ->and(Cache::has(sprintf('game:%d:roster:players-for-side:%s', $game->getKey(), TeamSide::Home->value)))->toBeTrue()
-        ->and(Cache::has(sprintf('game:%d:roster:players-for-side:%s', $game->getKey(), TeamSide::Away->value)))->toBeTrue();
+        ->and(collect($awayPlayers)->pluck('last_name')->all())->toBe(['Baker', 'Young']);
 });
 
-test('players for side reuses cached value for repeated reads', function (): void {
-    Cache::flush();
-
+test('players for side reflects roster changes on repeated reads', function (): void {
     $game = gameWithNumberedRostersForCacheRepository();
     $repository = app(CacheRepository::class);
 
-    $cachedPlayers = $repository->playersForSide($game, TeamSide::Home);
+    $playersBeforeRosterChange = $repository->playersForSide($game, TeamSide::Home);
 
     $newHomePlayer = Player::factory()->for($game->homeTeam)->named('Nina', 'Newest')->create();
     $game->addPlayer($newHomePlayer, number: 8);
 
     $playersAfterRosterChange = $repository->playersForSide($game, TeamSide::Home);
 
-    expect($playersAfterRosterChange)->toBe($cachedPlayers)
-        ->and(collect($playersAfterRosterChange)->pluck('player_key')->all())->not->toContain($newHomePlayer->getKey());
+    expect(collect($playersBeforeRosterChange)->pluck('player_key')->all())->not->toContain($newHomePlayer->getKey())
+        ->and(collect($playersAfterRosterChange)->pluck('player_key')->all())->toContain($newHomePlayer->getKey());
 });
 
-test('latest toss payload is cached with a game specific key', function (): void {
-    Cache::flush();
-
+test('latest toss payload returns the recorded toss payload', function (): void {
     $game = gameWithNumberedRostersForCacheRepository();
     $game->recordToss(TeamSide::Away, TeamAB::TeamB);
 
@@ -60,19 +51,16 @@ test('latest toss payload is cached with a game specific key', function (): void
 
     expect($payload)->not->toBeNull()
         ->and($payload?->teamA)->toBe(TeamSide::Away)
-        ->and($payload?->serving)->toBe(TeamAB::TeamB)
-        ->and(Cache::has(sprintf('game:%d:events:latest-toss-payload', $game->getKey())))->toBeTrue();
+        ->and($payload?->serving)->toBe(TeamAB::TeamB);
 });
 
-test('latest toss payload reuses cached value for repeated reads', function (): void {
-    Cache::flush();
-
+test('latest toss payload reflects new toss events on repeated reads', function (): void {
     $game = gameWithNumberedRostersForCacheRepository();
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     $repository = app(CacheRepository::class);
 
-    $cachedPayload = $repository->latestTossPayload($game);
+    $payloadBeforeSecondToss = $repository->latestTossPayload($game);
     $game->events()->create([
         'type' => GameEventType::TossCompleted,
         'payload' => new TossCompletedPayload(
@@ -83,11 +71,11 @@ test('latest toss payload reuses cached value for repeated reads', function (): 
 
     $payloadAfterRecordingToss = $repository->latestTossPayload($game);
 
-    expect($cachedPayload)->not->toBeNull()
-        ->and($cachedPayload?->teamA)->toBe(TeamSide::Home)
-        ->and($cachedPayload?->serving)->toBe(TeamAB::TeamA)
-        ->and($payloadAfterRecordingToss?->teamA)->toBe(TeamSide::Home)
-        ->and($payloadAfterRecordingToss?->serving)->toBe(TeamAB::TeamA);
+    expect($payloadBeforeSecondToss)->not->toBeNull()
+        ->and($payloadBeforeSecondToss?->teamA)->toBe(TeamSide::Home)
+        ->and($payloadBeforeSecondToss?->serving)->toBe(TeamAB::TeamA)
+        ->and($payloadAfterRecordingToss?->teamA)->toBe(TeamSide::Away)
+        ->and($payloadAfterRecordingToss?->serving)->toBe(TeamAB::TeamB);
 });
 
 function gameWithNumberedRostersForCacheRepository(): Game

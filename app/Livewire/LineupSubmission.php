@@ -14,6 +14,7 @@ use App\Models\Game;
 use App\Models\GameEvent;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
 use Livewire\Attributes\Locked;
@@ -148,6 +149,7 @@ class LineupSubmission extends Component
     {
         /** @var GameEvent|null $tossEvent */
         $tossEvent = $game->events()
+            ->reorder()
             ->where('type', GameEventType::TossCompleted)
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -209,6 +211,10 @@ class LineupSubmission extends Component
 
     private function canSubmitLineup(): bool
     {
+        if (! $this->hasSubmittedToss()) {
+            return false;
+        }
+
         if ($this->isSetInProgress() || $this->isGameEnded()) {
             return false;
         }
@@ -228,6 +234,14 @@ class LineupSubmission extends Component
             ->where('type', GameEventType::LineupSubmitted)
             ->where('payload->set', $this->upcomingSetNumber())
             ->where('payload->team', $this->team->value)
+            ->exists();
+    }
+
+    private function hasSubmittedToss(): bool
+    {
+        return Game::query()
+            ->whereKey($this->gameId)
+            ->whereHas('events', fn (Builder $query) => $query->where('type', GameEventType::TossCompleted))
             ->exists();
     }
 
