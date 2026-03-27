@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use App\Data\GameState\GameState;
+use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
+use App\Events\Payloads\RallyEndedPayload;
 use App\Livewire\Court;
 use App\Models\Game;
 use App\Models\Player;
@@ -215,6 +217,48 @@ test('court shows serving team position one outside the court after side swap', 
         ->assertSeeHtml('left-[12%] bottom-[14%]');
 });
 
+test('court shows rally winner buttons only while a set is in progress', function (): void {
+    $game = Game::factory()->create();
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState(['set_number' => 1, 'set_in_progress' => false]),
+    ])
+        ->assertDontSee('Winner')
+        ->assertDontSeeHtml('data-rally-winner-button="team_a"')
+        ->assertDontSeeHtml('data-rally-winner-button="team_b"');
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState(['set_number' => 1, 'set_in_progress' => true]),
+    ])
+        ->assertSee('Winner')
+        ->assertSeeHtml('data-rally-winner-button="team_a"')
+        ->assertSeeHtml('data-rally-winner-button="team_b"');
+});
+
+test('court records rally winner for the selected team and dispatches a refresh event', function (): void {
+    $game = gameWithStartedSet();
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->stateAt(),
+    ])
+        ->assertSee('Winner')
+        ->assertSeeHtml('data-rally-winner-button="team_a"')
+        ->assertSeeHtml('data-rally-winner-button="team_b"')
+        ->call('recordRallyWinner', TeamAB::TeamA->value)
+        ->assertHasNoErrors()
+        ->assertDispatched('game-event-recorded');
+
+    $latestEvent = $game->fresh()->events->last();
+
+    expect($latestEvent)->not->toBeNull()
+        ->and($latestEvent->type)->toBe(GameEventType::RallyEnded)
+        ->and($latestEvent->payload)->toBeInstanceOf(RallyEndedPayload::class)
+        ->and($latestEvent->payload->team)->toBe(TeamAB::TeamA);
+});
+
 function gameWithNumberedRosters(): Game
 {
     $homeTeam = Team::factory()->create();
@@ -235,6 +279,15 @@ function gameWithNumberedRosters(): Game
     $game->addPlayer($awayPlayerOne, number: 9);
     $game->addPlayer($awayPlayerTwo, number: 2);
     $game->addPlayer($awayLibero, number: 20, isLibero: true);
+
+    return $game;
+}
+
+function gameWithStartedSet(): Game
+{
+    $game = Game::factory()->create();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    $game->recordSetStarted();
 
     return $game;
 }
