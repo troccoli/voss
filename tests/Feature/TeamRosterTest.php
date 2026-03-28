@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Data\GameState\GameState;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Livewire\TeamRoster;
@@ -23,11 +24,12 @@ test('team roster shows fallback text when there are no players', function (): v
         'team' => TeamAB::TeamA,
         'leftSide' => true,
     ])
-        ->assertSee('Team A')
+        ->assertDontSee('Team A')
+        ->assertDontSee('Team B')
         ->assertSee('No players available.');
 });
 
-test('team roster renders team a on the left with last name before number', function (): void {
+test('team roster renders team a on the left with number markers only', function (): void {
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
@@ -35,13 +37,12 @@ test('team roster renders team a on the left with last name before number', func
         'team' => TeamAB::TeamA,
         'leftSide' => true,
     ])->assertSeeInOrder([
-        'Team A',
-        'Anderson 3',
-        'Zephyr 12',
+        '3',
+        '12',
     ]);
 });
 
-test('team roster renders team b on the right with number before last name', function (): void {
+test('team roster renders team b on the right with number markers only', function (): void {
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
@@ -49,9 +50,8 @@ test('team roster renders team b on the right with number before last name', fun
         'team' => TeamAB::TeamB,
         'leftSide' => false,
     ])->assertSeeInOrder([
-        'Team B',
-        '2 Baker',
-        '9 Young',
+        '2',
+        '9',
     ]);
 });
 
@@ -64,9 +64,8 @@ test('team roster resolves team a players from toss assignment', function (): vo
         'team' => TeamAB::TeamA,
         'leftSide' => true,
     ])->assertSeeInOrder([
-        'Team A',
-        'Baker 2',
-        'Young 9',
+        '2',
+        '9',
     ]);
 });
 
@@ -79,10 +78,26 @@ test('team roster resolves toss assignment immediately after toss submission', f
         'team' => TeamAB::TeamA,
         'leftSide' => true,
     ])->assertSeeInOrder([
-        'Team A',
-        'Baker 2',
-        'Young 9',
-    ])->assertDontSee('Anderson 3');
+        '2',
+        '9',
+    ])->assertDontSeeHtml('data-team-roster-number="3"');
+});
+
+test('team roster hides on-court players when lineup rotation exists', function (): void {
+    $game = gameWithNumberedRostersForTeamRoster();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => GameState::fromAttributes([
+            'rotation_team_a' => [
+                1 => 3,
+            ],
+        ]),
+    ])
+        ->assertDontSeeHtml('data-team-roster-number="3"')
+        ->assertSeeHtml('data-team-roster-number="12"');
 });
 
 test('team roster can render after a second Livewire request', function (): void {
@@ -93,9 +108,9 @@ test('team roster can render after a second Livewire request', function (): void
         'team' => TeamAB::TeamA,
         'leftSide' => true,
     ])
-        ->assertSee('Team A')
+        ->assertSeeHtml('data-team-roster-number="3"')
         ->call('$refresh')
-        ->assertSee('Team A');
+        ->assertSeeHtml('data-team-roster-number="3"');
 });
 
 function gameWithNumberedRostersForTeamRoster(): Game

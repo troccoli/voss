@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Data\GameState\GameState;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Models\Game;
@@ -25,6 +26,9 @@ class TeamRoster extends Component
     #[Reactive]
     public bool $leftSide = true;
 
+    #[Reactive]
+    public ?GameState $gameState = null;
+
     public function mount(
         ?int $gameId = null,
         TeamAB $team = TeamAB::TeamA,
@@ -40,11 +44,9 @@ class TeamRoster extends Component
     public function render(): View
     {
         return view('livewire.team-roster', [
-            'teamLabel' => $this->team->label(),
             'players' => $this->players(),
-            'numberFirst' => ! $this->leftSide,
-            'alignRight' => $this->leftSide,
             'keyPrefix' => $this->leftSide ? 'left-player' : 'right-player',
+            'markerTone' => $this->team === TeamAB::TeamA ? 'bg-blue-600' : 'bg-red-600',
         ]);
     }
 
@@ -63,7 +65,14 @@ class TeamRoster extends Component
             return [];
         }
 
-        return $this->playersForTeam($game, $this->team);
+        $players = $this->playersForTeam($game, $this->team);
+        $onCourtNumbers = $this->onCourtRosterNumbers($this->team);
+
+        if ($onCourtNumbers === []) {
+            return $players;
+        }
+
+        return array_values(array_filter($players, fn (array $player): bool => ! in_array($player['number'], $onCourtNumbers, true)));
     }
 
     /**
@@ -100,5 +109,17 @@ class TeamRoster extends Component
         return $side === TeamSide::Home
             ? TeamSide::Away
             : TeamSide::Home;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function onCourtRosterNumbers(TeamAB $team): array
+    {
+        $state = $this->gameState ?? GameState::initial();
+
+        return $team === TeamAB::TeamA
+            ? array_values($state->rotationTeamA)
+            : array_values($state->rotationTeamB);
     }
 }

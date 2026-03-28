@@ -21,10 +21,10 @@ test('court does not show player lists before toss is submitted', function (): v
 
     Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 0])])
         ->assertDontSee('Submit Lineup')
-        ->assertDontSee('Anderson 3')
-        ->assertDontSee('Zephyr 12')
-        ->assertDontSee('2 Baker')
-        ->assertDontSee('9 Young')
+        ->assertDontSeeHtml('data-team-roster-number="3"')
+        ->assertDontSeeHtml('data-team-roster-number="12"')
+        ->assertDontSeeHtml('data-team-roster-number="2"')
+        ->assertDontSeeHtml('data-team-roster-number="9"')
         ->assertDontSee('1 Libero')
         ->assertDontSee('20 Keeper')
         ->assertDontSee('Anna')
@@ -39,12 +39,10 @@ test('court shows player lists after toss is submitted', function (): void {
 
     Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 1])])
         ->assertSeeInOrder([
-            'Team A',
-            'Anderson 3',
-            'Zephyr 12',
-            'Team B',
-            '2 Baker',
-            '9 Young',
+            '3',
+            '12',
+            '2',
+            '9',
         ])
         ->assertSee('Submit Lineup')
         ->assertDontSee('1 Libero')
@@ -55,38 +53,50 @@ test('court shows player lists after toss is submitted', function (): void {
         ->assertDontSee('Etta');
 });
 
+test('court hides players currently on court from roster lists when lineup is present', function (): void {
+    $game = gameWithNumberedRosters();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState([
+            'set_number' => 1,
+            'rotation_team_a' => [1 => 3],
+            'rotation_team_b' => [1 => 2],
+        ]),
+    ])
+        ->assertDontSeeHtml('data-team-roster-number="3"')
+        ->assertSeeHtml('data-team-roster-number="12"')
+        ->assertDontSeeHtml('data-team-roster-number="2"')
+        ->assertSeeHtml('data-team-roster-number="9"');
+});
+
 test('court swaps team sides in sets two three and four', function (): void {
     $game = gameWithNumberedRosters();
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 2, 'sets_won_team_a' => 1])])
         ->assertSeeInOrder([
-            'Team B',
-            'Baker 2',
-            'Young 9',
-            'Team A',
-            '3 Anderson',
-            '12 Zephyr',
+            '2',
+            '9',
+            '3',
+            '12',
         ]);
 
     Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 3, 'sets_won_team_a' => 1, 'sets_won_team_b' => 1])])
         ->assertSeeInOrder([
-            'Team A',
-            'Anderson 3',
-            'Zephyr 12',
-            'Team B',
-            '2 Baker',
-            '9 Young',
+            '3',
+            '12',
+            '2',
+            '9',
         ]);
 
     Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 4, 'sets_won_team_a' => 2, 'sets_won_team_b' => 1])])
         ->assertSeeInOrder([
-            'Team B',
-            'Baker 2',
-            'Young 9',
-            'Team A',
-            '3 Anderson',
-            '12 Zephyr',
+            '2',
+            '9',
+            '3',
+            '12',
         ]);
 });
 
@@ -96,36 +106,28 @@ test('court alternates left and right rosters from set one to set four', functio
 
     $setExpectations = [
         1 => ['set_number' => 1, 'sets_won_team_a' => 0, 'sets_won_team_b' => 0, 'expected' => [
-            'Team A',
-            'Anderson 3',
-            'Zephyr 12',
-            'Team B',
-            '2 Baker',
-            '9 Young',
+            '3',
+            '12',
+            '2',
+            '9',
         ]],
         2 => ['set_number' => 2, 'sets_won_team_a' => 1, 'sets_won_team_b' => 0, 'expected' => [
-            'Team B',
-            'Baker 2',
-            'Young 9',
-            'Team A',
-            '3 Anderson',
-            '12 Zephyr',
+            '2',
+            '9',
+            '3',
+            '12',
         ]],
         3 => ['set_number' => 3, 'sets_won_team_a' => 1, 'sets_won_team_b' => 1, 'expected' => [
-            'Team A',
-            'Anderson 3',
-            'Zephyr 12',
-            'Team B',
-            '2 Baker',
-            '9 Young',
+            '3',
+            '12',
+            '2',
+            '9',
         ]],
         4 => ['set_number' => 4, 'sets_won_team_a' => 2, 'sets_won_team_b' => 1, 'expected' => [
-            'Team B',
-            'Baker 2',
-            'Young 9',
-            'Team A',
-            '3 Anderson',
-            '12 Zephyr',
+            '2',
+            '9',
+            '3',
+            '12',
         ]],
     ];
 
@@ -147,22 +149,18 @@ test('court keeps team a on the left in first and fifth sets regardless of toss 
 
     Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 1])])
         ->assertSeeInOrder([
-            'Team A',
-            'Baker 2',
-            'Young 9',
-            'Team B',
-            '3 Anderson',
-            '12 Zephyr',
+            '2',
+            '9',
+            '3',
+            '12',
         ]);
 
     Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 5, 'sets_won_team_a' => 2, 'sets_won_team_b' => 2])])
         ->assertSeeInOrder([
-            'Team A',
-            'Baker 2',
-            'Young 9',
-            'Team B',
-            '3 Anderson',
-            '12 Zephyr',
+            '2',
+            '9',
+            '3',
+            '12',
         ]);
 });
 
@@ -257,12 +255,10 @@ test('court swaps sides as soon as a set ends before the next set starts', funct
         ]),
     ])
         ->assertSeeInOrder([
-            'Team B',
-            'Baker 2',
-            'Young 9',
-            'Team A',
-            '3 Anderson',
-            '12 Zephyr',
+            '2',
+            '9',
+            '3',
+            '12',
         ]);
 });
 
