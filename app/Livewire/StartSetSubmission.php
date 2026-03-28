@@ -33,7 +33,7 @@ class StartSetSubmission extends Component
     {
         $this->resetValidation('startSet');
 
-        $activeGame = $this->activeGame;
+        $activeGame = $this->activeGame();
 
         if ($activeGame === null) {
             $this->addError('startSet', 'No active game is available to start the set.');
@@ -68,13 +68,13 @@ class StartSetSubmission extends Component
 
     private function canStartSet(): bool
     {
-        $activeGame = $this->activeGame;
+        $activeGame = $this->activeGame();
 
         if ($activeGame === null) {
             return false;
         }
 
-        $activeGameState = $this->activeGameState;
+        $activeGameState = $this->activeGameState();
 
         if ($activeGameState->setInProgress || $activeGameState->gameEnded) {
             return false;
@@ -99,7 +99,7 @@ class StartSetSubmission extends Component
     #[Computed]
     public function activeGameState(): GameState
     {
-        $activeGame = $this->activeGame;
+        $activeGame = $this->activeGame();
 
         return $activeGame?->stateAt() ?? $this->resolvedGameState();
     }
@@ -129,7 +129,7 @@ class StartSetSubmission extends Component
 
     private function upcomingSetNumber(): int
     {
-        return $this->activeGameState->setNumber + 1;
+        return $this->activeGameState()->setNumber + 1;
     }
 
     private function upcomingSetNumberForGame(Game $game): int

@@ -45,7 +45,7 @@ class TeamRoster extends Component
 
     public function render(): View
     {
-        $teamPlayers = $this->teamPlayers;
+        $teamPlayers = $this->teamPlayers();
         $rosterPlayerCount = count($teamPlayers);
         $players = $this->benchPlayers($teamPlayers);
         $lineupSubmitted = $this->hasLineupBeenSubmitted($this->team);
@@ -56,20 +56,13 @@ class TeamRoster extends Component
             'showPlayerPlaceholders' => $placeholderCount > 0,
             'placeholderCount' => $placeholderCount,
             'hasRosterPlayers' => $rosterPlayerCount > 0,
-            'staffMarkers' => $this->buildStaffMarkers($this->teamStaff),
+            'staffMarkers' => $this->buildStaffMarkers($this->teamStaff()),
             'reverseStaffOrder' => $this->leftSide,
             'keyPrefix' => $this->leftSide ? 'left-player' : 'right-player',
             'markerTone' => $this->team === TeamAB::TeamA ? 'bg-blue-600' : 'bg-red-600',
         ]);
     }
 
-    /**
-     * @return array<int, array{
-     *     player_key: int,
-     *     number: int,
-     *     last_name: string
-     * }>
-     */
     #[Computed]
     public function activeGame(): ?Game
     {
@@ -86,7 +79,7 @@ class TeamRoster extends Component
     #[Computed]
     public function teamPlayers(): array
     {
-        $game = $this->activeGame;
+        $game = $this->activeGame();
 
         if ($game === null) {
             return [];
@@ -116,7 +109,7 @@ class TeamRoster extends Component
     #[Computed]
     public function teamStaff(): array
     {
-        $game = $this->activeGame;
+        $game = $this->activeGame();
 
         if ($game === null) {
             return [];
@@ -126,6 +119,7 @@ class TeamRoster extends Component
     }
 
     /**
+     * @param  array<int, array{staff_key: int, role: StaffRole}>  $staff
      * @return array<int, array{role_letter: string, subscript: int|null}>
      */
     private function buildStaffMarkers(array $staff): array
@@ -176,7 +170,7 @@ class TeamRoster extends Component
     #[Computed]
     public function teamASideForToss(): TeamSide
     {
-        $game = $this->activeGame;
+        $game = $this->activeGame();
 
         if ($game === null) {
             return TeamSide::Home;
@@ -198,7 +192,7 @@ class TeamRoster extends Component
 
     private function targetSideForTeam(TeamAB $team): TeamSide
     {
-        $teamASide = $this->teamASideForToss;
+        $teamASide = $this->teamASideForToss();
 
         return $team === TeamAB::TeamA
             ? $teamASide

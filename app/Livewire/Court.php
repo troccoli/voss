@@ -51,7 +51,7 @@ class Court extends Component
             return;
         }
 
-        $activeGame = $this->activeGame;
+        $activeGame = $this->activeGame();
 
         if ($activeGame === null) {
             $this->addError('rallyWinner', 'No active game is available to record the rally winner.');
@@ -83,9 +83,9 @@ class Court extends Component
      */
     private function courtContext(): array
     {
-        $game = $this->activeGame;
+        $game = $this->activeGame();
         $canRecordRallyWinner = $this->canRecordRallyWinner($game);
-        $showRosters = $game !== null && $this->latestTossPayload !== null;
+        $showRosters = $game !== null && $this->latestTossPayload() !== null;
 
         $defaultContext = [
             'leftTeam' => TeamAB::TeamA,
@@ -126,7 +126,7 @@ class Court extends Component
     #[Computed]
     public function latestTossPayload(): ?TossCompletedPayload
     {
-        $game = $this->activeGame;
+        $game = $this->activeGame();
 
         if ($game === null) {
             return null;
@@ -159,7 +159,7 @@ class Court extends Component
 
     private function canRecordRallyWinner(?Game $activeGame = null): bool
     {
-        $activeGame ??= $this->activeGame;
+        $activeGame ??= $this->activeGame();
 
         if ($activeGame === null) {
             return false;

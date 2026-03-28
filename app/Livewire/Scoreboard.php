@@ -28,7 +28,7 @@ class Scoreboard extends Component
     {
         $scoreboardState = $this->gameState ?? GameState::initial();
         $teamAOnLeft = $this->isTeamAOnLeft($scoreboardState);
-        $teamCodes = $this->teamCountryCodes;
+        $teamCodes = $this->teamCountryCodes();
 
         return view('livewire.scoreboard', [
             'leftTeam' => $teamAOnLeft ? TeamAB::TeamA : TeamAB::TeamB,
@@ -53,7 +53,7 @@ class Scoreboard extends Component
     #[Computed]
     public function teamCountryCodes(): array
     {
-        $game = $this->activeGame;
+        $game = $this->activeGame();
 
         if ($game === null) {
             return [
@@ -62,7 +62,7 @@ class Scoreboard extends Component
             ];
         }
 
-        $teamASide = $this->teamASideForToss;
+        $teamASide = $this->teamASideForToss();
 
         if ($teamASide === TeamSide::Home) {
             return [
@@ -80,7 +80,7 @@ class Scoreboard extends Component
     #[Computed]
     public function teamASideForToss(): TeamSide
     {
-        $game = $this->activeGame;
+        $game = $this->activeGame();
 
         if ($game === null) {
             return TeamSide::Home;
