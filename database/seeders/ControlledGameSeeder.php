@@ -74,11 +74,8 @@ class ControlledGameSeeder extends Seeder
             ->scheduledAt(CarbonImmutable::now()->addDay()->setTime(20, 30))
             ->create();
 
-        $officials = Official::factory()->count(count(OfficialRole::cases()))->create();
-
-        foreach (OfficialRole::cases() as $index => $role) {
-            $official = $officials[$index];
-            $game->addOfficial($official, $role);
+        foreach (OfficialRole::cases() as $role) {
+            $game->addOfficial(Official::factory()->create(), $role);
         }
 
         $homeNumbers = range(1, 13);

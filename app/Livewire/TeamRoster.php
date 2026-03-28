@@ -117,29 +117,12 @@ class TeamRoster extends Component
         $hasTherapist = false;
 
         foreach ($staff as $staffMember) {
-            $role = $staffMember['role'];
-
-            if ($role === StaffRole::Coach) {
-                $hasCoach = true;
-
-                continue;
-            }
-
-            if ($role === StaffRole::AssistantCoach) {
-                $assistantCoaches++;
-
-                continue;
-            }
-
-            if ($role === StaffRole::Doctor) {
-                $hasDoctor = true;
-
-                continue;
-            }
-
-            if ($role === StaffRole::Therapist) {
-                $hasTherapist = true;
-            }
+            match ($staffMember['role']) {
+                StaffRole::Coach => $hasCoach = true,
+                StaffRole::AssistantCoach => $assistantCoaches++,
+                StaffRole::Doctor => $hasDoctor = true,
+                StaffRole::Therapist => $hasTherapist = true,
+            };
         }
 
         $markers = [];
