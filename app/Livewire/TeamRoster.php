@@ -10,6 +10,7 @@ use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Models\Game;
 use App\Services\CacheRepository;
+use App\Services\GameSideResolver;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
@@ -175,17 +176,6 @@ class TeamRoster extends Component
         return $this->cacheRepository()->staffForSide($game, $this->targetSideForTeam($game, $team));
     }
 
-    private function teamASideForTossSets(Game $game): TeamSide
-    {
-        $tossPayload = $this->cacheRepository()->latestTossPayload($game);
-
-        if ($tossPayload === null) {
-            return TeamSide::Home;
-        }
-
-        return $tossPayload->teamA;
-    }
-
     private function cacheRepository(): CacheRepository
     {
         return app(CacheRepository::class);
@@ -204,18 +194,7 @@ class TeamRoster extends Component
 
     private function targetSideForTeam(Game $game, TeamAB $team): TeamSide
     {
-        $teamASide = $this->teamASideForTossSets($game);
-
-        return $team === TeamAB::TeamA
-            ? $teamASide
-            : $this->oppositeSide($teamASide);
-    }
-
-    private function oppositeSide(TeamSide $side): TeamSide
-    {
-        return $side === TeamSide::Home
-            ? TeamSide::Away
-            : TeamSide::Home;
+        return $this->gameSideResolver()->sideForTeam($game, $team);
     }
 
     /**
@@ -233,5 +212,10 @@ class TeamRoster extends Component
     private function hasLineupBeenSubmitted(TeamAB $team): bool
     {
         return $this->onCourtRosterNumbers($team) !== [];
+    }
+
+    private function gameSideResolver(): GameSideResolver
+    {
+        return app(GameSideResolver::class);
     }
 }

@@ -8,7 +8,7 @@ use App\Data\GameState\GameState;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Models\Game;
-use App\Services\CacheRepository;
+use App\Services\GameSideResolver;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
@@ -26,24 +26,21 @@ class Scoreboard extends Component
     public function render(): View
     {
         $scoreboardState = $this->gameState ?? GameState::initial();
-        $teamAOnLeft = $this->isTeamAOnLeft($scoreboardState);
+        $completedSets = $scoreboardState->setsWonTeamA + $scoreboardState->setsWonTeamB;
+        $leftTeam = $this->gameSideResolver()->teamOnLeft($completedSets);
+        $rightTeam = $this->gameSideResolver()->teamOnRight($completedSets);
         $teamCodes = $this->teamCountryCodes();
 
         return view('livewire.scoreboard', [
-            'leftTeam' => $teamAOnLeft ? TeamAB::TeamA : TeamAB::TeamB,
-            'rightTeam' => $teamAOnLeft ? TeamAB::TeamB : TeamAB::TeamA,
-            'leftTeamCode' => $teamAOnLeft ? $teamCodes['team_a'] : $teamCodes['team_b'],
-            'rightTeamCode' => $teamAOnLeft ? $teamCodes['team_b'] : $teamCodes['team_a'],
-            'leftSets' => $teamAOnLeft ? $scoreboardState->setsWonTeamA : $scoreboardState->setsWonTeamB,
-            'rightSets' => $teamAOnLeft ? $scoreboardState->setsWonTeamB : $scoreboardState->setsWonTeamA,
-            'leftPoints' => $teamAOnLeft ? $scoreboardState->scoreTeamA : $scoreboardState->scoreTeamB,
-            'rightPoints' => $teamAOnLeft ? $scoreboardState->scoreTeamB : $scoreboardState->scoreTeamA,
+            'leftTeam' => $leftTeam,
+            'rightTeam' => $rightTeam,
+            'leftTeamCode' => $leftTeam === TeamAB::TeamA ? $teamCodes['team_a'] : $teamCodes['team_b'],
+            'rightTeamCode' => $rightTeam === TeamAB::TeamA ? $teamCodes['team_a'] : $teamCodes['team_b'],
+            'leftSets' => $leftTeam === TeamAB::TeamA ? $scoreboardState->setsWonTeamA : $scoreboardState->setsWonTeamB,
+            'rightSets' => $rightTeam === TeamAB::TeamA ? $scoreboardState->setsWonTeamA : $scoreboardState->setsWonTeamB,
+            'leftPoints' => $leftTeam === TeamAB::TeamA ? $scoreboardState->scoreTeamA : $scoreboardState->scoreTeamB,
+            'rightPoints' => $rightTeam === TeamAB::TeamA ? $scoreboardState->scoreTeamA : $scoreboardState->scoreTeamB,
         ]);
-    }
-
-    private function isTeamAOnLeft(GameState $scoreboardState): bool
-    {
-        return ($scoreboardState->setsWonTeamA + $scoreboardState->setsWonTeamB) % 2 === 0;
     }
 
     /**
@@ -60,9 +57,7 @@ class Scoreboard extends Component
             ];
         }
 
-        $teamASide = $this->teamASideForTossSets($game);
-
-        if ($teamASide === TeamSide::Home) {
+        if ($this->gameSideResolver()->sideForTeam($game, TeamAB::TeamA) === TeamSide::Home) {
             return [
                 'team_a' => $game->homeTeam->country_code,
                 'team_b' => $game->awayTeam->country_code,
@@ -73,17 +68,6 @@ class Scoreboard extends Component
             'team_a' => $game->awayTeam->country_code,
             'team_b' => $game->homeTeam->country_code,
         ];
-    }
-
-    private function teamASideForTossSets(Game $game): TeamSide
-    {
-        $tossPayload = $this->cacheRepository()->latestTossPayload($game);
-
-        if ($tossPayload === null) {
-            return TeamSide::Home;
-        }
-
-        return $tossPayload->teamA;
     }
 
     private function activeGame(): ?Game
@@ -98,8 +82,8 @@ class Scoreboard extends Component
             ->first();
     }
 
-    private function cacheRepository(): CacheRepository
+    private function gameSideResolver(): GameSideResolver
     {
-        return app(CacheRepository::class);
+        return app(GameSideResolver::class);
     }
 }

@@ -8,10 +8,9 @@ use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
-use App\Events\Payloads\TossCompletedPayload;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
-use App\Models\GameEvent;
+use App\Services\GameSideResolver;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -179,24 +178,7 @@ class LineupSubmission extends Component
 
     private function teamSideForToss(Game $game): ?TeamSide
     {
-        /** @var GameEvent|null $tossEvent */
-        $tossEvent = $game->events()
-            ->reorder()
-            ->where('type', GameEventType::TossCompleted)
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->first();
-
-        if ($tossEvent === null) {
-            return null;
-        }
-
-        /** @var TossCompletedPayload $tossPayload */
-        $tossPayload = $tossEvent->payload;
-
-        return $this->team === TeamAB::TeamA
-            ? $tossPayload->teamA
-            : ($tossPayload->teamA === TeamSide::Home ? TeamSide::Away : TeamSide::Home);
+        return $this->gameSideResolver()->sideForTeamFromToss($game, $this->team);
     }
 
     /**
@@ -307,5 +289,10 @@ class LineupSubmission extends Component
             5 => '',
             6 => '',
         ];
+    }
+
+    private function gameSideResolver(): GameSideResolver
+    {
+        return app(GameSideResolver::class);
     }
 }
