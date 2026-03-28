@@ -64,7 +64,7 @@ class LineupSubmission extends Component
             return;
         }
 
-        $activeGame = $this->activeGame;
+        $activeGame = $this->activeGame();
 
         if ($activeGame === null) {
             $this->addError('submit', 'No active game is available to record the lineup.');
@@ -113,7 +113,7 @@ class LineupSubmission extends Component
     #[Computed]
     public function tossPayload(): ?TossCompletedPayload
     {
-        $activeGame = $this->activeGame;
+        $activeGame = $this->activeGame();
 
         if ($activeGame === null) {
             return null;
@@ -199,7 +199,7 @@ class LineupSubmission extends Component
      */
     private function rosterNumbers(): array
     {
-        $activeGame = $this->activeGame;
+        $activeGame = $this->activeGame();
 
         if ($activeGame === null) {
             return [];
@@ -210,7 +210,7 @@ class LineupSubmission extends Component
 
     private function teamSideForToss(): ?TeamSide
     {
-        $tossPayload = $this->tossPayload;
+        $tossPayload = $this->tossPayload();
 
         if ($tossPayload === null) {
             return null;
@@ -270,7 +270,7 @@ class LineupSubmission extends Component
 
     private function hasSubmittedLineupForUpcomingSet(): bool
     {
-        $activeGame = $this->activeGame;
+        $activeGame = $this->activeGame();
 
         if ($activeGame === null) {
             return false;
@@ -285,7 +285,7 @@ class LineupSubmission extends Component
 
     private function hasSubmittedToss(): bool
     {
-        return $this->tossPayload !== null;
+        return $this->tossPayload() !== null;
     }
 
     private function upcomingSetNumber(): int
