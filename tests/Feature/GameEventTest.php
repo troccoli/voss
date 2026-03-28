@@ -14,8 +14,10 @@ use App\Events\Payloads\TossCompletedPayload;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
 use App\Models\GameEvent;
+use App\Models\GameStateSnapshot;
 use App\Models\Player;
 use App\Models\Team;
+use App\Services\GameState\GameEventRuleValidator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -530,6 +532,23 @@ test('a set cannot end before score reaches 25 with a two-point advantage', func
         ->toThrow(InvalidGameEventTransition::class, 'A set can only end when a team has at least 25 points with a 2-point advantage.');
 });
 
+test('the deciding set cannot end before 15 points with a two-point advantage', function (): void {
+    $game = Game::factory()->create();
+    createSnapshotForSetScore($game, setNumber: 5, scoreTeamA: 14, scoreTeamB: 12);
+
+    expect(fn () => app(GameEventRuleValidator::class)->assertCanRecordSetEnded($game))
+        ->toThrow(InvalidGameEventTransition::class, 'A set can only end when a team has at least 15 points with a 2-point advantage.');
+});
+
+test('the deciding set can end at 15 points with a two-point advantage', function (): void {
+    $game = Game::factory()->create();
+    createSnapshotForSetScore($game, setNumber: 5, scoreTeamA: 15, scoreTeamB: 13);
+
+    app(GameEventRuleValidator::class)->assertCanRecordSetEnded($game);
+
+    expect(true)->toBeTrue();
+});
+
 test('a game cannot end before one team has won three sets', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
@@ -544,3 +563,33 @@ test('a game cannot end before one team has won three sets', function (): void {
     expect(fn () => $game->recordGameEnded())
         ->toThrow(InvalidGameEventTransition::class, 'A game can only end after one team has won three sets.');
 });
+
+function createSnapshotForSetScore(Game $game, int $setNumber, int $scoreTeamA, int $scoreTeamB): void
+{
+    $event = GameEvent::withoutEvents(fn (): GameEvent => GameEvent::query()->create([
+        'game_id' => $game->getKey(),
+        'type' => GameEventType::SetStarted,
+        'payload' => new SetStartedPayload,
+        'created_at' => now(),
+    ]));
+
+    GameStateSnapshot::query()->create([
+        'game_id' => $game->getKey(),
+        'game_event_id' => $event->getKey(),
+        'set_number' => $setNumber,
+        'score_team_a' => $scoreTeamA,
+        'score_team_b' => $scoreTeamB,
+        'sets_won_team_a' => 0,
+        'sets_won_team_b' => 0,
+        'timeouts_team_a' => 0,
+        'timeouts_team_b' => 0,
+        'substitutions_team_a' => 0,
+        'substitutions_team_b' => 0,
+        'serving_team' => TeamAB::TeamA->value,
+        'rotation_team_a' => [],
+        'rotation_team_b' => [],
+        'set_in_progress' => true,
+        'game_ended' => false,
+        'created_at' => now(),
+    ]);
+}
