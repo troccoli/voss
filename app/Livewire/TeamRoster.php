@@ -55,7 +55,7 @@ class TeamRoster extends Component
             'placeholderCount' => $placeholderCount,
             'hasRosterPlayers' => $rosterPlayerCount > 0,
             'staffMarkers' => $this->staffMarkers(),
-            'reverseStaffOrder' => $this->team === TeamAB::TeamA,
+            'reverseStaffOrder' => $this->team === TeamAB::TeamB,
             'keyPrefix' => $this->leftSide ? 'left-player' : 'right-player',
             'markerTone' => $this->team === TeamAB::TeamA ? 'bg-blue-600' : 'bg-red-600',
         ]);

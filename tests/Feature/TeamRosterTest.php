@@ -143,7 +143,7 @@ test('team roster shows placeholders when lineup is not submitted', function ():
         ->assertDontSeeHtml('data-team-roster-number="8"');
 });
 
-test('team roster renders staff role circles in the requested order for team a', function (): void {
+test('team roster renders staff role circles left to right for team a', function (): void {
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
@@ -152,7 +152,7 @@ test('team roster renders staff role circles in the requested order for team a',
         'leftSide' => true,
     ])
         ->assertSeeHtml('data-team-roster-staff-list')
-        ->assertSeeHtml('flex-row-reverse')
+        ->assertDontSeeHtml('flex-row-reverse')
         ->assertSeeInOrder([
             'data-team-roster-staff-role="C"',
             'data-team-roster-staff-role="A1"',
@@ -162,7 +162,7 @@ test('team roster renders staff role circles in the requested order for team a',
         ]);
 });
 
-test('team roster renders staff role circles left to right for team b', function (): void {
+test('team roster renders staff role circles in reverse row order for team b', function (): void {
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
@@ -171,7 +171,7 @@ test('team roster renders staff role circles left to right for team b', function
         'leftSide' => false,
     ])
         ->assertSeeHtml('data-team-roster-staff-list')
-        ->assertDontSeeHtml('flex-row-reverse')
+        ->assertSeeHtml('flex-row-reverse')
         ->assertSeeInOrder([
             'data-team-roster-staff-role="C"',
             'data-team-roster-staff-role="A1"',
