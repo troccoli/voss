@@ -1,6 +1,6 @@
 <div>
     @unless ($hasSubmittedToss)
-        <div class="absolute bottom-6 right-6 z-20">
+        <div class="absolute bottom-4 right-4 z-20 sm:bottom-6 sm:right-6">
             <flux:modal.trigger name="submit-toss-result">
                 <flux:button variant="primary" icon="clipboard-document-check">
                     Submit Toss Result
