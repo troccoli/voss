@@ -11,6 +11,7 @@ use App\Enums\TeamSide;
 use App\Models\Game;
 use App\Services\CacheRepository;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
@@ -44,8 +45,9 @@ class TeamRoster extends Component
 
     public function render(): View
     {
-        $players = $this->players();
-        $rosterPlayerCount = $this->rosterPlayerCount();
+        $teamPlayers = $this->teamPlayers;
+        $rosterPlayerCount = count($teamPlayers);
+        $players = $this->benchPlayers($teamPlayers);
         $lineupSubmitted = $this->hasLineupBeenSubmitted($this->team);
         $placeholderCount = $lineupSubmitted ? 0 : max(0, $rosterPlayerCount - 6);
 
@@ -54,7 +56,7 @@ class TeamRoster extends Component
             'showPlayerPlaceholders' => $placeholderCount > 0,
             'placeholderCount' => $placeholderCount,
             'hasRosterPlayers' => $rosterPlayerCount > 0,
-            'staffMarkers' => $this->staffMarkers(),
+            'staffMarkers' => $this->buildStaffMarkers($this->teamStaff),
             'reverseStaffOrder' => $this->leftSide,
             'keyPrefix' => $this->leftSide ? 'left-player' : 'right-player',
             'markerTone' => $this->team === TeamAB::TeamA ? 'bg-blue-600' : 'bg-red-600',
@@ -68,15 +70,37 @@ class TeamRoster extends Component
      *     last_name: string
      * }>
      */
-    private function players(): array
+    #[Computed]
+    public function activeGame(): ?Game
     {
-        $game = Game::query()->find($this->gameId);
+        return Game::query()->find($this->gameId);
+    }
+
+    /**
+     * @return array<int, array{
+     *     player_key: int,
+     *     number: int,
+     *     last_name: string
+     * }>
+     */
+    #[Computed]
+    public function teamPlayers(): array
+    {
+        $game = $this->activeGame;
 
         if ($game === null) {
             return [];
         }
 
-        $players = $this->playersForTeam($game, $this->team);
+        return $this->cacheRepository()->playersForSide($game, $this->targetSideForTeam($this->team));
+    }
+
+    /**
+     * @param  array<int, array{player_key: int, number: int, last_name: string}>  $players
+     * @return array<int, array{player_key: int, number: int, last_name: string}>
+     */
+    private function benchPlayers(array $players): array
+    {
         $onCourtNumbers = $this->onCourtRosterNumbers($this->team);
 
         if ($onCourtNumbers === []) {
@@ -87,26 +111,25 @@ class TeamRoster extends Component
     }
 
     /**
-     * @return array<int, array{player_key: int, number: int, last_name: string}>
+     * @return array<int, array{staff_key: int, role: StaffRole}>
      */
-    private function playersForTeam(Game $game, TeamAB $team): array
+    #[Computed]
+    public function teamStaff(): array
     {
-        return $this->cacheRepository()->playersForSide($game, $this->targetSideForTeam($game, $team));
-    }
-
-    /**
-     * @return array<int, array{role_letter: string, subscript: int|null}>
-     */
-    private function staffMarkers(): array
-    {
-        $game = Game::query()->find($this->gameId);
+        $game = $this->activeGame;
 
         if ($game === null) {
             return [];
         }
 
-        $staff = $this->staffForTeam($game, $this->team);
+        return $this->cacheRepository()->staffForSide($game, $this->targetSideForTeam($this->team));
+    }
 
+    /**
+     * @return array<int, array{role_letter: string, subscript: int|null}>
+     */
+    private function buildStaffMarkers(array $staff): array
+    {
         if ($staff === []) {
             return [];
         }
@@ -150,16 +173,15 @@ class TeamRoster extends Component
         return $markers;
     }
 
-    /**
-     * @return array<int, array{staff_key: int, role: StaffRole}>
-     */
-    private function staffForTeam(Game $game, TeamAB $team): array
+    #[Computed]
+    public function teamASideForToss(): TeamSide
     {
-        return $this->cacheRepository()->staffForSide($game, $this->targetSideForTeam($game, $team));
-    }
+        $game = $this->activeGame;
 
-    private function teamASideForTossSets(Game $game): TeamSide
-    {
+        if ($game === null) {
+            return TeamSide::Home;
+        }
+
         $tossPayload = $this->cacheRepository()->latestTossPayload($game);
 
         if ($tossPayload === null) {
@@ -174,20 +196,9 @@ class TeamRoster extends Component
         return app(CacheRepository::class);
     }
 
-    private function rosterPlayerCount(): int
+    private function targetSideForTeam(TeamAB $team): TeamSide
     {
-        $game = Game::query()->find($this->gameId);
-
-        if ($game === null) {
-            return 0;
-        }
-
-        return count($this->playersForTeam($game, $this->team));
-    }
-
-    private function targetSideForTeam(Game $game, TeamAB $team): TeamSide
-    {
-        $teamASide = $this->teamASideForTossSets($game);
+        $teamASide = $this->teamASideForToss;
 
         return $team === TeamAB::TeamA
             ? $teamASide

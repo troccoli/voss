@@ -21,7 +21,9 @@ test('the game page returns a successful response and renders the fixed canvas w
     $response->assertSuccessful()
         ->assertSee('id="game-canvas"', false)
         ->assertSee('bg-sky-100')
-        ->assertSee('id="volleyball-court"', false);
+        ->assertSee('id="volleyball-court"', false)
+        ->assertSee('Submit Toss Result')
+        ->assertDontSee('Submit Lineup');
 });
 
 test('the game livewire component renders the court component', function (): void {

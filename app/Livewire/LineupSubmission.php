@@ -14,9 +14,9 @@ use App\Models\Game;
 use App\Models\GameEvent;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
@@ -64,7 +64,7 @@ class LineupSubmission extends Component
             return;
         }
 
-        $activeGame = Game::query()->whereKey($this->gameId)->first();
+        $activeGame = $this->activeGame;
 
         if ($activeGame === null) {
             $this->addError('submit', 'No active game is available to record the lineup.');
@@ -102,6 +102,37 @@ class LineupSubmission extends Component
             'canSubmitLineup' => $this->canSubmitLineup(),
             'rosterNumbers' => $this->rosterNumbers(),
         ]);
+    }
+
+    #[Computed]
+    public function activeGame(): ?Game
+    {
+        return Game::query()->whereKey($this->gameId)->first();
+    }
+
+    #[Computed]
+    public function tossPayload(): ?TossCompletedPayload
+    {
+        $activeGame = $this->activeGame;
+
+        if ($activeGame === null) {
+            return null;
+        }
+
+        /** @var GameEvent|null $tossEvent */
+        $tossEvent = $activeGame->events()
+            ->reorder()
+            ->where('type', GameEventType::TossCompleted)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($tossEvent === null) {
+            return null;
+        }
+
+        /** @var TossCompletedPayload */
+        return $tossEvent->payload;
     }
 
     /**
@@ -148,7 +179,7 @@ class LineupSubmission extends Component
      */
     private function eligibleRosterNumbers(Game $game): array
     {
-        $teamSide = $this->teamSideForToss($game);
+        $teamSide = $this->teamSideForToss();
 
         if ($teamSide === null) {
             return [];
@@ -168,7 +199,7 @@ class LineupSubmission extends Component
      */
     private function rosterNumbers(): array
     {
-        $activeGame = Game::query()->whereKey($this->gameId)->first();
+        $activeGame = $this->activeGame;
 
         if ($activeGame === null) {
             return [];
@@ -177,22 +208,13 @@ class LineupSubmission extends Component
         return $this->eligibleRosterNumbers($activeGame);
     }
 
-    private function teamSideForToss(Game $game): ?TeamSide
+    private function teamSideForToss(): ?TeamSide
     {
-        /** @var GameEvent|null $tossEvent */
-        $tossEvent = $game->events()
-            ->reorder()
-            ->where('type', GameEventType::TossCompleted)
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->first();
+        $tossPayload = $this->tossPayload;
 
-        if ($tossEvent === null) {
+        if ($tossPayload === null) {
             return null;
         }
-
-        /** @var TossCompletedPayload $tossPayload */
-        $tossPayload = $tossEvent->payload;
 
         return $this->team === TeamAB::TeamA
             ? $tossPayload->teamA
@@ -248,7 +270,7 @@ class LineupSubmission extends Component
 
     private function hasSubmittedLineupForUpcomingSet(): bool
     {
-        $activeGame = Game::query()->whereKey($this->gameId)->first();
+        $activeGame = $this->activeGame;
 
         if ($activeGame === null) {
             return false;
@@ -263,10 +285,7 @@ class LineupSubmission extends Component
 
     private function hasSubmittedToss(): bool
     {
-        return Game::query()
-            ->whereKey($this->gameId)
-            ->whereHas('events', fn (Builder $query) => $query->where('type', GameEventType::TossCompleted))
-            ->exists();
+        return $this->tossPayload !== null;
     }
 
     private function upcomingSetNumber(): int
