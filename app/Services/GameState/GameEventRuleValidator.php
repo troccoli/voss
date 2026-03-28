@@ -10,6 +10,10 @@ use App\Models\Game;
 
 class GameEventRuleValidator
 {
+    public function __construct(
+        protected SetScoringRules $setScoringRules
+    ) {}
+
     public function assertCanRecordToss(Game $game): void
     {
         $state = $game->stateAt();
@@ -95,10 +99,10 @@ class GameEventRuleValidator
             $this->fail('A set can only end while it is in progress.');
         }
 
-        $scoreDiff = abs($state->scoreTeamA - $state->scoreTeamB);
-        $highestScore = max($state->scoreTeamA, $state->scoreTeamB);
-        if ($highestScore < 25 || $scoreDiff < 2) {
-            $this->fail('A set can only end when a team has at least 25 points with a 2-point advantage.');
+        $targetPoints = $this->setScoringRules->targetPoints($state->setNumber);
+
+        if (! $this->setScoringRules->canEndSet($state->setNumber, $state->scoreTeamA, $state->scoreTeamB)) {
+            $this->fail("A set can only end when a team has at least {$targetPoints} points with a 2-point advantage.");
         }
     }
 
