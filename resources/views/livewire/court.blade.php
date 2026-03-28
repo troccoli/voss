@@ -84,22 +84,34 @@
             <div class="mt-2 flex w-full justify-between px-2">
                 <button
                     type="button"
-                    data-rally-winner-button="team_a"
-                    wire:click="recordRallyWinner('{{ \App\Enums\TeamAB::TeamA->value }}')"
+                    data-rally-winner-button="{{ $leftTeam->value }}"
+                    data-rally-winner-side="left"
+                    data-rally-winner-side-team="left-{{ $leftTeam->value }}"
+                    wire:click="recordRallyWinner('{{ $leftTeam->value }}')"
                     wire:loading.attr="disabled"
                     wire:target="recordRallyWinner"
-                    class="rounded-md bg-blue-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+                    @class([
+                        'rounded-md px-3 py-1 text-xs font-semibold text-white transition disabled:opacity-50',
+                        'bg-blue-600 hover:bg-blue-700' => $leftTeam === \App\Enums\TeamAB::TeamA,
+                        'bg-red-600 hover:bg-red-700' => $leftTeam === \App\Enums\TeamAB::TeamB,
+                    ])
                 >
                     Winner
                 </button>
 
                 <button
                     type="button"
-                    data-rally-winner-button="team_b"
-                    wire:click="recordRallyWinner('{{ \App\Enums\TeamAB::TeamB->value }}')"
+                    data-rally-winner-button="{{ $rightTeam->value }}"
+                    data-rally-winner-side="right"
+                    data-rally-winner-side-team="right-{{ $rightTeam->value }}"
+                    wire:click="recordRallyWinner('{{ $rightTeam->value }}')"
                     wire:loading.attr="disabled"
                     wire:target="recordRallyWinner"
-                    class="rounded-md bg-red-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                    @class([
+                        'rounded-md px-3 py-1 text-xs font-semibold text-white transition disabled:opacity-50',
+                        'bg-blue-600 hover:bg-blue-700' => $rightTeam === \App\Enums\TeamAB::TeamA,
+                        'bg-red-600 hover:bg-red-700' => $rightTeam === \App\Enums\TeamAB::TeamB,
+                    ])
                 >
                     Winner
                 </button>
@@ -137,15 +149,15 @@
 
     <div class="flex w-[530px] mt-4 mx-auto justify-between">
         <livewire:lineup-submission
-            :team="\App\Enums\TeamAB::TeamA"
+            :team="$leftTeam"
             :game-id="$gameId"
             :game-state="$gameState"
-            :key="'lineup-submission-team-a'" />
+            :key="'lineup-submission-left-'.$leftTeam->value" />
         <livewire:lineup-submission
-            :team="\App\Enums\TeamAB::TeamB"
+            :team="$rightTeam"
             :game-id="$gameId"
             :game-state="$gameState"
-            :key="'lineup-submission-team-b'"
+            :key="'lineup-submission-right-'.$rightTeam->value"
         />
     </div>
 </div>

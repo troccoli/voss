@@ -262,6 +262,39 @@ test('court swaps sides as soon as a set ends before the next set starts', funct
         ]);
 });
 
+test('court keeps lineup submission order aligned with left and right sides in set one', function (): void {
+    $game = gameWithNumberedRosters();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState([
+            'set_number' => 1,
+            'set_in_progress' => false,
+        ]),
+    ])->assertSeeInOrder([
+        'submit-lineup-team_a',
+        'submit-lineup-team_b',
+    ]);
+});
+
+test('court swaps lineup submission order as soon as a set ends before the next set starts', function (): void {
+    $game = gameWithNumberedRosters();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState([
+            'set_number' => 1,
+            'sets_won_team_a' => 1,
+            'set_in_progress' => false,
+        ]),
+    ])->assertSeeInOrder([
+        'submit-lineup-team_b',
+        'submit-lineup-team_a',
+    ]);
+});
+
 test('court shows rally winner buttons only while a set is in progress', function (): void {
     $game = Game::factory()->create();
 
@@ -280,6 +313,21 @@ test('court shows rally winner buttons only while a set is in progress', functio
         ->assertSee('Winner')
         ->assertSeeHtml('data-rally-winner-button="team_a"')
         ->assertSeeHtml('data-rally-winner-button="team_b"');
+});
+
+test('court swaps rally winner buttons as soon as sides swap', function (): void {
+    $game = Game::factory()->create();
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState([
+            'set_number' => 2,
+            'sets_won_team_a' => 1,
+            'set_in_progress' => true,
+        ]),
+    ])
+        ->assertSeeHtml('data-rally-winner-side-team="left-team_b"')
+        ->assertSeeHtml('data-rally-winner-side-team="right-team_a"');
 });
 
 test('court records rally winner for the selected team and dispatches a refresh event', function (): void {

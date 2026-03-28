@@ -113,6 +113,29 @@ test('recalculation job rebuilds snapshots from scratch up to a cutoff time', fu
         ->and($latest->servingTeam)->toBe(TeamAB::TeamA);
 });
 
+test('state resets points as soon as a set ends before the next set starts', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    $game->recordSetStarted();
+
+    for ($index = 0; $index < 25; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+
+    $state = $game->fresh()->stateAt();
+
+    expect($game->fresh()->events->last()->type)->toBe(GameEventType::SetEnded)
+        ->and($state->setNumber)->toBe(1)
+        ->and($state->setInProgress)->toBeFalse()
+        ->and($state->setsWonTeamA)->toBe(1)
+        ->and($state->setsWonTeamB)->toBe(0)
+        ->and($state->scoreTeamA)->toBe(0)
+        ->and($state->scoreTeamB)->toBe(0);
+});
+
 test('game state snapshot accepts a serialized serving team and casts it back to enum', function (): void {
     $game = Game::factory()->create();
 

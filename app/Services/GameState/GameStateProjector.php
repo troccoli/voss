@@ -160,6 +160,8 @@ class GameStateProjector
                 : TeamAB::TeamA;
         }
 
+        $state->scoreTeamA = 0;
+        $state->scoreTeamB = 0;
         $state->rotationTeamA = [];
         $state->rotationTeamB = [];
         $state->setInProgress = false;

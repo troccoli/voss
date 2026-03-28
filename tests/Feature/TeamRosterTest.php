@@ -143,13 +143,32 @@ test('team roster shows placeholders when lineup is not submitted', function ():
         ->assertDontSeeHtml('data-team-roster-number="8"');
 });
 
-test('team roster renders staff role circles left to right for team a', function (): void {
+test('team roster renders left-side staff role circles in reverse row order for team a', function (): void {
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
         'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
+    ])
+        ->assertSeeHtml('data-team-roster-staff-list')
+        ->assertSeeHtml('flex-row-reverse')
+        ->assertSeeInOrder([
+            'data-team-roster-staff-role="C"',
+            'data-team-roster-staff-role="A1"',
+            'data-team-roster-staff-role="A2"',
+            'data-team-roster-staff-role="D"',
+            'data-team-roster-staff-role="T"',
+        ]);
+});
+
+test('team roster renders right-side staff role circles left to right for team b', function (): void {
+    $game = gameWithNumberedRostersForTeamRoster();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamB,
+        'leftSide' => false,
     ])
         ->assertSeeHtml('data-team-roster-staff-list')
         ->assertDontSeeHtml('flex-row-reverse')
@@ -162,16 +181,35 @@ test('team roster renders staff role circles left to right for team a', function
         ]);
 });
 
-test('team roster renders staff role circles in reverse row order for team b', function (): void {
+test('team roster applies left-side staff orientation even when the displayed team is team b', function (): void {
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
         'gameId' => $game->getKey(),
         'team' => TeamAB::TeamB,
-        'leftSide' => false,
+        'leftSide' => true,
     ])
         ->assertSeeHtml('data-team-roster-staff-list')
         ->assertSeeHtml('flex-row-reverse')
+        ->assertSeeInOrder([
+            'data-team-roster-staff-role="C"',
+            'data-team-roster-staff-role="A1"',
+            'data-team-roster-staff-role="A2"',
+            'data-team-roster-staff-role="D"',
+            'data-team-roster-staff-role="T"',
+        ]);
+});
+
+test('team roster applies right-side staff orientation even when the displayed team is team a', function (): void {
+    $game = gameWithNumberedRostersForTeamRoster();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => false,
+    ])
+        ->assertSeeHtml('data-team-roster-staff-list')
+        ->assertDontSeeHtml('flex-row-reverse')
         ->assertSeeInOrder([
             'data-team-roster-staff-role="C"',
             'data-team-roster-staff-role="A1"',
