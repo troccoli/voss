@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Livewire;
 
 use App\Data\GameState\GameState;
-use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Events\Payloads\TossCompletedPayload;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
-use App\Models\GameEvent;
+use App\Services\CacheRepository;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
@@ -51,7 +51,7 @@ class Court extends Component
             return;
         }
 
-        $activeGame = $this->activeGame();
+        $activeGame = $this->activeGame;
 
         if ($activeGame === null) {
             $this->addError('rallyWinner', 'No active game is available to record the rally winner.');
@@ -83,9 +83,9 @@ class Court extends Component
      */
     private function courtContext(): array
     {
-        $game = $this->activeGame();
+        $game = $this->activeGame;
         $canRecordRallyWinner = $this->canRecordRallyWinner($game);
-        $showRosters = $game !== null && $this->latestTossPayload($game) !== null;
+        $showRosters = $game !== null && $this->latestTossPayload !== null;
 
         $defaultContext = [
             'leftTeam' => TeamAB::TeamA,
@@ -123,22 +123,16 @@ class Court extends Component
         return $completedSets % 2 === 0;
     }
 
-    private function latestTossPayload(Game $game): ?TossCompletedPayload
+    #[Computed]
+    public function latestTossPayload(): ?TossCompletedPayload
     {
-        /** @var GameEvent|null $tossEvent */
-        $tossEvent = $game->events()
-            ->reorder()
-            ->where('type', GameEventType::TossCompleted)
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->first();
+        $game = $this->activeGame;
 
-        if ($tossEvent === null) {
+        if ($game === null) {
             return null;
         }
 
-        /** @var TossCompletedPayload */
-        return $tossEvent->payload;
+        return app(CacheRepository::class)->latestTossPayload($game);
     }
 
     /**
@@ -165,7 +159,7 @@ class Court extends Component
 
     private function canRecordRallyWinner(?Game $activeGame = null): bool
     {
-        $activeGame ??= $this->activeGame();
+        $activeGame ??= $this->activeGame;
 
         if ($activeGame === null) {
             return false;
@@ -176,7 +170,8 @@ class Court extends Component
         return $state->setInProgress && ! $state->gameEnded;
     }
 
-    private function activeGame(): ?Game
+    #[Computed]
+    public function activeGame(): ?Game
     {
         if ($this->gameId === null) {
             return null;

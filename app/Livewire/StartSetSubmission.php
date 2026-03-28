@@ -10,6 +10,7 @@ use App\Enums\TeamAB;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
@@ -32,7 +33,7 @@ class StartSetSubmission extends Component
     {
         $this->resetValidation('startSet');
 
-        $activeGame = $this->activeGame();
+        $activeGame = $this->activeGame;
 
         if ($activeGame === null) {
             $this->addError('startSet', 'No active game is available to start the set.');
@@ -67,13 +68,13 @@ class StartSetSubmission extends Component
 
     private function canStartSet(): bool
     {
-        $activeGame = $this->activeGame();
+        $activeGame = $this->activeGame;
 
         if ($activeGame === null) {
             return false;
         }
 
-        $activeGameState = $activeGame->stateAt();
+        $activeGameState = $this->activeGameState;
 
         if ($activeGameState->setInProgress || $activeGameState->gameEnded) {
             return false;
@@ -85,13 +86,22 @@ class StartSetSubmission extends Component
         );
     }
 
-    private function activeGame(): ?Game
+    #[Computed]
+    public function activeGame(): ?Game
     {
         if ($this->gameId === null) {
             return null;
         }
 
         return Game::query()->whereKey($this->gameId)->first();
+    }
+
+    #[Computed]
+    public function activeGameState(): GameState
+    {
+        $activeGame = $this->activeGame;
+
+        return $activeGame?->stateAt() ?? $this->resolvedGameState();
     }
 
     private function bothLineupsSubmittedForUpcomingSet(Game $game): bool
@@ -119,13 +129,7 @@ class StartSetSubmission extends Component
 
     private function upcomingSetNumber(): int
     {
-        $activeGame = $this->activeGame();
-
-        if ($activeGame === null) {
-            return $this->resolvedGameState()->setNumber + 1;
-        }
-
-        return $this->upcomingSetNumberForGame($activeGame);
+        return $this->activeGameState->setNumber + 1;
     }
 
     private function upcomingSetNumberForGame(Game $game): int
