@@ -34,7 +34,7 @@
         <section
             id="volleyball-court"
             aria-label="Volleyball court"
-            class="relative h-[347px] w-[600px] bg-orange-300"
+            class="relative h-[220px] w-[360px] bg-orange-300 sm:h-[280px] sm:w-[480px] md:h-[347px] md:w-[600px]"
         >
             <div class="absolute inset-0 border-[4px] border-white"></div>
             <div class="absolute inset-y-[4px] left-1/2 w-[3px] -translate-x-1/2 bg-white"></div>
@@ -84,6 +84,7 @@
             <div class="mt-2 flex w-full justify-between px-2">
                 <button
                     type="button"
+                    aria-label="Record rally winner: {{ $leftTeam->label() }}"
                     data-rally-winner-button="{{ $leftTeam->value }}"
                     data-rally-winner-side="left"
                     data-rally-winner-side-team="left-{{ $leftTeam->value }}"
@@ -91,16 +92,17 @@
                     wire:loading.attr="disabled"
                     wire:target="recordRallyWinner"
                     @class([
-                        'rounded-md px-3 py-1 text-xs font-semibold text-white transition disabled:opacity-50',
+                        'min-h-10 rounded-md px-3 py-1 text-xs font-semibold text-white transition disabled:opacity-50',
                         'bg-blue-600 hover:bg-blue-700' => $leftTeam === \App\Enums\TeamAB::TeamA,
                         'bg-red-600 hover:bg-red-700' => $leftTeam === \App\Enums\TeamAB::TeamB,
                     ])
                 >
-                    Winner
+                    Winner: {{ $leftTeam->label() }}
                 </button>
 
                 <button
                     type="button"
+                    aria-label="Record rally winner: {{ $rightTeam->label() }}"
                     data-rally-winner-button="{{ $rightTeam->value }}"
                     data-rally-winner-side="right"
                     data-rally-winner-side-team="right-{{ $rightTeam->value }}"
@@ -108,12 +110,12 @@
                     wire:loading.attr="disabled"
                     wire:target="recordRallyWinner"
                     @class([
-                        'rounded-md px-3 py-1 text-xs font-semibold text-white transition disabled:opacity-50',
+                        'min-h-10 rounded-md px-3 py-1 text-xs font-semibold text-white transition disabled:opacity-50',
                         'bg-blue-600 hover:bg-blue-700' => $rightTeam === \App\Enums\TeamAB::TeamA,
                         'bg-red-600 hover:bg-red-700' => $rightTeam === \App\Enums\TeamAB::TeamB,
                     ])
                 >
-                    Winner
+                    Winner: {{ $rightTeam->label() }}
                 </button>
             </div>
         @endif
@@ -123,7 +125,7 @@
         @enderror
 
         @if ($showRosters)
-            <div class="mt-4 flex w-full max-w-[600px] items-start gap-16">
+            <div class="mt-4 flex w-full max-w-[600px] items-start gap-4 px-2 sm:gap-10 md:gap-16">
                 <div class="flex min-w-0 flex-1 justify-end">
                     <livewire:team-roster
                         :game-id="$gameId"
@@ -147,7 +149,7 @@
         @endif
     </div>
 
-    <div class="flex w-[530px] mt-4 mx-auto justify-between">
+    <div class="mx-auto mt-4 flex w-full max-w-[600px] justify-between gap-4 px-2">
         <livewire:lineup-submission
             :team="$leftTeam"
             :game-id="$gameId"

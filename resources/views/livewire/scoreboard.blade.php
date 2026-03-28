@@ -1,7 +1,7 @@
 <section
     data-scoreboard
     aria-label="Match score"
-    class="absolute top-6 left-1/2 z-20 w-[300px] -translate-x-1/2 rounded-xl border border-slate-200 bg-white/95 px-6 py-4 shadow-sm backdrop-blur"
+    class="absolute left-1/2 top-4 z-20 w-[min(92vw,320px)] -translate-x-1/2 rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur sm:top-6 sm:px-6 sm:py-4"
 >
     <div class="grid grid-cols-3 items-center text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">
         <span class="justify-self-start" data-scoreboard-left-team="{{ $leftTeam->value }}">{{ $leftTeamCode }}</span>

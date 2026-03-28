@@ -1,9 +1,10 @@
 <div>
     @if ($canStartSet)
-        <div class="absolute left-1/2 top-[calc(50%-285px)] z-20 -translate-x-1/2">
+        <div class="absolute left-1/2 top-24 z-20 -translate-x-1/2 sm:top-[calc(50%-285px)]">
             <flux:button
                 variant="primary"
                 icon="play"
+                aria-label="Start set {{ $upcomingSetNumber }}"
                 wire:click="startSet"
                 wire:loading.attr="disabled"
                 wire:target="startSet"
