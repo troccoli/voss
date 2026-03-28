@@ -37,7 +37,7 @@ test('court shows player lists after toss is submitted', function (): void {
     $game = gameWithNumberedRosters();
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 1])])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameStateWithSubmittedLineups(['set_number' => 1])])
         ->assertSeeInOrder([
             '3',
             '12',
@@ -75,7 +75,7 @@ test('court swaps team sides in sets two three and four', function (): void {
     $game = gameWithNumberedRosters();
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 2, 'sets_won_team_a' => 1])])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameStateWithSubmittedLineups(['set_number' => 2, 'sets_won_team_a' => 1])])
         ->assertSeeInOrder([
             '2',
             '9',
@@ -83,7 +83,7 @@ test('court swaps team sides in sets two three and four', function (): void {
             '12',
         ]);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 3, 'sets_won_team_a' => 1, 'sets_won_team_b' => 1])])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameStateWithSubmittedLineups(['set_number' => 3, 'sets_won_team_a' => 1, 'sets_won_team_b' => 1])])
         ->assertSeeInOrder([
             '3',
             '12',
@@ -91,7 +91,7 @@ test('court swaps team sides in sets two three and four', function (): void {
             '9',
         ]);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 4, 'sets_won_team_a' => 2, 'sets_won_team_b' => 1])])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameStateWithSubmittedLineups(['set_number' => 4, 'sets_won_team_a' => 2, 'sets_won_team_b' => 1])])
         ->assertSeeInOrder([
             '2',
             '9',
@@ -134,7 +134,7 @@ test('court alternates left and right rosters from set one to set four', functio
     foreach ($setExpectations as $state) {
         Livewire::test(Court::class, [
             'gameId' => $game->getKey(),
-            'gameState' => gameState([
+            'gameState' => gameStateWithSubmittedLineups([
                 'set_number' => $state['set_number'],
                 'sets_won_team_a' => $state['sets_won_team_a'],
                 'sets_won_team_b' => $state['sets_won_team_b'],
@@ -147,7 +147,7 @@ test('court keeps team a on the left in first and fifth sets regardless of toss 
     $game = gameWithNumberedRosters();
     $game->recordToss(TeamSide::Away, TeamAB::TeamA);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 1])])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameStateWithSubmittedLineups(['set_number' => 1])])
         ->assertSeeInOrder([
             '2',
             '9',
@@ -155,7 +155,7 @@ test('court keeps team a on the left in first and fifth sets regardless of toss 
             '12',
         ]);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 5, 'sets_won_team_a' => 2, 'sets_won_team_b' => 2])])
+    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameStateWithSubmittedLineups(['set_number' => 5, 'sets_won_team_a' => 2, 'sets_won_team_b' => 2])])
         ->assertSeeInOrder([
             '2',
             '9',
@@ -248,7 +248,7 @@ test('court swaps sides as soon as a set ends before the next set starts', funct
 
     Livewire::test(Court::class, [
         'gameId' => $game->getKey(),
-        'gameState' => gameState([
+        'gameState' => gameStateWithSubmittedLineups([
             'set_number' => 1,
             'sets_won_team_a' => 1,
             'set_in_progress' => false,
@@ -343,4 +343,15 @@ function gameWithStartedSet(): Game
 function gameState(array $attributes): GameState
 {
     return GameState::fromAttributes($attributes);
+}
+
+/**
+ * @param  array<string, mixed>  $attributes
+ */
+function gameStateWithSubmittedLineups(array $attributes): GameState
+{
+    return gameState(array_merge([
+        'rotation_team_a' => [1 => 999],
+        'rotation_team_b' => [1 => 998],
+    ], $attributes));
 }

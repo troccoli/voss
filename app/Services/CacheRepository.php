@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\GameEventType;
+use App\Enums\StaffRole;
 use App\Enums\TeamSide;
 use App\Events\Payloads\TossCompletedPayload;
 use App\Models\Game;
 use App\Models\GameEvent;
 use App\Models\Player;
+use App\Models\Staff;
 
 class CacheRepository
 {
@@ -34,6 +36,28 @@ class CacheRepository
                 'player_key' => $player->getKey(),
                 'number' => $player->roster->number,
                 'last_name' => $player->last_name,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{
+     *     staff_key: int,
+     *     role: StaffRole
+     * }>
+     */
+    public function staffForSide(Game $game, TeamSide $side): array
+    {
+        $staff = $side === TeamSide::Home
+            ? $game->homeStaff()
+            : $game->awayStaff();
+
+        return $staff
+            ->orderByPivot('id')
+            ->get()
+            ->map(fn (Staff $staffMember): array => [
+                'staff_key' => $staffMember->getKey(),
+                'role' => $staffMember->roster->role,
             ])
             ->all();
     }

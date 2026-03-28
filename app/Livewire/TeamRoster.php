@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire;
 
 use App\Data\GameState\GameState;
+use App\Enums\StaffRole;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Models\Game;
@@ -43,8 +44,18 @@ class TeamRoster extends Component
 
     public function render(): View
     {
+        $players = $this->players();
+        $rosterPlayerCount = $this->rosterPlayerCount();
+        $lineupSubmitted = $this->hasLineupBeenSubmitted($this->team);
+        $placeholderCount = $lineupSubmitted ? 0 : max(0, $rosterPlayerCount - 6);
+
         return view('livewire.team-roster', [
-            'players' => $this->players(),
+            'players' => $players,
+            'showPlayerPlaceholders' => $placeholderCount > 0,
+            'placeholderCount' => $placeholderCount,
+            'hasRosterPlayers' => $rosterPlayerCount > 0,
+            'staffMarkers' => $this->staffMarkers(),
+            'reverseStaffOrder' => $this->team === TeamAB::TeamA,
             'keyPrefix' => $this->leftSide ? 'left-player' : 'right-player',
             'markerTone' => $this->team === TeamAB::TeamA ? 'bg-blue-600' : 'bg-red-600',
         ]);
@@ -69,7 +80,7 @@ class TeamRoster extends Component
         $onCourtNumbers = $this->onCourtRosterNumbers($this->team);
 
         if ($onCourtNumbers === []) {
-            return $players;
+            return [];
         }
 
         return array_values(array_filter($players, fn (array $player): bool => ! in_array($player['number'], $onCourtNumbers, true)));
@@ -80,12 +91,88 @@ class TeamRoster extends Component
      */
     private function playersForTeam(Game $game, TeamAB $team): array
     {
-        $teamASide = $this->teamASideForTossSets($game);
-        $targetSide = $team === TeamAB::TeamA
-            ? $teamASide
-            : $this->oppositeSide($teamASide);
+        return $this->cacheRepository()->playersForSide($game, $this->targetSideForTeam($game, $team));
+    }
 
-        return $this->cacheRepository()->playersForSide($game, $targetSide);
+    /**
+     * @return array<int, array{role_letter: string, subscript: int|null}>
+     */
+    private function staffMarkers(): array
+    {
+        $game = Game::query()->find($this->gameId);
+
+        if ($game === null) {
+            return [];
+        }
+
+        $staff = $this->staffForTeam($game, $this->team);
+
+        if ($staff === []) {
+            return [];
+        }
+
+        $assistantCoaches = 0;
+        $hasCoach = false;
+        $hasDoctor = false;
+        $hasTherapist = false;
+
+        foreach ($staff as $staffMember) {
+            $role = $staffMember['role'];
+
+            if ($role === StaffRole::Coach) {
+                $hasCoach = true;
+
+                continue;
+            }
+
+            if ($role === StaffRole::AssistantCoach) {
+                $assistantCoaches++;
+
+                continue;
+            }
+
+            if ($role === StaffRole::Doctor) {
+                $hasDoctor = true;
+
+                continue;
+            }
+
+            if ($role === StaffRole::Therapist) {
+                $hasTherapist = true;
+            }
+        }
+
+        $markers = [];
+
+        if ($hasCoach) {
+            $markers[] = ['role_letter' => 'C', 'subscript' => null];
+        }
+
+        if ($assistantCoaches >= 1) {
+            $markers[] = ['role_letter' => 'A', 'subscript' => 1];
+        }
+
+        if ($assistantCoaches >= 2) {
+            $markers[] = ['role_letter' => 'A', 'subscript' => 2];
+        }
+
+        if ($hasDoctor) {
+            $markers[] = ['role_letter' => 'D', 'subscript' => null];
+        }
+
+        if ($hasTherapist) {
+            $markers[] = ['role_letter' => 'T', 'subscript' => null];
+        }
+
+        return $markers;
+    }
+
+    /**
+     * @return array<int, array{staff_key: int, role: StaffRole}>
+     */
+    private function staffForTeam(Game $game, TeamAB $team): array
+    {
+        return $this->cacheRepository()->staffForSide($game, $this->targetSideForTeam($game, $team));
     }
 
     private function teamASideForTossSets(Game $game): TeamSide
@@ -102,6 +189,26 @@ class TeamRoster extends Component
     private function cacheRepository(): CacheRepository
     {
         return app(CacheRepository::class);
+    }
+
+    private function rosterPlayerCount(): int
+    {
+        $game = Game::query()->find($this->gameId);
+
+        if ($game === null) {
+            return 0;
+        }
+
+        return count($this->playersForTeam($game, $this->team));
+    }
+
+    private function targetSideForTeam(Game $game, TeamAB $team): TeamSide
+    {
+        $teamASide = $this->teamASideForTossSets($game);
+
+        return $team === TeamAB::TeamA
+            ? $teamASide
+            : $this->oppositeSide($teamASide);
     }
 
     private function oppositeSide(TeamSide $side): TeamSide
@@ -121,5 +228,10 @@ class TeamRoster extends Component
         return $team === TeamAB::TeamA
             ? array_values($state->rotationTeamA)
             : array_values($state->rotationTeamB);
+    }
+
+    private function hasLineupBeenSubmitted(TeamAB $team): bool
+    {
+        return $this->onCourtRosterNumbers($team) !== [];
     }
 }

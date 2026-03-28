@@ -87,7 +87,13 @@ test('lineup submission renders team a button and modal after toss is submitted'
         ->assertSee('Team A Lineup')
         ->assertSeeHtml('submit-lineup-team_a')
         ->assertSeeHtml('name="lineup[1]"')
+        ->assertSeeHtml('autofocus')
         ->assertSeeHtml('name="lineup[6]"')
+        ->assertSeeHtml('data-lineup-roster-numbers')
+        ->assertSeeHtml('data-lineup-roster-number="1"')
+        ->assertSeeHtml('data-lineup-roster-number="6"')
+        ->assertDontSeeHtml('data-lineup-roster-number="99"')
+        ->assertDontSeeHtml('data-lineup-roster-number="11"')
         ->assertSee('Submit');
 });
 
@@ -100,6 +106,11 @@ test('lineup submission renders team b button and modal after toss is submitted'
         ->assertSeeHtml('submit-lineup-team_b')
         ->assertSeeHtml('name="lineup[1]"')
         ->assertSeeHtml('name="lineup[6]"')
+        ->assertSeeHtml('data-lineup-roster-numbers')
+        ->assertSeeHtml('data-lineup-roster-number="11"')
+        ->assertSeeHtml('data-lineup-roster-number="16"')
+        ->assertDontSeeHtml('data-lineup-roster-number="99"')
+        ->assertDontSeeHtml('data-lineup-roster-number="1"')
         ->assertSee('Submit');
 });
 

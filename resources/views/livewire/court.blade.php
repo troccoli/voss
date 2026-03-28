@@ -111,8 +111,8 @@
         @enderror
 
         @if ($showRosters)
-            <div class="mt-4 flex w-full max-w-[600px] items-start justify-between gap-8">
-                <div class="flex min-w-0 flex-1 justify-start">
+            <div class="mt-4 flex w-full max-w-[600px] items-start gap-16">
+                <div class="flex min-w-0 flex-1 justify-end">
                     <livewire:team-roster
                         :game-id="$gameId"
                         :game-state="$gameState"
@@ -122,7 +122,7 @@
                     />
                 </div>
 
-                <div class="flex min-w-0 flex-1 justify-end">
+                <div class="flex min-w-0 flex-1 justify-start">
                     <livewire:team-roster
                         :game-id="$gameId"
                         :game-state="$gameState"

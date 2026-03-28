@@ -100,6 +100,7 @@ class LineupSubmission extends Component
     {
         return view('livewire.lineup-submission', [
             'canSubmitLineup' => $this->canSubmitLineup(),
+            'rosterNumbers' => $this->rosterNumbers(),
         ]);
     }
 
@@ -147,6 +148,37 @@ class LineupSubmission extends Component
      */
     private function eligibleRosterNumbers(Game $game): array
     {
+        $teamSide = $this->teamSideForToss($game);
+
+        if ($teamSide === null) {
+            return [];
+        }
+
+        $rosterNumbers = $teamSide === TeamSide::Home
+            ? $game->homePlayers()->wherePivot('is_libero', false)->orderByPivot('number')->pluck('game_player.number')
+            : $game->awayPlayers()->wherePivot('is_libero', false)->orderByPivot('number')->pluck('game_player.number');
+
+        return $rosterNumbers
+            ->map(fn (mixed $number): int => (int) $number)
+            ->all();
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function rosterNumbers(): array
+    {
+        $activeGame = Game::query()->whereKey($this->gameId)->first();
+
+        if ($activeGame === null) {
+            return [];
+        }
+
+        return $this->eligibleRosterNumbers($activeGame);
+    }
+
+    private function teamSideForToss(Game $game): ?TeamSide
+    {
         /** @var GameEvent|null $tossEvent */
         $tossEvent = $game->events()
             ->reorder()
@@ -156,23 +188,15 @@ class LineupSubmission extends Component
             ->first();
 
         if ($tossEvent === null) {
-            return [];
+            return null;
         }
 
         /** @var TossCompletedPayload $tossPayload */
         $tossPayload = $tossEvent->payload;
 
-        $side = $this->team === TeamAB::TeamA
+        return $this->team === TeamAB::TeamA
             ? $tossPayload->teamA
             : ($tossPayload->teamA === TeamSide::Home ? TeamSide::Away : TeamSide::Home);
-
-        $rosterNumbers = $side === TeamSide::Home
-            ? $game->homePlayers()->wherePivot('is_libero', false)->pluck('game_player.number')
-            : $game->awayPlayers()->wherePivot('is_libero', false)->pluck('game_player.number');
-
-        return $rosterNumbers
-            ->map(fn (mixed $number): int => (int) $number)
-            ->all();
     }
 
     /**
