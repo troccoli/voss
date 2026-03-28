@@ -8,15 +8,13 @@ use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
-use App\Events\Payloads\TossCompletedPayload;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
-use App\Models\GameEvent;
+use App\Services\GameSideResolver;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
-use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
@@ -104,37 +102,6 @@ class LineupSubmission extends Component
         ]);
     }
 
-    #[Computed]
-    public function activeGame(): ?Game
-    {
-        return Game::query()->whereKey($this->gameId)->first();
-    }
-
-    #[Computed]
-    public function tossPayload(): ?TossCompletedPayload
-    {
-        $activeGame = $this->activeGame();
-
-        if ($activeGame === null) {
-            return null;
-        }
-
-        /** @var GameEvent|null $tossEvent */
-        $tossEvent = $activeGame->events()
-            ->reorder()
-            ->where('type', GameEventType::TossCompleted)
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->first();
-
-        if ($tossEvent === null) {
-            return null;
-        }
-
-        /** @var TossCompletedPayload */
-        return $tossEvent->payload;
-    }
-
     /**
      * @return array<string, array<int, string>>
      */
@@ -179,7 +146,7 @@ class LineupSubmission extends Component
      */
     private function eligibleRosterNumbers(Game $game): array
     {
-        $teamSide = $this->teamSideForToss();
+        $teamSide = $this->teamSideForToss($game);
 
         if ($teamSide === null) {
             return [];
@@ -208,17 +175,9 @@ class LineupSubmission extends Component
         return $this->eligibleRosterNumbers($activeGame);
     }
 
-    private function teamSideForToss(): ?TeamSide
+    private function teamSideForToss(Game $game): ?TeamSide
     {
-        $tossPayload = $this->tossPayload();
-
-        if ($tossPayload === null) {
-            return null;
-        }
-
-        return $this->team === TeamAB::TeamA
-            ? $tossPayload->teamA
-            : ($tossPayload->teamA === TeamSide::Home ? TeamSide::Away : TeamSide::Home);
+        return $this->gameSideResolver()->sideForTeamFromToss($game, $this->team);
     }
 
     /**
@@ -285,7 +244,9 @@ class LineupSubmission extends Component
 
     private function hasSubmittedToss(): bool
     {
-        return $this->tossPayload() !== null;
+        $activeGame = $this->activeGame();
+
+        return $activeGame !== null && $this->gameSideResolver()->hasRecordedToss($activeGame);
     }
 
     private function upcomingSetNumber(): int
@@ -326,5 +287,15 @@ class LineupSubmission extends Component
             5 => '',
             6 => '',
         ];
+    }
+
+    private function activeGame(): ?Game
+    {
+        return Game::query()->whereKey($this->gameId)->first();
+    }
+
+    private function gameSideResolver(): GameSideResolver
+    {
+        return app(GameSideResolver::class);
     }
 }

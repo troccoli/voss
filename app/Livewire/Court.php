@@ -6,12 +6,10 @@ namespace App\Livewire;
 
 use App\Data\GameState\GameState;
 use App\Enums\TeamAB;
-use App\Events\Payloads\TossCompletedPayload;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
-use App\Services\CacheRepository;
+use App\Services\GameSideResolver;
 use Illuminate\Contracts\View\View;
-use Livewire\Attributes\Computed;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
@@ -84,55 +82,21 @@ class Court extends Component
     private function courtContext(): array
     {
         $game = $this->activeGame();
+        $completedSetCount = $this->completedSetCount();
+        $leftTeam = $this->gameSideResolver()->teamOnLeft($completedSetCount);
+        $rightTeam = $this->gameSideResolver()->teamOnRight($completedSetCount);
         $canRecordRallyWinner = $this->canRecordRallyWinner($game);
-        $showRosters = $game !== null && $this->latestTossPayload() !== null;
-
-        $defaultContext = [
-            'leftTeam' => TeamAB::TeamA,
-            'rightTeam' => TeamAB::TeamB,
-            'servingTeam' => $this->resolvedGameState()->servingTeam,
-            'showRosters' => $showRosters,
-            'canRecordRallyWinner' => $canRecordRallyWinner,
-            'leftRotation' => $this->rotationForTeam(TeamAB::TeamA),
-            'rightRotation' => $this->rotationForTeam(TeamAB::TeamB),
-        ];
-
-        if ($game === null) {
-            return $defaultContext;
-        }
-
-        if ($this->isTeamAOnLeft()) {
-            return $defaultContext;
-        }
+        $showRosters = $game !== null && $this->gameSideResolver()->hasRecordedToss($game);
 
         return [
-            'leftTeam' => TeamAB::TeamB,
-            'rightTeam' => TeamAB::TeamA,
+            'leftTeam' => $leftTeam,
+            'rightTeam' => $rightTeam,
             'servingTeam' => $this->resolvedGameState()->servingTeam,
             'showRosters' => $showRosters,
             'canRecordRallyWinner' => $canRecordRallyWinner,
-            'leftRotation' => $this->rotationForTeam(TeamAB::TeamB),
-            'rightRotation' => $this->rotationForTeam(TeamAB::TeamA),
+            'leftRotation' => $this->rotationForTeam($leftTeam),
+            'rightRotation' => $this->rotationForTeam($rightTeam),
         ];
-    }
-
-    private function isTeamAOnLeft(): bool
-    {
-        $completedSets = $this->completedSetCount();
-
-        return $completedSets % 2 === 0;
-    }
-
-    #[Computed]
-    public function latestTossPayload(): ?TossCompletedPayload
-    {
-        $game = $this->activeGame();
-
-        if ($game === null) {
-            return null;
-        }
-
-        return app(CacheRepository::class)->latestTossPayload($game);
     }
 
     /**
@@ -170,13 +134,17 @@ class Court extends Component
         return $state->setInProgress && ! $state->gameEnded;
     }
 
-    #[Computed]
-    public function activeGame(): ?Game
+    private function activeGame(): ?Game
     {
         if ($this->gameId === null) {
             return null;
         }
 
         return Game::query()->whereKey($this->gameId)->first();
+    }
+
+    private function gameSideResolver(): GameSideResolver
+    {
+        return app(GameSideResolver::class);
     }
 }
