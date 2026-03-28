@@ -10,6 +10,7 @@ use App\Enums\TeamSide;
 use App\Models\Game;
 use App\Services\CacheRepository;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
@@ -27,7 +28,7 @@ class Scoreboard extends Component
     {
         $scoreboardState = $this->gameState ?? GameState::initial();
         $teamAOnLeft = $this->isTeamAOnLeft($scoreboardState);
-        $teamCodes = $this->teamCountryCodes();
+        $teamCodes = $this->teamCountryCodes;
 
         return view('livewire.scoreboard', [
             'leftTeam' => $teamAOnLeft ? TeamAB::TeamA : TeamAB::TeamB,
@@ -49,9 +50,10 @@ class Scoreboard extends Component
     /**
      * @return array{team_a: string, team_b: string}
      */
-    private function teamCountryCodes(): array
+    #[Computed]
+    public function teamCountryCodes(): array
     {
-        $game = $this->activeGame();
+        $game = $this->activeGame;
 
         if ($game === null) {
             return [
@@ -60,7 +62,7 @@ class Scoreboard extends Component
             ];
         }
 
-        $teamASide = $this->teamASideForTossSets($game);
+        $teamASide = $this->teamASideForToss;
 
         if ($teamASide === TeamSide::Home) {
             return [
@@ -75,8 +77,15 @@ class Scoreboard extends Component
         ];
     }
 
-    private function teamASideForTossSets(Game $game): TeamSide
+    #[Computed]
+    public function teamASideForToss(): TeamSide
     {
+        $game = $this->activeGame;
+
+        if ($game === null) {
+            return TeamSide::Home;
+        }
+
         $tossPayload = $this->cacheRepository()->latestTossPayload($game);
 
         if ($tossPayload === null) {
@@ -86,7 +95,8 @@ class Scoreboard extends Component
         return $tossPayload->teamA;
     }
 
-    private function activeGame(): ?Game
+    #[Computed]
+    public function activeGame(): ?Game
     {
         if ($this->gameId === null) {
             return null;
