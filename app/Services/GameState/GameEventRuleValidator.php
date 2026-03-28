@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\GameState;
 
 use App\Enums\GameEventType;
+use App\Enums\TeamAB;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
 
@@ -34,6 +35,14 @@ class GameEventRuleValidator
 
         if ($state->setInProgress) {
             $this->fail('A set is already in progress.');
+        }
+
+        $upcomingSet = $state->setNumber + 1;
+        $hasTeamALineup = $this->hasSubmittedLineupForSet($game, TeamAB::TeamA, $upcomingSet);
+        $hasTeamBLineup = $this->hasSubmittedLineupForSet($game, TeamAB::TeamB, $upcomingSet);
+
+        if (! $hasTeamALineup || ! $hasTeamBLineup) {
+            $this->fail('Both team lineups must be submitted before starting the set.');
         }
     }
 
@@ -123,6 +132,15 @@ class GameEventRuleValidator
     {
         return $game->events()
             ->where('type', GameEventType::TossCompleted)
+            ->exists();
+    }
+
+    private function hasSubmittedLineupForSet(Game $game, TeamAB $team, int $setNumber): bool
+    {
+        return $game->events()
+            ->where('type', GameEventType::LineupSubmitted)
+            ->where('payload->set', $setNumber)
+            ->where('payload->team', $team->value)
             ->exists();
     }
 

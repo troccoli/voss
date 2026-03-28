@@ -84,9 +84,11 @@ test('recalculation job rebuilds snapshots from scratch up to a cutoff time', fu
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    ensureRostersForProjection($game, $homeTeam, $awayTeam);
 
     Carbon::setTestNow('2026-03-07 10:00:00');
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    submitProjectionLineupsForSet($game, 1);
 
     Carbon::setTestNow('2026-03-07 10:01:00');
     $game->recordSetStarted();
@@ -106,7 +108,7 @@ test('recalculation job rebuilds snapshots from scratch up to a cutoff time', fu
 
     $latest = $game->fresh()->stateAt();
 
-    expect($game->fresh()->stateSnapshots)->toHaveCount(3)
+    expect($game->fresh()->stateSnapshots)->toHaveCount(5)
         ->and($latest->setNumber)->toBe(1)
         ->and($latest->scoreTeamA)->toBe(1)
         ->and($latest->scoreTeamB)->toBe(0)
@@ -117,8 +119,10 @@ test('state resets points as soon as a set ends before the next set starts', fun
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    ensureRostersForProjection($game, $homeTeam, $awayTeam);
 
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    submitProjectionLineupsForSet($game, 1);
     $game->recordSetStarted();
 
     for ($index = 0; $index < 25; $index++) {
@@ -169,3 +173,38 @@ test('game state snapshot accepts a serialized serving team and casts it back to
     expect($snapshot->serving_team)->toBe(TeamAB::TeamB)
         ->and($snapshot->getRawOriginal('serving_team'))->toBe(TeamAB::TeamB->value);
 });
+
+function ensureRostersForProjection(Game $game, Team $homeTeam, Team $awayTeam): void
+{
+    $homePlayers = Player::factory()->for($homeTeam)->count(7)->create();
+    $awayPlayers = Player::factory()->for($awayTeam)->count(6)->create();
+
+    foreach ($homePlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 1);
+    }
+
+    foreach ($awayPlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 1);
+    }
+}
+
+function submitProjectionLineupsForSet(Game $game, int $set): void
+{
+    $game->recordLineup($set, TeamAB::TeamA, projectionLineup());
+    $game->recordLineup($set, TeamAB::TeamB, projectionLineup());
+}
+
+/**
+ * @return array<int, int>
+ */
+function projectionLineup(): array
+{
+    return [
+        1 => 1,
+        2 => 2,
+        3 => 3,
+        4 => 4,
+        5 => 5,
+        6 => 6,
+    ];
+}

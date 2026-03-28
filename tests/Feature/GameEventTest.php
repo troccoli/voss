@@ -23,6 +23,8 @@ uses(RefreshDatabase::class);
 function prepareActiveSet(Game $game): void
 {
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    ensureStartingLineupRoster($game);
+    submitLineupsForSet($game, 1);
     $game->recordSetStarted();
 }
 
@@ -46,6 +48,29 @@ function lineupWithRosterNumbers(int $start = 1): array
         5 => $start + 4,
         6 => $start + 5,
     ];
+}
+
+function ensureStartingLineupRoster(Game $game): void
+{
+    if ($game->players()->count() > 0) {
+        return;
+    }
+
+    $homePlayers = Player::factory()->for($game->homeTeam)->count(6)->create();
+    foreach ($homePlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 1);
+    }
+
+    $awayPlayers = Player::factory()->for($game->awayTeam)->count(6)->create();
+    foreach ($awayPlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 11);
+    }
+}
+
+function submitLineupsForSet(Game $game, int $set): void
+{
+    $game->recordLineup($set, TeamAB::TeamA, lineupWithRosterNumbers(1));
+    $game->recordLineup($set, TeamAB::TeamB, lineupWithRosterNumbers(11));
 }
 
 test('a toss can be recorded with the correct type and payload', function (): void {
@@ -239,12 +264,18 @@ test('a lineup cannot be submitted after the set has started', function (): void
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
-    $players = Player::factory()->for($homeTeam)->count(6)->create();
-    foreach ($players as $i => $player) {
+    $homePlayers = Player::factory()->for($homeTeam)->count(6)->create();
+    foreach ($homePlayers as $i => $player) {
         $game->addPlayer($player, number: $i + 1);
     }
 
+    $awayPlayers = Player::factory()->for($awayTeam)->count(6)->create();
+    foreach ($awayPlayers as $i => $player) {
+        $game->addPlayer($player, number: $i + 11);
+    }
+
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    submitLineupsForSet($game, 1);
     $game->recordSetStarted();
 
     $positions = lineupWithRosterNumbers();
@@ -258,12 +289,18 @@ test('a lineup for the next set can be submitted after the previous set ends', f
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
-    $players = Player::factory()->for($homeTeam)->count(6)->create();
-    foreach ($players as $i => $player) {
+    $homePlayers = Player::factory()->for($homeTeam)->count(6)->create();
+    foreach ($homePlayers as $i => $player) {
         $game->addPlayer($player, number: $i + 1);
     }
 
+    $awayPlayers = Player::factory()->for($awayTeam)->count(6)->create();
+    foreach ($awayPlayers as $i => $player) {
+        $game->addPlayer($player, number: $i + 11);
+    }
+
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    submitLineupsForSet($game, 1);
     $game->recordSetStarted();
     winSet($game, TeamAB::TeamA);
 
@@ -412,9 +449,11 @@ test('a set started event can be recorded with the correct type and empty payloa
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    ensureStartingLineupRoster($game);
+    submitLineupsForSet($game, 1);
     $game->recordSetStarted();
 
-    expect($game->events)->toHaveCount(2);
+    expect($game->events)->toHaveCount(4);
 
     $event = $game->events->last();
     expect($event->type)->toBe(GameEventType::SetStarted)
@@ -442,7 +481,9 @@ test('a game ended event can be recorded with the correct type and empty payload
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    ensureStartingLineupRoster($game);
     for ($set = 0; $set < 3; $set++) {
+        submitLineupsForSet($game, $set + 1);
         $game->recordSetStarted();
         winSet($game, TeamAB::TeamA);
     }
@@ -460,6 +501,19 @@ test('a set cannot start before the toss', function (): void {
 
     expect(fn () => $game->recordSetStarted())
         ->toThrow(InvalidGameEventTransition::class, 'A set cannot start before the toss has been recorded.');
+});
+
+test('a set cannot start until both lineups are submitted for the upcoming set', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    ensureStartingLineupRoster($game);
+    $game->recordLineup(1, TeamAB::TeamA, lineupWithRosterNumbers(1));
+
+    expect(fn () => $game->recordSetStarted())
+        ->toThrow(InvalidGameEventTransition::class, 'Both team lineups must be submitted before starting the set.');
 });
 
 test('a set cannot end before score reaches 25 with a two-point advantage', function (): void {
@@ -482,6 +536,8 @@ test('a game cannot end before one team has won three sets', function (): void {
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    ensureStartingLineupRoster($game);
+    submitLineupsForSet($game, 1);
     $game->recordSetStarted();
     winSet($game, TeamAB::TeamA);
 

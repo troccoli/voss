@@ -379,7 +379,19 @@ function gameWithNumberedRosters(): Game
 function gameWithStartedSet(): Game
 {
     $game = Game::factory()->create();
+    $homePlayers = Player::factory()->for($game->homeTeam)->count(6)->create();
+    foreach ($homePlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 1);
+    }
+
+    $awayPlayers = Player::factory()->for($game->awayTeam)->count(6)->create();
+    foreach ($awayPlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 11);
+    }
+
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    $game->recordLineup(1, TeamAB::TeamA, [1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6]);
+    $game->recordLineup(1, TeamAB::TeamB, [1 => 11, 2 => 12, 3 => 13, 4 => 14, 5 => 15, 6 => 16]);
     $game->recordSetStarted();
 
     return $game;
