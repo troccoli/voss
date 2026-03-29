@@ -6,7 +6,6 @@ namespace App\Livewire;
 
 use App\Data\GameState\GameState;
 use App\Enums\TeamAB;
-use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
 use App\Services\GameSideResolver;
 use Illuminate\Contracts\View\View;
@@ -29,43 +28,6 @@ class Court extends Component
     public function render(): View
     {
         return view('livewire.court', $this->courtContext());
-    }
-
-    public function recordRallyWinner(string $team): void
-    {
-        $this->resetValidation('rallyWinner');
-
-        if (! $this->canRecordRallyWinner()) {
-            $this->addError('rallyWinner', 'A rally result can only be recorded while a set is in progress.');
-
-            return;
-        }
-
-        $winningTeam = TeamAB::tryFrom($team);
-
-        if ($winningTeam === null) {
-            $this->addError('rallyWinner', 'The selected team is invalid.');
-
-            return;
-        }
-
-        $activeGame = $this->activeGame();
-
-        if ($activeGame === null) {
-            $this->addError('rallyWinner', 'No active game is available to record the rally winner.');
-
-            return;
-        }
-
-        try {
-            $activeGame->recordRallyWinner($winningTeam);
-        } catch (InvalidGameEventTransition $exception) {
-            $this->addError('rallyWinner', $exception->getMessage());
-
-            return;
-        }
-
-        $this->dispatch('game-event-recorded');
     }
 
     /**

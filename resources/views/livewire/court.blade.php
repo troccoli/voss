@@ -1,4 +1,4 @@
-<div class="grid h-full w-full grid-cols-1 content-center justify-items-center">
+<div data-court-layout="anchored" class="absolute inset-x-0 top-[300px] z-10 grid w-full grid-cols-1 justify-items-center">
     @php
         $leftCourtPositionClasses = [
             1 => 'left-[12%] bottom-[14%]',
@@ -82,47 +82,20 @@
 
         @if ($canRecordRallyWinner)
             <div class="mt-2 flex w-full justify-between px-2">
-                <button
-                    type="button"
-                    aria-label="Record rally winner: {{ $leftTeam->label() }}"
-                    data-rally-winner-button="{{ $leftTeam->value }}"
-                    data-rally-winner-side="left"
-                    data-rally-winner-side-team="left-{{ $leftTeam->value }}"
-                    wire:click="recordRallyWinner('{{ $leftTeam->value }}')"
-                    wire:loading.attr="disabled"
-                    wire:target="recordRallyWinner"
-                    @class([
-                        'min-h-10 rounded-md px-3 py-1 text-xs font-semibold text-white transition disabled:opacity-50',
-                        'bg-blue-600 hover:bg-blue-700' => $leftTeam === \App\Enums\TeamAB::TeamA,
-                        'bg-red-600 hover:bg-red-700' => $leftTeam === \App\Enums\TeamAB::TeamB,
-                    ])
-                >
-                    Winner: {{ $leftTeam->label() }}
-                </button>
-
-                <button
-                    type="button"
-                    aria-label="Record rally winner: {{ $rightTeam->label() }}"
-                    data-rally-winner-button="{{ $rightTeam->value }}"
-                    data-rally-winner-side="right"
-                    data-rally-winner-side-team="right-{{ $rightTeam->value }}"
-                    wire:click="recordRallyWinner('{{ $rightTeam->value }}')"
-                    wire:loading.attr="disabled"
-                    wire:target="recordRallyWinner"
-                    @class([
-                        'min-h-10 rounded-md px-3 py-1 text-xs font-semibold text-white transition disabled:opacity-50',
-                        'bg-blue-600 hover:bg-blue-700' => $rightTeam === \App\Enums\TeamAB::TeamA,
-                        'bg-red-600 hover:bg-red-700' => $rightTeam === \App\Enums\TeamAB::TeamB,
-                    ])
-                >
-                    Winner: {{ $rightTeam->label() }}
-                </button>
+                <livewire:rally-winner-button
+                    :game-id="$gameId"
+                    :team="$leftTeam"
+                    side="left"
+                    :key="'rally-winner-button-left-'.$leftTeam->value"
+                />
+                <livewire:rally-winner-button
+                    :game-id="$gameId"
+                    :team="$rightTeam"
+                    side="right"
+                    :key="'rally-winner-button-right-'.$rightTeam->value"
+                />
             </div>
         @endif
-
-        @error('rallyWinner')
-            <flux:text class="mt-2 text-center text-red-600">{{ $message }}</flux:text>
-        @enderror
 
         @if ($showRosters)
             <div class="mt-4 flex w-full max-w-[600px] items-start gap-4 px-2 sm:gap-10 md:gap-16">
