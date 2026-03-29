@@ -1,6 +1,6 @@
 <div>
     @if ($canStartSet)
-        <div class="absolute left-1/2 top-24 z-20 -translate-x-1/2 sm:top-[calc(50%-285px)]">
+        <div class="absolute left-1/2 top-24 z-20 -translate-x-1/2 sm:top-[calc(50%-185px)]">
             <flux:button
                 variant="primary"
                 icon="play"

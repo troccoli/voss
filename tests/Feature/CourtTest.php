@@ -8,6 +8,7 @@ use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Livewire\Court;
+use App\Livewire\RallyWinnerButton;
 use App\Models\Game;
 use App\Models\Player;
 use App\Models\Team;
@@ -330,17 +331,17 @@ test('court swaps rally winner buttons as soon as sides swap', function (): void
         ->assertSeeHtml('data-rally-winner-side-team="right-team_a"');
 });
 
-test('court records rally winner for the selected team and dispatches a refresh event', function (): void {
+test('rally winner button records rally winner for the selected team and dispatches a refresh event', function (): void {
     $game = gameWithStartedSet();
 
-    Livewire::test(Court::class, [
+    Livewire::test(RallyWinnerButton::class, [
         'gameId' => $game->getKey(),
-        'gameState' => $game->stateAt(),
+        'team' => TeamAB::TeamA,
+        'side' => 'left',
     ])
-        ->assertSee('Winner')
         ->assertSeeHtml('data-rally-winner-button="team_a"')
-        ->assertSeeHtml('data-rally-winner-button="team_b"')
-        ->call('recordRallyWinner', TeamAB::TeamA->value)
+        ->assertSeeHtml('data-rally-winner-side-team="left-team_a"')
+        ->call('recordRallyWinner')
         ->assertHasNoErrors()
         ->assertDispatched('game-event-recorded');
 
