@@ -6,29 +6,24 @@ namespace App\Services;
 
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
-use App\Events\Payloads\TossCompletedPayload;
 use App\Models\Game;
 
 class GameSideResolver
 {
-    public function __construct(
-        protected CacheRepository $cacheRepository
-    ) {}
-
     public function hasRecordedToss(Game $game): bool
     {
-        return $this->tossPayload($game) !== null;
+        return $game->stateAt()->teamASide !== null;
     }
 
     public function teamASideForToss(Game $game): TeamSide
     {
-        $tossPayload = $this->tossPayload($game);
+        $teamASide = $game->stateAt()->teamASide;
 
-        if ($tossPayload === null) {
+        if ($teamASide === null) {
             return TeamSide::Home;
         }
 
-        return $tossPayload->teamA;
+        return $teamASide;
     }
 
     public function sideForTeam(Game $game, TeamAB $team): TeamSide
@@ -38,13 +33,13 @@ class GameSideResolver
 
     public function sideForTeamFromToss(Game $game, TeamAB $team): ?TeamSide
     {
-        $tossPayload = $this->tossPayload($game);
+        $teamASide = $game->stateAt()->teamASide;
 
-        if ($tossPayload === null) {
+        if ($teamASide === null) {
             return null;
         }
 
-        return $this->sideForTeamFromTeamASide($tossPayload->teamA, $team);
+        return $this->sideForTeamFromTeamASide($teamASide, $team);
     }
 
     public function teamOnLeft(int $completedSets): TeamAB
@@ -71,11 +66,6 @@ class GameSideResolver
         return $side === TeamSide::Home
             ? TeamSide::Away
             : TeamSide::Home;
-    }
-
-    private function tossPayload(Game $game): ?TossCompletedPayload
-    {
-        return $this->cacheRepository->latestTossPayload($game);
     }
 
     private function sideForTeamFromTeamASide(TeamSide $teamASide, TeamAB $team): TeamSide

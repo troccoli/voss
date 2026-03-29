@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace App\Livewire;
 
 use App\Data\GameState\GameState;
-use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
-use App\Services\GameSideResolver;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Validator;
@@ -70,6 +68,12 @@ class LineupSubmission extends Component
             return;
         }
 
+        if (! $this->canSubmitLineup()) {
+            $this->addError('submit', 'A lineup can only be submitted before a set starts when the toss is recorded.');
+
+            return;
+        }
+
         $positions = $this->lineupPositions();
         $eligibleNumbers = $this->eligibleRosterNumbers($activeGame);
 
@@ -77,7 +81,7 @@ class LineupSubmission extends Component
             return;
         }
 
-        $set = $activeGame->stateAt()->setNumber + 1;
+        $set = $this->upcomingSetNumber();
 
         try {
             $activeGame->recordLineup($set, $this->team, $positions);
@@ -146,7 +150,7 @@ class LineupSubmission extends Component
      */
     private function eligibleRosterNumbers(Game $game): array
     {
-        $teamSide = $this->teamSideForToss($game);
+        $teamSide = $this->teamSideForToss();
 
         if ($teamSide === null) {
             return [];
@@ -175,9 +179,21 @@ class LineupSubmission extends Component
         return $this->eligibleRosterNumbers($activeGame);
     }
 
-    private function teamSideForToss(Game $game): ?TeamSide
+    private function teamSideForToss(): ?TeamSide
     {
-        return $this->gameSideResolver()->sideForTeamFromToss($game, $this->team);
+        $teamASide = $this->resolvedGameState()->teamASide;
+
+        if ($teamASide === null) {
+            return null;
+        }
+
+        if ($this->team === TeamAB::TeamA) {
+            return $teamASide;
+        }
+
+        return $teamASide === TeamSide::Home
+            ? TeamSide::Away
+            : TeamSide::Home;
     }
 
     /**
@@ -229,24 +245,20 @@ class LineupSubmission extends Component
 
     private function hasSubmittedLineupForUpcomingSet(): bool
     {
-        $activeGame = $this->activeGame();
+        $state = $this->resolvedGameState();
 
-        if ($activeGame === null) {
-            return false;
-        }
+        $lineup = $this->team === TeamAB::TeamA
+            ? $state->rotationTeamA
+            : $state->rotationTeamB;
 
-        return $activeGame->events()
-            ->where('type', GameEventType::LineupSubmitted)
-            ->where('payload->set', $this->upcomingSetNumber())
-            ->where('payload->team', $this->team->value)
-            ->exists();
+        return $lineup !== [];
     }
 
     private function hasSubmittedToss(): bool
     {
-        $activeGame = $this->activeGame();
+        $state = $this->resolvedGameState();
 
-        return $activeGame !== null && $this->gameSideResolver()->hasRecordedToss($activeGame);
+        return $state->teamASide !== null && $state->servingTeam !== null;
     }
 
     private function upcomingSetNumber(): int
@@ -271,6 +283,12 @@ class LineupSubmission extends Component
 
     private function resolvedGameState(): GameState
     {
+        $activeGame = $this->activeGame();
+
+        if ($activeGame !== null) {
+            return $activeGame->stateAt();
+        }
+
         return $this->gameState ?? GameState::initial();
     }
 
@@ -292,10 +310,5 @@ class LineupSubmission extends Component
     private function activeGame(): ?Game
     {
         return Game::query()->whereKey($this->gameId)->first();
-    }
-
-    private function gameSideResolver(): GameSideResolver
-    {
-        return app(GameSideResolver::class);
     }
 }

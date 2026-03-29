@@ -5,11 +5,15 @@ declare(strict_types=1);
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
+use App\Events\Payloads\SetStartedPayload;
 use App\Livewire\StartSetSubmission;
 use App\Models\Game;
+use App\Models\GameEvent;
+use App\Models\GameStateSnapshot;
 use App\Models\Player;
 use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -64,6 +68,41 @@ test('start set button label uses the next dynamic set number', function (): voi
 
     Livewire::test(StartSetSubmission::class, ['gameId' => $game->getKey(), 'gameState' => $game->stateAt()])
         ->assertSee('Start Set 2');
+});
+
+test('start set button visibility follows snapshot state without querying lineup events', function (): void {
+    $game = Game::factory()->create();
+
+    $stateEvent = GameEvent::withoutEvents(fn (): GameEvent => GameEvent::query()->create([
+        'game_id' => $game->getKey(),
+        'type' => GameEventType::SetStarted,
+        'payload' => new SetStartedPayload,
+        'created_at' => Carbon::now(),
+    ]));
+
+    GameStateSnapshot::query()->create([
+        'game_id' => $game->getKey(),
+        'game_event_id' => $stateEvent->getKey(),
+        'set_number' => 0,
+        'score_team_a' => 0,
+        'score_team_b' => 0,
+        'sets_won_team_a' => 0,
+        'sets_won_team_b' => 0,
+        'timeouts_team_a' => 0,
+        'timeouts_team_b' => 0,
+        'substitutions_team_a' => 0,
+        'substitutions_team_b' => 0,
+        'team_a_side' => TeamSide::Home->value,
+        'serving_team' => TeamAB::TeamA->value,
+        'rotation_team_a' => [1 => 1],
+        'rotation_team_b' => [1 => 11],
+        'set_in_progress' => false,
+        'game_ended' => false,
+        'created_at' => Carbon::now(),
+    ]);
+
+    Livewire::test(StartSetSubmission::class, ['gameId' => $game->getKey()])
+        ->assertSee('Start Set 1');
 });
 
 /**

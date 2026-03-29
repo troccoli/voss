@@ -22,8 +22,8 @@
                         variant="segmented"
                         :invalid="$errors->has('teamA')"
                     >
-                        <flux:radio value="home" label="Home Team" />
-                        <flux:radio value="away" label="Away Team" />
+                        <flux:radio value="home" :label="$homeTeamCode" />
+                        <flux:radio value="away" :label="$awayTeamCode" />
                     </flux:radio.group>
                     @error('teamA')
                         <flux:text class="text-red-600">{{ $message }}</flux:text>
@@ -35,8 +35,8 @@
                         variant="segmented"
                         :invalid="$errors->has('serving')"
                     >
-                        <flux:radio value="team_a" label="Team A" />
-                        <flux:radio value="team_b" label="Team B" />
+                        <flux:radio value="home" :label="$homeTeamCode" />
+                        <flux:radio value="away" :label="$awayTeamCode" />
                     </flux:radio.group>
                     @error('serving')
                         <flux:text class="text-red-600">{{ $message }}</flux:text>

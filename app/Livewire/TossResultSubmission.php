@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace App\Livewire;
 
 use App\Data\GameState\GameState;
-use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
@@ -29,7 +27,7 @@ class TossResultSubmission extends Component
 
     public string $teamA = TeamSide::Home->value;
 
-    public string $serving = TeamAB::TeamA->value;
+    public string $serving = TeamSide::Home->value;
 
     public function mount(?int $gameId = null): void
     {
@@ -43,7 +41,7 @@ class TossResultSubmission extends Component
     {
         return [
             'teamA' => ['required', Rule::enum(TeamSide::class)],
-            'serving' => ['required', Rule::enum(TeamAB::class)],
+            'serving' => ['required', Rule::enum(TeamSide::class)],
         ];
     }
 
@@ -54,7 +52,7 @@ class TossResultSubmission extends Component
     {
         return [
             'teamA.required' => 'Select whether Team A is home or away.',
-            'serving.required' => 'Select whether Team A or Team B serves first.',
+            'serving.required' => 'Select whether the home or away team serves first.',
         ];
     }
 
@@ -77,9 +75,12 @@ class TossResultSubmission extends Component
         }
 
         try {
+            $teamASide = TeamSide::from($this->teamA);
+            $servingSide = TeamSide::from($this->serving);
+
             $activeGame->recordToss(
-                teamA: TeamSide::from($this->teamA),
-                serving: TeamAB::from($this->serving),
+                teamA: $teamASide,
+                serving: $servingSide === $teamASide ? TeamAB::TeamA : TeamAB::TeamB,
             );
         } catch (InvalidGameEventTransition $exception) {
             $this->addError('submit', $exception->getMessage());
@@ -92,25 +93,51 @@ class TossResultSubmission extends Component
 
         $this->resetValidation();
         $this->teamA = TeamSide::Home->value;
-        $this->serving = TeamAB::TeamA->value;
+        $this->serving = TeamSide::Home->value;
     }
 
     public function render(): View
     {
+        $activeGame = $this->activeGame();
+
         return view('livewire.toss-result-submission', [
-            'hasSubmittedToss' => $this->hasSubmittedToss(),
+            'hasSubmittedToss' => $this->hasSubmittedToss($activeGame),
+            'homeTeamCode' => $activeGame?->homeTeam->country_code ?? 'Home Team',
+            'awayTeamCode' => $activeGame?->awayTeam->country_code ?? 'Away Team',
         ]);
     }
 
-    private function hasSubmittedToss(): bool
+    private function hasSubmittedToss(?Game $activeGame = null): bool
+    {
+        $state = $this->resolvedGameState($activeGame);
+
+        return $state->teamASide !== null && $state->servingTeam !== null;
+    }
+
+    private function resolvedGameState(?Game $activeGame = null): GameState
+    {
+        if ($activeGame !== null) {
+            return $activeGame->stateAt();
+        }
+
+        if ($this->gameId === null) {
+            return $this->gameState ?? GameState::initial();
+        }
+
+        $activeGame = Game::query()->whereKey($this->gameId)->first();
+
+        return $activeGame?->stateAt() ?? ($this->gameState ?? GameState::initial());
+    }
+
+    private function activeGame(): ?Game
     {
         if ($this->gameId === null) {
-            return false;
+            return null;
         }
 
         return Game::query()
+            ->with(['homeTeam', 'awayTeam'])
             ->whereKey($this->gameId)
-            ->whereHas('events', fn (Builder $query) => $query->where('type', GameEventType::TossCompleted))
-            ->exists();
+            ->first();
     }
 }
