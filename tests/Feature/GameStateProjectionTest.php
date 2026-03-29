@@ -137,8 +137,67 @@ test('state resets points as soon as a set ends before the next set starts', fun
         ->and($state->setInProgress)->toBeFalse()
         ->and($state->setsWonTeamA)->toBe(1)
         ->and($state->setsWonTeamB)->toBe(0)
+        ->and($state->servingTeam)->toBe(TeamAB::TeamB)
         ->and($state->scoreTeamA)->toBe(0)
         ->and($state->scoreTeamB)->toBe(0);
+});
+
+test('serving remains on the same court side after a set ends and sides swap', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    ensureRostersForProjection($game, $homeTeam, $awayTeam);
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    submitProjectionLineupsForSet($game, 1);
+    $game->recordSetStarted();
+
+    for ($index = 0; $index < 25; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+
+    submitProjectionLineupsForSet($game, 2);
+    $game->recordSetStarted();
+
+    $state = $game->fresh()->stateAt();
+
+    expect($state->setNumber)->toBe(2)
+        ->and($state->setInProgress)->toBeTrue()
+        ->and($state->setsWonTeamA)->toBe(1)
+        ->and($state->setsWonTeamB)->toBe(0)
+        ->and($state->servingTeam)->toBe(TeamAB::TeamB);
+});
+
+test('serving for the next set does not depend on the previous set winner', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    ensureRostersForProjection($game, $homeTeam, $awayTeam);
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    submitProjectionLineupsForSet($game, 1);
+    $game->recordSetStarted();
+
+    for ($index = 0; $index < 25; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamB);
+    }
+
+    $stateAfterSetEnd = $game->fresh()->stateAt();
+
+    expect($stateAfterSetEnd->setNumber)->toBe(1)
+        ->and($stateAfterSetEnd->setInProgress)->toBeFalse()
+        ->and($stateAfterSetEnd->setsWonTeamA)->toBe(0)
+        ->and($stateAfterSetEnd->setsWonTeamB)->toBe(1)
+        ->and($stateAfterSetEnd->servingTeam)->toBe(TeamAB::TeamB);
+
+    submitProjectionLineupsForSet($game, 2);
+    $game->recordSetStarted();
+
+    $stateAtSetTwoStart = $game->fresh()->stateAt();
+
+    expect($stateAtSetTwoStart->setNumber)->toBe(2)
+        ->and($stateAtSetTwoStart->setInProgress)->toBeTrue()
+        ->and($stateAtSetTwoStart->servingTeam)->toBe(TeamAB::TeamB);
 });
 
 test('game state snapshot accepts a serialized serving team and casts it back to enum', function (): void {
