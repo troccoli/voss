@@ -18,6 +18,9 @@ use Illuminate\Database\Eloquent\Builder;
 
 class GameStateProjector
 {
+    /** @var array<int, TeamAB|null> */
+    private array $tossServingTeamByGame = [];
+
     public function project(GameState $state, GameEvent $event): GameState
     {
         return match ($event->type) {
@@ -26,8 +29,8 @@ class GameStateProjector
             GameEventType::RallyEnded => $this->applyRallyEnded($state, $event),
             GameEventType::SubstitutionCompleted => $this->applySubstitutionCompleted($state, $event),
             GameEventType::TimeOutRequested => $this->applyTimeOutRequested($state, $event),
-            GameEventType::SetStarted => $this->applySetStarted($state),
-            GameEventType::SetEnded => $this->applySetEnded($state),
+            GameEventType::SetStarted => $this->applySetStarted($state, $event),
+            GameEventType::SetEnded => $this->applySetEnded($state, $event),
             GameEventType::GameEnded => $this->applyGameEnded($state),
         };
     }
@@ -138,16 +141,17 @@ class GameStateProjector
         return $state;
     }
 
-    private function applySetStarted(GameState $state): GameState
+    private function applySetStarted(GameState $state, GameEvent $event): GameState
     {
         $state->setNumber = max(1, $state->setNumber + 1);
         $state->resetCurrentSetCounters();
+        $state->servingTeam = $this->servingTeamForSet($event->game_id, $state->setNumber) ?? $state->servingTeam;
         $state->setInProgress = true;
 
         return $state;
     }
 
-    private function applySetEnded(GameState $state): GameState
+    private function applySetEnded(GameState $state, GameEvent $event): GameState
     {
         if ($state->scoreTeamA > $state->scoreTeamB) {
             $state->setsWonTeamA++;
@@ -155,11 +159,8 @@ class GameStateProjector
             $state->setsWonTeamB++;
         }
 
-        if ($state->servingTeam !== null) {
-            $state->servingTeam = $state->servingTeam === TeamAB::TeamA
-                ? TeamAB::TeamB
-                : TeamAB::TeamA;
-        }
+        $nextSetNumber = max(1, $state->setNumber + 1);
+        $state->servingTeam = $this->servingTeamForSet($event->game_id, $nextSetNumber) ?? $state->servingTeam;
 
         $state->scoreTeamA = 0;
         $state->scoreTeamB = 0;
@@ -226,5 +227,50 @@ class GameStateProjector
         $positions[$position] = $playerIn;
 
         return $positions;
+    }
+
+    private function servingTeamForSet(int $gameId, int $setNumber): ?TeamAB
+    {
+        $tossServingTeam = $this->tossServingTeamForGame($gameId);
+
+        if ($tossServingTeam === null) {
+            return null;
+        }
+
+        return $setNumber % 2 === 1
+            ? $tossServingTeam
+            : $this->oppositeTeam($tossServingTeam);
+    }
+
+    private function tossServingTeamForGame(int $gameId): ?TeamAB
+    {
+        if (array_key_exists($gameId, $this->tossServingTeamByGame)) {
+            return $this->tossServingTeamByGame[$gameId];
+        }
+
+        /** @var GameEvent|null $tossEvent */
+        $tossEvent = GameEvent::query()
+            ->where('game_id', $gameId)
+            ->where('type', GameEventType::TossCompleted)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->first();
+
+        if ($tossEvent === null || ! $tossEvent->payload instanceof TossCompletedPayload) {
+            $this->tossServingTeamByGame[$gameId] = null;
+
+            return null;
+        }
+
+        $this->tossServingTeamByGame[$gameId] = $tossEvent->payload->serving;
+
+        return $this->tossServingTeamByGame[$gameId];
+    }
+
+    private function oppositeTeam(TeamAB $team): TeamAB
+    {
+        return $team === TeamAB::TeamA
+            ? TeamAB::TeamB
+            : TeamAB::TeamA;
     }
 }

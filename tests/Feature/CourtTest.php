@@ -243,6 +243,50 @@ test('court shows serving team position one outside the court after side swap', 
         ->assertSeeHtml('left-[12%] bottom-[14%]');
 });
 
+test('court keeps the serving marker on the left side after a set swap', function (): void {
+    $game = gameWithStartedSet();
+
+    for ($index = 0; $index < 25; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+
+    $game->recordLineup(2, TeamAB::TeamA, [1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6]);
+    $game->recordLineup(2, TeamAB::TeamB, [1 => 11, 2 => 12, 3 => 13, 4 => 14, 5 => 15, 6 => 16]);
+    $game->recordSetStarted();
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->stateAt(),
+    ])
+        ->assertSeeHtml('data-court-marker="left-team_b-1"')
+        ->assertSeeHtml('data-court-serving-player="1"')
+        ->assertSeeHtml('-left-10 bottom-[14%]')
+        ->assertSeeHtml('data-court-marker="right-team_a-1"')
+        ->assertSeeHtml('right-[12%] top-[14%]');
+});
+
+test('court keeps serving on the left side after swap even when team b won the previous set', function (): void {
+    $game = gameWithStartedSet();
+
+    for ($index = 0; $index < 25; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamB);
+    }
+
+    $game->recordLineup(2, TeamAB::TeamA, [1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6]);
+    $game->recordLineup(2, TeamAB::TeamB, [1 => 11, 2 => 12, 3 => 13, 4 => 14, 5 => 15, 6 => 16]);
+    $game->recordSetStarted();
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->stateAt(),
+    ])
+        ->assertSeeHtml('data-court-marker="left-team_b-1"')
+        ->assertSeeHtml('data-court-serving-player="1"')
+        ->assertSeeHtml('-left-10 bottom-[14%]')
+        ->assertSeeHtml('data-court-marker="right-team_a-1"')
+        ->assertSeeHtml('right-[12%] top-[14%]');
+});
+
 test('court swaps sides as soon as a set ends before the next set starts', function (): void {
     $game = gameWithNumberedRosters();
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
