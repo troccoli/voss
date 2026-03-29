@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Data\GameState;
 
 use App\Enums\TeamAB;
+use App\Enums\TeamSide;
 use App\Models\GameStateSnapshot;
 use Livewire\Wireable;
 
@@ -26,6 +27,7 @@ class GameState implements Wireable
         public int $timeoutsTeamB = 0,
         public int $substitutionsTeamA = 0,
         public int $substitutionsTeamB = 0,
+        public ?TeamSide $teamASide = null,
         public ?TeamAB $servingTeam = null,
         public bool $setInProgress = false,
         public bool $gameEnded = false,
@@ -48,6 +50,7 @@ class GameState implements Wireable
             timeoutsTeamB: $snapshot->timeouts_team_b,
             substitutionsTeamA: $snapshot->substitutions_team_a,
             substitutionsTeamB: $snapshot->substitutions_team_b,
+            teamASide: $snapshot->team_a_side,
             servingTeam: $snapshot->serving_team,
             setInProgress: $snapshot->set_in_progress,
             gameEnded: $snapshot->game_ended,
@@ -74,6 +77,9 @@ class GameState implements Wireable
             timeoutsTeamB: self::toInteger($attributes['timeouts_team_b'] ?? 0),
             substitutionsTeamA: self::toInteger($attributes['substitutions_team_a'] ?? 0),
             substitutionsTeamB: self::toInteger($attributes['substitutions_team_b'] ?? 0),
+            teamASide: is_string($attributes['team_a_side'] ?? null)
+                ? TeamSide::tryFrom($attributes['team_a_side'])
+                : null,
             servingTeam: is_string($attributes['serving_team'] ?? null)
                 ? TeamAB::tryFrom($attributes['serving_team'])
                 : null,
@@ -109,6 +115,7 @@ class GameState implements Wireable
             'timeouts_team_b' => $this->timeoutsTeamB,
             'substitutions_team_a' => $this->substitutionsTeamA,
             'substitutions_team_b' => $this->substitutionsTeamB,
+            'team_a_side' => $this->teamASide?->value,
             'serving_team' => $this->servingTeam?->value,
             'rotation_team_a' => $this->rotationTeamA,
             'rotation_team_b' => $this->rotationTeamB,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\TeamAB;
+use App\Enums\TeamSide;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $timeouts_team_b
  * @property int $substitutions_team_a
  * @property int $substitutions_team_b
+ * @property TeamSide|null $team_a_side
  * @property TeamAB|null $serving_team
  * @property array<int, int> $rotation_team_a
  * @property array<int, int> $rotation_team_b
@@ -50,6 +52,7 @@ class GameStateSnapshot extends Model
             'timeouts_team_b' => 'integer',
             'substitutions_team_a' => 'integer',
             'substitutions_team_b' => 'integer',
+            'team_a_side' => TeamSide::class,
             'serving_team' => TeamAB::class,
             'rotation_team_a' => 'array',
             'rotation_team_b' => 'array',

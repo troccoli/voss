@@ -75,6 +75,7 @@ test('state snapshots are projected as game events are recorded', function (): v
         ->and($state->timeoutsTeamB)->toBe(1)
         ->and($state->substitutionsTeamA)->toBe(1)
         ->and($state->substitutionsTeamB)->toBe(0)
+        ->and($state->teamASide)->toBe(TeamSide::Home)
         ->and($state->servingTeam)->toBe(TeamAB::TeamB)
         ->and($state->rotationTeamA[1])->toBe(7)
         ->and($state->rotationTeamB[1])->toBe(2);
@@ -162,6 +163,7 @@ test('game state snapshot accepts a serialized serving team and casts it back to
         'timeouts_team_b' => 0,
         'substitutions_team_a' => 0,
         'substitutions_team_b' => 0,
+        'team_a_side' => TeamSide::Away->value,
         'serving_team' => TeamAB::TeamB->value,
         'rotation_team_a' => [],
         'rotation_team_b' => [],
@@ -170,7 +172,9 @@ test('game state snapshot accepts a serialized serving team and casts it back to
         'created_at' => now(),
     ]);
 
-    expect($snapshot->serving_team)->toBe(TeamAB::TeamB)
+    expect($snapshot->team_a_side)->toBe(TeamSide::Away)
+        ->and($snapshot->serving_team)->toBe(TeamAB::TeamB)
+        ->and($snapshot->getRawOriginal('team_a_side'))->toBe(TeamSide::Away->value)
         ->and($snapshot->getRawOriginal('serving_team'))->toBe(TeamAB::TeamB->value);
 });
 

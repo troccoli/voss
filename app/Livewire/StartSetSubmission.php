@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Livewire;
 
 use App\Data\GameState\GameState;
-use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
@@ -41,7 +40,7 @@ class StartSetSubmission extends Component
             return;
         }
 
-        if (! $this->bothLineupsSubmittedForUpcomingSet($activeGame)) {
+        if (! $this->canStartSet()) {
             $this->addError('startSet', 'Both team lineups must be submitted before starting the set.');
 
             return;
@@ -68,22 +67,21 @@ class StartSetSubmission extends Component
 
     private function canStartSet(): bool
     {
-        $activeGame = $this->activeGame();
-
-        if ($activeGame === null) {
+        if ($this->activeGame() === null) {
             return false;
         }
 
         $activeGameState = $this->activeGameState();
 
+        if (! $this->hasSubmittedToss($activeGameState)) {
+            return false;
+        }
+
         if ($activeGameState->setInProgress || $activeGameState->gameEnded) {
             return false;
         }
 
-        return $this->bothLineupsSubmittedForSet(
-            game: $activeGame,
-            setNumber: $activeGameState->setNumber + 1,
-        );
+        return $this->bothLineupsSubmittedForUpcomingSet($activeGameState);
     }
 
     #[Computed]
@@ -104,37 +102,29 @@ class StartSetSubmission extends Component
         return $activeGame?->stateAt() ?? $this->resolvedGameState();
     }
 
-    private function bothLineupsSubmittedForUpcomingSet(Game $game): bool
+    private function hasSubmittedToss(GameState $state): bool
     {
-        return $this->bothLineupsSubmittedForSet(
-            game: $game,
-            setNumber: $this->upcomingSetNumberForGame($game),
-        );
+        return $state->teamASide !== null && $state->servingTeam !== null;
     }
 
-    private function bothLineupsSubmittedForSet(Game $game, int $setNumber): bool
+    private function bothLineupsSubmittedForUpcomingSet(GameState $state): bool
     {
-        return $this->hasSubmittedLineupForSet($game, TeamAB::TeamA, $setNumber)
-            && $this->hasSubmittedLineupForSet($game, TeamAB::TeamB, $setNumber);
+        return $this->hasSubmittedLineupForTeam($state, TeamAB::TeamA)
+            && $this->hasSubmittedLineupForTeam($state, TeamAB::TeamB);
     }
 
-    private function hasSubmittedLineupForSet(Game $game, TeamAB $team, int $setNumber): bool
+    private function hasSubmittedLineupForTeam(GameState $state, TeamAB $team): bool
     {
-        return $game->events()
-            ->where('type', GameEventType::LineupSubmitted)
-            ->where('payload->set', $setNumber)
-            ->where('payload->team', $team->value)
-            ->exists();
+        $lineup = $team === TeamAB::TeamA
+            ? $state->rotationTeamA
+            : $state->rotationTeamB;
+
+        return $lineup !== [];
     }
 
     private function upcomingSetNumber(): int
     {
         return $this->activeGameState()->setNumber + 1;
-    }
-
-    private function upcomingSetNumberForGame(Game $game): int
-    {
-        return $game->stateAt()->setNumber + 1;
     }
 
     private function resolvedGameState(): GameState

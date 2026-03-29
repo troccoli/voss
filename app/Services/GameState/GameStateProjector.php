@@ -67,6 +67,7 @@ class GameStateProjector
     {
         /** @var TossCompletedPayload $payload */
         $payload = $event->payload;
+        $state->teamASide = $payload->teamA;
         $state->servingTeam = $payload->serving;
 
         return $state;
