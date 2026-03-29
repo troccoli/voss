@@ -28,16 +28,16 @@
                 @enderror
 
                 @if ($rosterNumbers !== [])
-                    <ul role="list" class="flex flex-wrap items-center justify-center gap-2" data-lineup-roster-numbers>
+                    <div role="list" class="flex flex-wrap items-center justify-center gap-2" data-lineup-roster-numbers>
                         @foreach ($rosterNumbers as $rosterNumber)
-                            <li
+                            <flux:badge
                                 data-lineup-roster-number="{{ $rosterNumber }}"
                                 class="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-sm font-semibold text-slate-800 shadow-sm"
                             >
                                 {{ $rosterNumber }}
-                            </li>
+                            </flux:badge>
                         @endforeach
-                    </ul>
+                    </div>
                 @endif
 
                 <div class="flex items-center mt-8">
