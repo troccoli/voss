@@ -4,37 +4,38 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Data\GameState\GameState;
 use App\Enums\TeamAB;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
+use App\Services\GameSideResolver;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
-class RallyWinnerButton extends Component
+class RallyWinnerControls extends Component
 {
     #[Reactive]
     #[Locked]
     public ?int $gameId = null;
 
-    public TeamAB $team = TeamAB::TeamA;
+    #[Reactive]
+    public ?GameState $gameState = null;
 
-    public string $side = 'left';
-
-    public function mount(TeamAB $team, string $side, ?int $gameId = null): void
+    public function mount(?int $gameId = null): void
     {
         abort_if($gameId === null, 404);
-        abort_unless(in_array($side, ['left', 'right'], true), 404);
 
         $this->gameId = $gameId;
-        $this->team = $team;
-        $this->side = $side;
     }
 
-    public function recordRallyWinner(): void
+    public function recordRallyWinner(string $team): void
     {
         $this->resetValidation('submit');
+
+        $winningTeam = TeamAB::tryFrom($team);
+        abort_if($winningTeam === null, 404);
 
         $activeGame = $this->activeGame();
 
@@ -45,7 +46,7 @@ class RallyWinnerButton extends Component
         }
 
         try {
-            $activeGame->recordRallyWinner($this->team);
+            $activeGame->recordRallyWinner($winningTeam);
         } catch (InvalidGameEventTransition $exception) {
             $this->addError('submit', $exception->getMessage());
 
@@ -57,7 +58,16 @@ class RallyWinnerButton extends Component
 
     public function render(): View
     {
-        return view('livewire.rally-winner-button');
+        $state = $this->gameState ?? GameState::initial();
+        $completedSetCount = $state->setsWonTeamA + $state->setsWonTeamB;
+        $leftTeam = $this->gameSideResolver()->teamOnLeft($completedSetCount);
+        $rightTeam = $this->gameSideResolver()->teamOnRight($completedSetCount);
+
+        return view('livewire.rally-winner-controls', [
+            'leftTeam' => $leftTeam,
+            'rightTeam' => $rightTeam,
+            'canRecordRallyWinner' => $state->setInProgress && ! $state->gameEnded,
+        ]);
     }
 
     private function activeGame(): ?Game
@@ -67,5 +77,10 @@ class RallyWinnerButton extends Component
         }
 
         return Game::query()->whereKey($this->gameId)->first();
+    }
+
+    private function gameSideResolver(): GameSideResolver
+    {
+        return app(GameSideResolver::class);
     }
 }

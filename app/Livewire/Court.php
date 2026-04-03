@@ -9,7 +9,6 @@ use App\Enums\TeamAB;
 use App\Models\Game;
 use App\Services\GameSideResolver;
 use Illuminate\Contracts\View\View;
-use Livewire\Attributes\Computed;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
@@ -37,7 +36,6 @@ class Court extends Component
      *     rightTeam: TeamAB,
      *     servingTeam: TeamAB|null,
      *     showRosters: bool,
-     *     canRecordRallyWinner: bool,
      *     leftRotation: array<int, int>,
      *     rightRotation: array<int, int>
      * }
@@ -48,7 +46,6 @@ class Court extends Component
         $completedSetCount = $this->completedSetCount();
         $leftTeam = $this->gameSideResolver()->teamOnLeft($completedSetCount);
         $rightTeam = $this->gameSideResolver()->teamOnRight($completedSetCount);
-        $canRecordRallyWinner = $this->canRecordRallyWinner($game);
         $showRosters = $game !== null && $this->gameSideResolver()->hasRecordedToss($game);
 
         return [
@@ -56,7 +53,6 @@ class Court extends Component
             'rightTeam' => $rightTeam,
             'servingTeam' => $this->resolvedGameState()->servingTeam,
             'showRosters' => $showRosters,
-            'canRecordRallyWinner' => $canRecordRallyWinner,
             'leftRotation' => $this->rotationForTeam($leftTeam),
             'rightRotation' => $this->rotationForTeam($rightTeam),
         ];
@@ -85,21 +81,7 @@ class Court extends Component
         return $state->setsWonTeamA + $state->setsWonTeamB;
     }
 
-    private function canRecordRallyWinner(?Game $activeGame = null): bool
-    {
-        $activeGame ??= $this->activeGame();
-
-        if ($activeGame === null) {
-            return false;
-        }
-
-        $state = $this->resolvedGameState();
-
-        return $state->setInProgress && ! $state->gameEnded;
-    }
-
-    #[Computed]
-    public function activeGame(): ?Game
+    private function activeGame(): ?Game
     {
         if ($this->gameId === null) {
             return null;
