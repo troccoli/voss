@@ -8,10 +8,11 @@ use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Events\Payloads\TossCompletedPayload;
+use App\Models\Game;
 use App\Services\GameState\GameEventRuleValidator;
 
 /**
- * @mixin \App\Models\Game
+ * @mixin Game
  */
 trait RecordsToss
 {

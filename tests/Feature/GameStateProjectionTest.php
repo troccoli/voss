@@ -1,10 +1,14 @@
 <?php
 
 use App\Data\GameState\GameState;
+use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
+use App\Events\Payloads\SetStartedPayload;
 use App\Jobs\RecalculateGameStateSnapshots;
 use App\Models\Game;
+use App\Models\GameEvent;
+use App\Models\GameStateSnapshot;
 use App\Models\Player;
 use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,26 +32,35 @@ test('state snapshots are projected as game events are recorded', function (): v
         $game->addPlayer($player, number: $index + 1);
     }
 
-    $homeLineup = $homePlayers
-        ->take(6)
-        ->mapWithKeys(fn (Player $player, int $index) => [$index + 1 => $player->getKey()])
-        ->all();
+    $homeLineup = [
+        1 => 1,
+        2 => 2,
+        3 => 3,
+        4 => 4,
+        5 => 5,
+        6 => 6,
+    ];
 
-    $awayLineup = $awayPlayers
-        ->mapWithKeys(fn (Player $player, int $index) => [$index + 1 => $player->getKey()])
-        ->all();
+    $awayLineup = [
+        1 => 1,
+        2 => 2,
+        3 => 3,
+        4 => 4,
+        5 => 5,
+        6 => 6,
+    ];
 
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
-    $game->recordSetStarted();
     $game->recordLineup(1, TeamAB::TeamA, $homeLineup);
     $game->recordLineup(1, TeamAB::TeamB, $awayLineup);
+    $game->recordSetStarted();
     $game->recordRallyWinner(TeamAB::TeamA);
     $game->recordRallyWinner(TeamAB::TeamB);
     $game->recordTimeOut(TeamAB::TeamB);
     $game->recordSubstitution(
         TeamAB::TeamA,
-        playerOut: $homePlayers->first()->getKey(),
-        playerIn: $homePlayers->last()->getKey(),
+        playerOut: 1,
+        playerIn: 7,
     );
 
     /** @var GameState $state */
@@ -62,18 +75,21 @@ test('state snapshots are projected as game events are recorded', function (): v
         ->and($state->timeoutsTeamB)->toBe(1)
         ->and($state->substitutionsTeamA)->toBe(1)
         ->and($state->substitutionsTeamB)->toBe(0)
+        ->and($state->teamASide)->toBe(TeamSide::Home)
         ->and($state->servingTeam)->toBe(TeamAB::TeamB)
-        ->and($state->rotationTeamA[1])->toBe($homePlayers->last()->getKey())
-        ->and($state->rotationTeamB[1])->toBe($awayPlayers[1]->getKey());
+        ->and($state->rotationTeamA[1])->toBe(7)
+        ->and($state->rotationTeamB[1])->toBe(2);
 });
 
 test('recalculation job rebuilds snapshots from scratch up to a cutoff time', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    ensureRostersForProjection($game, $homeTeam, $awayTeam);
 
     Carbon::setTestNow('2026-03-07 10:00:00');
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    submitProjectionLineupsForSet($game, 1);
 
     Carbon::setTestNow('2026-03-07 10:01:00');
     $game->recordSetStarted();
@@ -93,9 +109,165 @@ test('recalculation job rebuilds snapshots from scratch up to a cutoff time', fu
 
     $latest = $game->fresh()->stateAt();
 
-    expect($game->fresh()->stateSnapshots)->toHaveCount(3)
+    expect($game->fresh()->stateSnapshots)->toHaveCount(5)
         ->and($latest->setNumber)->toBe(1)
         ->and($latest->scoreTeamA)->toBe(1)
         ->and($latest->scoreTeamB)->toBe(0)
         ->and($latest->servingTeam)->toBe(TeamAB::TeamA);
 });
+
+test('state resets points as soon as a set ends before the next set starts', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    ensureRostersForProjection($game, $homeTeam, $awayTeam);
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    submitProjectionLineupsForSet($game, 1);
+    $game->recordSetStarted();
+
+    for ($index = 0; $index < 25; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+
+    $state = $game->fresh()->stateAt();
+
+    expect($game->fresh()->events->last()->type)->toBe(GameEventType::SetEnded)
+        ->and($state->setNumber)->toBe(1)
+        ->and($state->setInProgress)->toBeFalse()
+        ->and($state->setsWonTeamA)->toBe(1)
+        ->and($state->setsWonTeamB)->toBe(0)
+        ->and($state->servingTeam)->toBe(TeamAB::TeamB)
+        ->and($state->scoreTeamA)->toBe(0)
+        ->and($state->scoreTeamB)->toBe(0);
+});
+
+test('serving remains on the same court side after a set ends and sides swap', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    ensureRostersForProjection($game, $homeTeam, $awayTeam);
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    submitProjectionLineupsForSet($game, 1);
+    $game->recordSetStarted();
+
+    for ($index = 0; $index < 25; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+
+    submitProjectionLineupsForSet($game, 2);
+    $game->recordSetStarted();
+
+    $state = $game->fresh()->stateAt();
+
+    expect($state->setNumber)->toBe(2)
+        ->and($state->setInProgress)->toBeTrue()
+        ->and($state->setsWonTeamA)->toBe(1)
+        ->and($state->setsWonTeamB)->toBe(0)
+        ->and($state->servingTeam)->toBe(TeamAB::TeamB);
+});
+
+test('serving for the next set does not depend on the previous set winner', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    ensureRostersForProjection($game, $homeTeam, $awayTeam);
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    submitProjectionLineupsForSet($game, 1);
+    $game->recordSetStarted();
+
+    for ($index = 0; $index < 25; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamB);
+    }
+
+    $stateAfterSetEnd = $game->fresh()->stateAt();
+
+    expect($stateAfterSetEnd->setNumber)->toBe(1)
+        ->and($stateAfterSetEnd->setInProgress)->toBeFalse()
+        ->and($stateAfterSetEnd->setsWonTeamA)->toBe(0)
+        ->and($stateAfterSetEnd->setsWonTeamB)->toBe(1)
+        ->and($stateAfterSetEnd->servingTeam)->toBe(TeamAB::TeamB);
+
+    submitProjectionLineupsForSet($game, 2);
+    $game->recordSetStarted();
+
+    $stateAtSetTwoStart = $game->fresh()->stateAt();
+
+    expect($stateAtSetTwoStart->setNumber)->toBe(2)
+        ->and($stateAtSetTwoStart->setInProgress)->toBeTrue()
+        ->and($stateAtSetTwoStart->servingTeam)->toBe(TeamAB::TeamB);
+});
+
+test('game state snapshot accepts a serialized serving team and casts it back to enum', function (): void {
+    $game = Game::factory()->create();
+
+    $event = GameEvent::withoutEvents(fn (): GameEvent => GameEvent::query()->create([
+        'game_id' => $game->getKey(),
+        'type' => GameEventType::SetStarted,
+        'payload' => new SetStartedPayload,
+        'created_at' => now(),
+    ]));
+
+    $snapshot = GameStateSnapshot::query()->create([
+        'game_id' => $game->getKey(),
+        'game_event_id' => $event->getKey(),
+        'set_number' => 1,
+        'score_team_a' => 0,
+        'score_team_b' => 0,
+        'sets_won_team_a' => 0,
+        'sets_won_team_b' => 0,
+        'timeouts_team_a' => 0,
+        'timeouts_team_b' => 0,
+        'substitutions_team_a' => 0,
+        'substitutions_team_b' => 0,
+        'team_a_side' => TeamSide::Away->value,
+        'serving_team' => TeamAB::TeamB->value,
+        'rotation_team_a' => [],
+        'rotation_team_b' => [],
+        'set_in_progress' => true,
+        'game_ended' => false,
+        'created_at' => now(),
+    ]);
+
+    expect($snapshot->team_a_side)->toBe(TeamSide::Away)
+        ->and($snapshot->serving_team)->toBe(TeamAB::TeamB)
+        ->and($snapshot->getRawOriginal('team_a_side'))->toBe(TeamSide::Away->value)
+        ->and($snapshot->getRawOriginal('serving_team'))->toBe(TeamAB::TeamB->value);
+});
+
+function ensureRostersForProjection(Game $game, Team $homeTeam, Team $awayTeam): void
+{
+    $homePlayers = Player::factory()->for($homeTeam)->count(7)->create();
+    $awayPlayers = Player::factory()->for($awayTeam)->count(6)->create();
+
+    foreach ($homePlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 1);
+    }
+
+    foreach ($awayPlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 1);
+    }
+}
+
+function submitProjectionLineupsForSet(Game $game, int $set): void
+{
+    $game->recordLineup($set, TeamAB::TeamA, projectionLineup());
+    $game->recordLineup($set, TeamAB::TeamB, projectionLineup());
+}
+
+/**
+ * @return array<int, int>
+ */
+function projectionLineup(): array
+{
+    return [
+        1 => 1,
+        2 => 2,
+        3 => 3,
+        4 => 4,
+        5 => 5,
+        6 => 6,
+    ];
+}

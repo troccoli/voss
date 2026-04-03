@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Data\GameState;
 
 use App\Enums\TeamAB;
+use App\Enums\TeamSide;
 use App\Models\GameStateSnapshot;
+use Livewire\Wireable;
 
-class GameState
+class GameState implements Wireable
 {
     /** @var array<int, int> */
     public array $rotationTeamA = [];
@@ -25,6 +27,7 @@ class GameState
         public int $timeoutsTeamB = 0,
         public int $substitutionsTeamA = 0,
         public int $substitutionsTeamB = 0,
+        public ?TeamSide $teamASide = null,
         public ?TeamAB $servingTeam = null,
         public bool $setInProgress = false,
         public bool $gameEnded = false,
@@ -47,6 +50,7 @@ class GameState
             timeoutsTeamB: $snapshot->timeouts_team_b,
             substitutionsTeamA: $snapshot->substitutions_team_a,
             substitutionsTeamB: $snapshot->substitutions_team_b,
+            teamASide: $snapshot->team_a_side,
             servingTeam: $snapshot->serving_team,
             setInProgress: $snapshot->set_in_progress,
             gameEnded: $snapshot->game_ended,
@@ -59,9 +63,47 @@ class GameState
     }
 
     /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public static function fromAttributes(array $attributes): self
+    {
+        $state = new self(
+            setNumber: self::toInteger($attributes['set_number'] ?? 0),
+            scoreTeamA: self::toInteger($attributes['score_team_a'] ?? 0),
+            scoreTeamB: self::toInteger($attributes['score_team_b'] ?? 0),
+            setsWonTeamA: self::toInteger($attributes['sets_won_team_a'] ?? 0),
+            setsWonTeamB: self::toInteger($attributes['sets_won_team_b'] ?? 0),
+            timeoutsTeamA: self::toInteger($attributes['timeouts_team_a'] ?? 0),
+            timeoutsTeamB: self::toInteger($attributes['timeouts_team_b'] ?? 0),
+            substitutionsTeamA: self::toInteger($attributes['substitutions_team_a'] ?? 0),
+            substitutionsTeamB: self::toInteger($attributes['substitutions_team_b'] ?? 0),
+            teamASide: is_string($attributes['team_a_side'] ?? null)
+                ? TeamSide::tryFrom($attributes['team_a_side'])
+                : null,
+            servingTeam: is_string($attributes['serving_team'] ?? null)
+                ? TeamAB::tryFrom($attributes['serving_team'])
+                : null,
+            setInProgress: (bool) ($attributes['set_in_progress'] ?? false),
+            gameEnded: (bool) ($attributes['game_ended'] ?? false),
+        );
+
+        $rotationTeamA = $attributes['rotation_team_a'] ?? [];
+        $rotationTeamB = $attributes['rotation_team_b'] ?? [];
+
+        $state->rotationTeamA = is_array($rotationTeamA)
+            ? self::normalizeRotation($rotationTeamA)
+            : [];
+        $state->rotationTeamB = is_array($rotationTeamB)
+            ? self::normalizeRotation($rotationTeamB)
+            : [];
+
+        return $state;
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    public function toSnapshotAttributes(): array
+    public function toAttributes(): array
     {
         return [
             'set_number' => $this->setNumber,
@@ -73,12 +115,26 @@ class GameState
             'timeouts_team_b' => $this->timeoutsTeamB,
             'substitutions_team_a' => $this->substitutionsTeamA,
             'substitutions_team_b' => $this->substitutionsTeamB,
-            'serving_team' => $this->servingTeam,
+            'team_a_side' => $this->teamASide?->value,
+            'serving_team' => $this->servingTeam?->value,
             'rotation_team_a' => $this->rotationTeamA,
             'rotation_team_b' => $this->rotationTeamB,
             'set_in_progress' => $this->setInProgress,
             'game_ended' => $this->gameEnded,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toLivewire(): array
+    {
+        return $this->toAttributes();
+    }
+
+    public static function fromLivewire(mixed $value): self
+    {
+        return is_array($value) ? self::fromAttributes($value) : self::initial();
     }
 
     public function resetCurrentSetCounters(): void
@@ -106,5 +162,10 @@ class GameState
         ksort($normalized);
 
         return $normalized;
+    }
+
+    private static function toInteger(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
     }
 }

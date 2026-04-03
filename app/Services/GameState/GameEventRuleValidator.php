@@ -5,11 +5,16 @@ declare(strict_types=1);
 namespace App\Services\GameState;
 
 use App\Enums\GameEventType;
+use App\Enums\TeamAB;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
 
 class GameEventRuleValidator
 {
+    public function __construct(
+        protected SetScoringRules $setScoringRules
+    ) {}
+
     public function assertCanRecordToss(Game $game): void
     {
         $state = $game->stateAt();
@@ -35,6 +40,14 @@ class GameEventRuleValidator
         if ($state->setInProgress) {
             $this->fail('A set is already in progress.');
         }
+
+        $upcomingSet = $state->setNumber + 1;
+        $hasTeamALineup = $this->hasSubmittedLineupForSet($game, TeamAB::TeamA, $upcomingSet);
+        $hasTeamBLineup = $this->hasSubmittedLineupForSet($game, TeamAB::TeamB, $upcomingSet);
+
+        if (! $hasTeamALineup || ! $hasTeamBLineup) {
+            $this->fail('Both team lineups must be submitted before starting the set.');
+        }
     }
 
     public function assertCanRecordLineup(Game $game, int $set): void
@@ -45,12 +58,18 @@ class GameEventRuleValidator
             $this->fail('A lineup cannot be submitted before the toss has been recorded.');
         }
 
-        if (! $state->setInProgress) {
-            $this->fail('A lineup can only be submitted during an active set.');
+        if ($state->gameEnded || $state->setsWonTeamA >= 3 || $state->setsWonTeamB >= 3) {
+            $this->fail('A lineup cannot be submitted after the game has ended.');
         }
 
-        if ($set !== $state->setNumber) {
-            $this->fail('The lineup set number must match the current active set.');
+        if ($state->setInProgress) {
+            $this->fail('A lineup can only be submitted before the set starts.');
+        }
+
+        $expectedSet = $state->setNumber + 1;
+
+        if ($set !== $expectedSet) {
+            $this->fail('The lineup set number must match the upcoming set.');
         }
     }
 
@@ -89,10 +108,10 @@ class GameEventRuleValidator
             $this->fail('A set can only end while it is in progress.');
         }
 
-        $scoreDiff = abs($state->scoreTeamA - $state->scoreTeamB);
-        $highestScore = max($state->scoreTeamA, $state->scoreTeamB);
-        if ($highestScore < 25 || $scoreDiff < 2) {
-            $this->fail('A set can only end when a team has at least 25 points with a 2-point advantage.');
+        $targetPoints = $this->setScoringRules->targetPoints($state->setNumber);
+
+        if (! $this->setScoringRules->canEndSet($state->setNumber, $state->scoreTeamA, $state->scoreTeamB)) {
+            $this->fail("A set can only end when a team has at least {$targetPoints} points with a 2-point advantage.");
         }
     }
 
@@ -117,6 +136,15 @@ class GameEventRuleValidator
     {
         return $game->events()
             ->where('type', GameEventType::TossCompleted)
+            ->exists();
+    }
+
+    private function hasSubmittedLineupForSet(Game $game, TeamAB $team, int $setNumber): bool
+    {
+        return $game->events()
+            ->where('type', GameEventType::LineupSubmitted)
+            ->where('payload->set', $setNumber)
+            ->where('payload->team', $team->value)
             ->exists();
     }
 

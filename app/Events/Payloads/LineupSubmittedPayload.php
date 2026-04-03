@@ -18,9 +18,9 @@ final readonly class LineupSubmittedPayload implements GameEventPayload
 
     /**
      * @param  array<int, int>  $positions
-     * @param  Collection<int, int>  $validPlayerIds
+     * @param  Collection<int, int>  $validRosterNumbers
      */
-    public static function create(int $set, TeamAB $team, array $positions, Collection $validPlayerIds): static
+    public static function create(int $set, TeamAB $team, array $positions, Collection $validRosterNumbers): static
     {
         if (count($positions) !== 6) {
             throw new \InvalidArgumentException('A lineup must have exactly 6 positions.');
@@ -33,12 +33,16 @@ final readonly class LineupSubmittedPayload implements GameEventPayload
         }
 
         if (count(array_unique($positions)) !== 6) {
-            throw new \InvalidArgumentException('All 6 lineup positions must have different players.');
+            throw new \InvalidArgumentException('All 6 lineup positions must have different roster numbers.');
         }
 
-        foreach ($positions as $playerId) {
-            if (! $validPlayerIds->contains($playerId)) {
-                throw new \InvalidArgumentException("Player {$playerId} is not on the roster for the specified team.");
+        foreach ($positions as $position => $rosterNumber) {
+            if ($rosterNumber <= 0) {
+                throw new \InvalidArgumentException("Lineup position {$position} must contain a positive roster number.");
+            }
+
+            if (! $validRosterNumbers->contains($rosterNumber)) {
+                throw new \InvalidArgumentException("Roster number {$rosterNumber} is not on the non-libero roster for the specified team.");
             }
         }
 
