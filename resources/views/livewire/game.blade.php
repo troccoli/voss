@@ -5,6 +5,7 @@
     >
         <livewire:scoreboard :game-id="$gameId" :game-state="$gameState" />
         <livewire:start-set-submission :game-id="$gameId" :game-state="$gameState" />
+        <livewire:rally-winner-controls :game-id="$gameId" :game-state="$gameState" />
         <livewire:court :game-id="$gameId" :game-state="$gameState" />
         <livewire:toss-result-submission :game-id="$gameId" :game-state="$gameState" />
     </div>

@@ -8,7 +8,7 @@ use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Livewire\Court;
-use App\Livewire\RallyWinnerButton;
+use App\Livewire\RallyWinnerControls;
 use App\Models\Game;
 use App\Models\Player;
 use App\Models\Team;
@@ -340,10 +340,25 @@ test('court swaps lineup submission order as soon as a set ends before the next 
     ]);
 });
 
-test('court shows rally winner buttons only while a set is in progress', function (): void {
+test('court does not render rally winner controls', function (): void {
     $game = Game::factory()->create();
 
     Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState([
+            'set_number' => 1,
+            'set_in_progress' => true,
+        ]),
+    ])
+        ->assertDontSee('Winner')
+        ->assertDontSeeHtml('data-rally-winner-button="team_a"')
+        ->assertDontSeeHtml('data-rally-winner-button="team_b"');
+});
+
+test('rally winner controls show buttons only while a set is in progress and game is not ended', function (): void {
+    $game = Game::factory()->create();
+
+    Livewire::test(RallyWinnerControls::class, [
         'gameId' => $game->getKey(),
         'gameState' => gameState(['set_number' => 1, 'set_in_progress' => false]),
     ])
@@ -351,19 +366,27 @@ test('court shows rally winner buttons only while a set is in progress', functio
         ->assertDontSeeHtml('data-rally-winner-button="team_a"')
         ->assertDontSeeHtml('data-rally-winner-button="team_b"');
 
-    Livewire::test(Court::class, [
+    Livewire::test(RallyWinnerControls::class, [
         'gameId' => $game->getKey(),
         'gameState' => gameState(['set_number' => 1, 'set_in_progress' => true]),
     ])
         ->assertSee('Winner')
         ->assertSeeHtml('data-rally-winner-button="team_a"')
         ->assertSeeHtml('data-rally-winner-button="team_b"');
+
+    Livewire::test(RallyWinnerControls::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState(['set_number' => 5, 'set_in_progress' => true, 'game_ended' => true]),
+    ])
+        ->assertDontSee('Winner')
+        ->assertDontSeeHtml('data-rally-winner-button="team_a"')
+        ->assertDontSeeHtml('data-rally-winner-button="team_b"');
 });
 
-test('court swaps rally winner buttons as soon as sides swap', function (): void {
+test('rally winner controls swap sides as soon as sides swap', function (): void {
     $game = Game::factory()->create();
 
-    Livewire::test(Court::class, [
+    Livewire::test(RallyWinnerControls::class, [
         'gameId' => $game->getKey(),
         'gameState' => gameState([
             'set_number' => 2,
@@ -375,17 +398,16 @@ test('court swaps rally winner buttons as soon as sides swap', function (): void
         ->assertSeeHtml('data-rally-winner-side-team="right-team_a"');
 });
 
-test('rally winner button records rally winner for the selected team and dispatches a refresh event', function (): void {
+test('rally winner controls record rally winner for the selected team and dispatches a refresh event', function (): void {
     $game = gameWithStartedSet();
 
-    Livewire::test(RallyWinnerButton::class, [
+    Livewire::test(RallyWinnerControls::class, [
         'gameId' => $game->getKey(),
-        'team' => TeamAB::TeamA,
-        'side' => 'left',
+        'gameState' => gameState(['set_number' => 1, 'set_in_progress' => true]),
     ])
         ->assertSeeHtml('data-rally-winner-button="team_a"')
         ->assertSeeHtml('data-rally-winner-side-team="left-team_a"')
-        ->call('recordRallyWinner')
+        ->call('recordRallyWinner', TeamAB::TeamA->value)
         ->assertHasNoErrors()
         ->assertDispatched('game-event-recorded');
 

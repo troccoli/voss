@@ -80,23 +80,6 @@
             @endforeach
         </section>
 
-        @if ($canRecordRallyWinner)
-            <div class="mt-2 flex w-full justify-between px-2">
-                <livewire:rally-winner-button
-                    :game-id="$gameId"
-                    :team="$leftTeam"
-                    side="left"
-                    :key="'rally-winner-button-left-'.$leftTeam->value"
-                />
-                <livewire:rally-winner-button
-                    :game-id="$gameId"
-                    :team="$rightTeam"
-                    side="right"
-                    :key="'rally-winner-button-right-'.$rightTeam->value"
-                />
-            </div>
-        @endif
-
         @if ($showRosters)
             <div class="mt-4 flex w-full max-w-[600px] items-start gap-4 px-2 sm:gap-10 md:gap-16">
                 <div class="flex min-w-0 flex-1 justify-end">
