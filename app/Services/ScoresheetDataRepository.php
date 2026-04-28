@@ -13,7 +13,7 @@ use App\Models\GameEvent;
 use App\Models\Player;
 use App\Models\Staff;
 
-class CacheRepository
+class ScoresheetDataRepository
 {
     /**
      * @return array<int, array{
