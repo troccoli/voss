@@ -12,6 +12,10 @@ use App\Models\GameEvent;
 
 class GameEventReactor
 {
+    public function __construct(
+        protected SetScoringRules $setScoringRules
+    ) {}
+
     public function reactTo(GameEvent $event): void
     {
         match ($event->type) {
@@ -29,11 +33,7 @@ class GameEventReactor
             return;
         }
 
-        $targetPoints = $state->setNumber === 5 ? 15 : 25;
-        $highestScore = max($state->scoreTeamA, $state->scoreTeamB);
-        $scoreDifference = abs($state->scoreTeamA - $state->scoreTeamB);
-
-        if ($highestScore < $targetPoints || $scoreDifference < 2) {
+        if (! $this->setScoringRules->canEndSet($state->setNumber, $state->scoreTeamA, $state->scoreTeamB)) {
             return;
         }
 

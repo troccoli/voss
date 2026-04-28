@@ -11,8 +11,11 @@
     "require": {
         "php": "^8.5",
         "ext-iconv": "*",
-        "laravel/framework": "^12.0",
-        "laravel/tinker": "^2.10.1",
+        "laravel/framework": "^13.0",
+        "laravel/tinker": "^3.0",
+        "livewire/flux": "^2.13",
+        "livewire/flux-pro": "^2.13",
+        "livewire/livewire": "^4.2",
         "setasign/fpdf": "^1.8",
         "setasign/fpdi": "^2.6"
     },
@@ -62,9 +65,9 @@
             "@php artisan test"
         ],
         "lint":[
-            "@php ./vendor/bin/pint",
+            "@php ./vendor/bin/rector process --clear-cache --memory-limit=2G",
             "@php ./vendor/bin/phpstan analyse --memory-limit=2G",
-            "@php ./vendor/bin/rector process --clear-cache --memory-limit=2G"
+            "@php ./vendor/bin/pint"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
@@ -107,5 +110,10 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": [{
+        "name": "flux-pro",
+        "type": "composer",
+        "url": "https://composer.fluxui.dev"
+    }]
 }

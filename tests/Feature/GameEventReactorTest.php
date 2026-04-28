@@ -4,6 +4,7 @@ use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Models\Game;
+use App\Models\Player;
 use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -15,6 +16,8 @@ test('in sets one to four the set auto-ends at 25 points with a two-point lead',
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    ensureRostersForSetStart($game);
+    submitReactorLineupsForSet($game, 1);
     $game->recordSetStarted();
 
     for ($i = 0; $i < 24; $i++) {
@@ -42,8 +45,10 @@ test('in the fifth set the set auto-ends at 15 points with a two-point lead', fu
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    ensureRostersForSetStart($game);
 
     foreach ([TeamAB::TeamA, TeamAB::TeamB, TeamAB::TeamA, TeamAB::TeamB] as $winner) {
+        submitReactorLineupsForSet($game, $game->stateAt()->setNumber + 1);
         $game->recordSetStarted();
 
         for ($i = 0; $i < 25; $i++) {
@@ -51,6 +56,7 @@ test('in the fifth set the set auto-ends at 15 points with a two-point lead', fu
         }
     }
 
+    submitReactorLineupsForSet($game, 5);
     $game->recordSetStarted(); // 5th set
 
     for ($i = 0; $i < 14; $i++) {
@@ -72,3 +78,37 @@ test('in the fifth set the set auto-ends at 15 points with a two-point lead', fu
         ->and($state->setsWonTeamA)->toBe(3)
         ->and($state->setsWonTeamB)->toBe(2);
 });
+
+function ensureRostersForSetStart(Game $game): void
+{
+    $homePlayers = Player::factory()->for($game->homeTeam)->count(6)->create();
+    foreach ($homePlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 1);
+    }
+
+    $awayPlayers = Player::factory()->for($game->awayTeam)->count(6)->create();
+    foreach ($awayPlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 11);
+    }
+}
+
+function submitReactorLineupsForSet(Game $game, int $set): void
+{
+    $game->recordLineup($set, TeamAB::TeamA, reactorLineupForSet(1));
+    $game->recordLineup($set, TeamAB::TeamB, reactorLineupForSet(11));
+}
+
+/**
+ * @return array<int, int>
+ */
+function reactorLineupForSet(int $start): array
+{
+    return [
+        1 => $start,
+        2 => $start + 1,
+        3 => $start + 2,
+        4 => $start + 3,
+        5 => $start + 4,
+        6 => $start + 5,
+    ];
+}

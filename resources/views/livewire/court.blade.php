@@ -1,0 +1,121 @@
+<div data-court-layout="anchored" class="absolute inset-x-0 top-[300px] z-10 grid w-full grid-cols-1 justify-items-center">
+    @php
+        $leftCourtPositionClasses = [
+            1 => 'left-[12%] bottom-[14%]',
+            2 => 'left-[38%] bottom-[14%]',
+            3 => 'left-[38%] top-1/2 -translate-y-1/2',
+            4 => 'left-[38%] top-[14%]',
+            5 => 'left-[12%] top-[14%]',
+            6 => 'left-[12%] top-1/2 -translate-y-1/2',
+        ];
+
+        $rightCourtPositionClasses = [
+            1 => 'right-[12%] top-[14%]',
+            2 => 'right-[38%] top-[14%]',
+            3 => 'right-[38%] top-1/2 -translate-y-1/2',
+            4 => 'right-[38%] bottom-[14%]',
+            5 => 'right-[12%] bottom-[14%]',
+            6 => 'right-[12%] top-1/2 -translate-y-1/2',
+        ];
+
+        $leftOutsidePositionClasses = [
+            1 => '-left-10 bottom-[14%]',
+        ];
+
+        $rightOutsidePositionClasses = [
+            1 => '-right-10 top-[14%]',
+        ];
+
+        $leftMarkerTone = $leftTeam === \App\Enums\TeamAB::TeamA ? 'bg-blue-600' : 'bg-red-600';
+        $rightMarkerTone = $rightTeam === \App\Enums\TeamAB::TeamA ? 'bg-blue-600' : 'bg-red-600';
+    @endphp
+
+    <div class="flex flex-col items-center">
+        <section
+            id="volleyball-court"
+            aria-label="Volleyball court"
+            class="relative h-[220px] w-[360px] bg-orange-300 sm:h-[280px] sm:w-[480px] md:h-[347px] md:w-[600px]"
+        >
+            <div class="absolute inset-0 border-[4px] border-white"></div>
+            <div class="absolute inset-y-[4px] left-1/2 w-[3px] -translate-x-1/2 bg-white"></div>
+            <div class="absolute inset-y-[4px] left-1/3 w-[2px] -translate-x-1/2 bg-white"></div>
+            <div class="absolute inset-y-[4px] left-2/3 w-[2px] -translate-x-1/2 bg-white"></div>
+
+            @foreach ($leftRotation as $position => $number)
+                @php
+                    $isServingPlayer = $position === 1 && $servingTeam === $leftTeam;
+                    $markerPositionClass = $isServingPlayer
+                        ? ($leftOutsidePositionClasses[$position] ?? $leftCourtPositionClasses[$position] ?? '')
+                        : ($leftCourtPositionClasses[$position] ?? '');
+                @endphp
+                <div
+                    data-court-marker="left-{{ $leftTeam->value }}-{{ $position }}"
+                    data-court-side="left"
+                    data-court-position="{{ $position }}"
+                    data-court-team="{{ $leftTeam->value }}"
+                    data-court-serving-player="{{ (int) $isServingPlayer }}"
+                    class="absolute {{ $markerPositionClass }} flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-sm font-semibold text-white shadow {{ $leftMarkerTone }}"
+                >
+                    {{ $number }}
+                </div>
+            @endforeach
+
+            @foreach ($rightRotation as $position => $number)
+                @php
+                    $isServingPlayer = $position === 1 && $servingTeam === $rightTeam;
+                    $markerPositionClass = $isServingPlayer
+                        ? ($rightOutsidePositionClasses[$position] ?? $rightCourtPositionClasses[$position] ?? '')
+                        : ($rightCourtPositionClasses[$position] ?? '');
+                @endphp
+                <div
+                    data-court-marker="right-{{ $rightTeam->value }}-{{ $position }}"
+                    data-court-side="right"
+                    data-court-position="{{ $position }}"
+                    data-court-team="{{ $rightTeam->value }}"
+                    data-court-serving-player="{{ (int) $isServingPlayer }}"
+                    class="absolute {{ $markerPositionClass }} flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-sm font-semibold text-white shadow {{ $rightMarkerTone }}"
+                >
+                    {{ $number }}
+                </div>
+            @endforeach
+        </section>
+
+        @if ($showRosters)
+            <div class="mt-4 flex w-full max-w-[600px] items-start gap-4 px-2 sm:gap-10 md:gap-16">
+                <div class="flex min-w-0 flex-1 justify-end">
+                    <livewire:team-roster
+                        :game-id="$gameId"
+                        :game-state="$gameState"
+                        :team="$leftTeam"
+                        :left-side="true"
+                        :key="'team-roster-left'"
+                    />
+                </div>
+
+                <div class="flex min-w-0 flex-1 justify-start">
+                    <livewire:team-roster
+                        :game-id="$gameId"
+                        :game-state="$gameState"
+                        :team="$rightTeam"
+                        :left-side="false"
+                        :key="'team-roster-right'"
+                    />
+                </div>
+            </div>
+        @endif
+    </div>
+
+    <div class="mx-auto mt-4 flex w-full max-w-[600px] justify-between gap-4 px-2">
+        <livewire:lineup-submission
+            :team="$leftTeam"
+            :game-id="$gameId"
+            :game-state="$gameState"
+            :key="'lineup-submission-left-'.$leftTeam->value" />
+        <livewire:lineup-submission
+            :team="$rightTeam"
+            :game-id="$gameId"
+            :game-state="$gameState"
+            :key="'lineup-submission-right-'.$rightTeam->value"
+        />
+    </div>
+</div>

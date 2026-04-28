@@ -7,10 +7,11 @@ namespace App\Models\Concerns;
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Events\Payloads\RallyEndedPayload;
+use App\Models\Game;
 use App\Services\GameState\GameEventRuleValidator;
 
 /**
- * @mixin \App\Models\Game
+ * @mixin Game
  */
 trait RecordsEndOfRally
 {
