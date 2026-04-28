@@ -445,6 +445,22 @@ test('time-out requested event stores the requesting team', function (TeamAB $te
     'team B' => [TeamAB::TeamB],
 ]);
 
+test('timeout counts reset to zero when a set ends', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $game->recordTimeOut(TeamAB::TeamA);
+    $game->recordTimeOut(TeamAB::TeamB);
+
+    winSet($game, TeamAB::TeamA);
+
+    $state = $game->fresh()->stateAt();
+    expect($state->timeoutsTeamA)->toBe(0)
+        ->and($state->timeoutsTeamB)->toBe(0);
+});
+
 test('a set started event can be recorded with the correct type and empty payload', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();

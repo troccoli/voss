@@ -164,6 +164,8 @@ class GameStateProjector
 
         $state->scoreTeamA = 0;
         $state->scoreTeamB = 0;
+        $state->timeoutsTeamA = 0;
+        $state->timeoutsTeamB = 0;
         $state->rotationTeamA = [];
         $state->rotationTeamB = [];
         $state->setInProgress = false;

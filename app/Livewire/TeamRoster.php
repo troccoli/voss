@@ -8,6 +8,7 @@ use App\Data\GameState\GameState;
 use App\Enums\StaffRole;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
+use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
 use App\Services\GameSideResolver;
 use App\Services\ScoresheetDataRepository;
@@ -44,6 +45,35 @@ class TeamRoster extends Component
         $this->leftSide = $leftSide;
     }
 
+    public function requestTimeout(): void
+    {
+        $activeGame = $this->activeGame();
+
+        if ($activeGame === null) {
+            $this->addError('timeout', 'No active game is available to record the timeout.');
+
+            return;
+        }
+
+        $state = $activeGame->stateAt();
+        $timeoutsTaken = $this->team === TeamAB::TeamA ? $state->timeoutsTeamA : $state->timeoutsTeamB;
+        $hasTimeoutLeft = $timeoutsTaken < 2;
+
+        if ($hasTimeoutLeft) {
+            try {
+                $activeGame->recordTimeOut($this->team);
+            } catch (InvalidGameEventTransition $exception) {
+                $this->addError('timeout', $exception->getMessage());
+
+                return;
+            }
+
+            $this->dispatch('game-event-recorded');
+        }
+
+        $this->dispatch('timeout-recorded', team: $this->team->value, hasTimeoutLeft: $hasTimeoutLeft);
+    }
+
     public function render(): View
     {
         $teamPlayers = $this->teamPlayers();
@@ -58,9 +88,12 @@ class TeamRoster extends Component
             'placeholderCount' => $placeholderCount,
             'hasRosterPlayers' => $rosterPlayerCount > 0,
             'staffMarkers' => $this->buildStaffMarkers($this->teamStaff()),
-            'reverseStaffOrder' => $this->leftSide,
+            'reverseLayout' => $this->leftSide,
             'keyPrefix' => $this->leftSide ? 'left-player' : 'right-player',
             'markerTone' => $this->team === TeamAB::TeamA ? 'bg-blue-600' : 'bg-red-600',
+            'timeoutsTaken' => $this->timeoutsTaken(),
+            'substitutionsTaken' => $this->substitutionsTaken(),
+            'canRequestTimeout' => $this->canRequestTimeout(),
         ]);
     }
 
@@ -193,6 +226,27 @@ class TeamRoster extends Component
     private function hasLineupBeenSubmitted(TeamAB $team): bool
     {
         return $this->onCourtRosterNumbers($team) !== [];
+    }
+
+    private function canRequestTimeout(): bool
+    {
+        $state = $this->gameState ?? GameState::initial();
+
+        return $state->setInProgress && ! $state->gameEnded;
+    }
+
+    private function timeoutsTaken(): int
+    {
+        $state = $this->gameState ?? GameState::initial();
+
+        return $this->team === TeamAB::TeamA ? $state->timeoutsTeamA : $state->timeoutsTeamB;
+    }
+
+    private function substitutionsTaken(): int
+    {
+        $state = $this->gameState ?? GameState::initial();
+
+        return $this->team === TeamAB::TeamA ? $state->substitutionsTeamA : $state->substitutionsTeamB;
     }
 
     private function gameSideResolver(): GameSideResolver

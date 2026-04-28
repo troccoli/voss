@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Data\GameState\GameState;
+use App\Enums\GameEventType;
 use App\Enums\StaffRole;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
@@ -241,6 +242,156 @@ test('team roster omits staff role circles when those roles are not on the roste
         ->assertDontSeeHtml('data-team-roster-staff-role="A2"')
         ->assertDontSeeHtml('data-team-roster-staff-role="T"');
 });
+
+test('timeout card shows modal trigger when a set is in progress', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])->assertSeeHtml('data-team-roster-timeouts')
+        ->assertSeeHtml('request-timeout-team_a');
+});
+
+test('timeout card is not a modal trigger when no set is in progress', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+    ])->assertSeeHtml('data-team-roster-timeouts')
+        ->assertDontSeeHtml('request-timeout-team_a');
+});
+
+test('timeout card remains interactive when team has used all timeouts', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+    $game->recordTimeOut(TeamAB::TeamA);
+    $game->recordTimeOut(TeamAB::TeamA);
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])->assertSeeHtml('data-team-roster-timeouts')
+        ->assertSeeHtml('request-timeout-team_a');
+});
+
+test('requesting a timeout dispatches hasTimeoutLeft true when timeouts remain', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestTimeout')
+        ->assertDispatched('timeout-recorded', team: 'team_a', hasTimeoutLeft: true);
+});
+
+test('requesting a timeout dispatches hasTimeoutLeft false and does not record an event when no timeouts remain', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+    $game->recordTimeOut(TeamAB::TeamA);
+    $game->recordTimeOut(TeamAB::TeamA);
+    $eventCountBefore = $game->events()->count();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestTimeout')
+        ->assertDispatched('timeout-recorded', team: 'team_a', hasTimeoutLeft: false)
+        ->assertNotDispatched('game-event-recorded');
+
+    expect($game->events()->count())->toBe($eventCountBefore);
+});
+
+test('timeout card becomes interactive again for a new set after two timeouts in the previous set', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+    $game->recordTimeOut(TeamAB::TeamA);
+    $game->recordTimeOut(TeamAB::TeamA);
+
+    // End set 1 (auto-ended by reactor at 25-0) and start set 2
+    for ($i = 0; $i < 25; $i++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+    $game->recordLineup(2, TeamAB::TeamA, [1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6]);
+    $game->recordLineup(2, TeamAB::TeamB, [1 => 11, 2 => 12, 3 => 13, 4 => 14, 5 => 15, 6 => 16]);
+    $game->recordSetStarted();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])->assertSeeHtml('request-timeout-team_a');
+});
+
+test('requesting a timeout records the event and dispatches events', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestTimeout')
+        ->assertHasNoErrors()
+        ->assertDispatched('game-event-recorded')
+        ->assertDispatched('timeout-recorded', team: 'team_a');
+
+    $latestEvent = $game->fresh()->events->last();
+    expect($latestEvent->type)->toBe(GameEventType::TimeOutRequested);
+});
+
+test('requesting a timeout adds an error when no set is in progress', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+    ])
+        ->call('requestTimeout')
+        ->assertHasErrors('timeout')
+        ->assertNotDispatched('game-event-recorded')
+        ->assertNotDispatched('timeout-recorded');
+});
+
+function gameWithActiveSetForTeamRoster(): Game
+{
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    $homePlayers = Player::factory()->for($homeTeam)->count(6)->create();
+    foreach ($homePlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 1);
+    }
+
+    $awayPlayers = Player::factory()->for($awayTeam)->count(6)->create();
+    foreach ($awayPlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 11);
+    }
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+    $game->recordLineup(1, TeamAB::TeamA, [1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6]);
+    $game->recordLineup(1, TeamAB::TeamB, [1 => 11, 2 => 12, 3 => 13, 4 => 14, 5 => 15, 6 => 16]);
+    $game->recordSetStarted();
+
+    return $game;
+}
 
 function gameWithNumberedRostersForTeamRoster(): Game
 {
