@@ -11,16 +11,17 @@ return RectorConfig::configure()
         __DIR__.'/app',
         __DIR__.'/bootstrap',
         __DIR__.'/config',
-        __DIR__.'/public',
-        __DIR__.'/resources',
         __DIR__.'/routes',
         __DIR__.'/tests',
     ])
+    ->withSkip([
+        __DIR__.'/bootstrap/cache',
+    ])
     ->withPhpSets()
     ->withSets([
-        LaravelLevelSetList::UP_TO_LARAVEL_120,
+        LaravelLevelSetList::UP_TO_LARAVEL_130,
     ])
-//    ->withSetProviders(LaravelSetProvider::class)
+    ->withSetProviders(LaravelSetProvider::class)
     ->withComposerBased(laravel: true)
     ->withTypeCoverageLevel(0)
     ->withDeadCodeLevel(0)

@@ -65,9 +65,9 @@
             "@php artisan test"
         ],
         "lint":[
-            "@php ./vendor/bin/pint",
+            "@php ./vendor/bin/rector process --clear-cache --memory-limit=2G",
             "@php ./vendor/bin/phpstan analyse --memory-limit=2G",
-            "@php ./vendor/bin/rector process --clear-cache --memory-limit=2G"
+            "@php ./vendor/bin/pint"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
