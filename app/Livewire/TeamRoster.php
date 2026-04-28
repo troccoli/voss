@@ -9,8 +9,8 @@ use App\Enums\StaffRole;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Models\Game;
-use App\Services\CacheRepository;
 use App\Services\GameSideResolver;
+use App\Services\ScoresheetDataRepository;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -86,7 +86,7 @@ class TeamRoster extends Component
             return [];
         }
 
-        return $this->cacheRepository()->playersForSide($game, $this->targetSideForTeam($game, $this->team));
+        return $this->scoresheetDataRepository()->playersForSide($game, $this->targetSideForTeam($game, $this->team));
     }
 
     /**
@@ -116,7 +116,7 @@ class TeamRoster extends Component
             return [];
         }
 
-        return $this->cacheRepository()->staffForSide($game, $this->targetSideForTeam($game, $this->team));
+        return $this->scoresheetDataRepository()->staffForSide($game, $this->targetSideForTeam($game, $this->team));
     }
 
     /**
@@ -168,9 +168,9 @@ class TeamRoster extends Component
         return $markers;
     }
 
-    private function cacheRepository(): CacheRepository
+    private function scoresheetDataRepository(): ScoresheetDataRepository
     {
-        return app(CacheRepository::class);
+        return app(ScoresheetDataRepository::class);
     }
 
     private function targetSideForTeam(Game $game, TeamAB $team): TeamSide

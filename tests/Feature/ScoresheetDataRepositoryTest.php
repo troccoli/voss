@@ -9,14 +9,14 @@ use App\Events\Payloads\TossCompletedPayload;
 use App\Models\Game;
 use App\Models\Player;
 use App\Models\Team;
-use App\Services\CacheRepository;
+use App\Services\ScoresheetDataRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 test('players for side returns non-libero players for each side', function (): void {
-    $game = gameWithNumberedRostersForCacheRepository();
-    $repository = app(CacheRepository::class);
+    $game = gameWithNumberedRostersForScoresheetDataRepository();
+    $repository = app(ScoresheetDataRepository::class);
 
     $homePlayers = $repository->playersForSide($game, TeamSide::Home);
     $awayPlayers = $repository->playersForSide($game, TeamSide::Away);
@@ -28,8 +28,8 @@ test('players for side returns non-libero players for each side', function (): v
 });
 
 test('players for side reflects roster changes on repeated reads', function (): void {
-    $game = gameWithNumberedRostersForCacheRepository();
-    $repository = app(CacheRepository::class);
+    $game = gameWithNumberedRostersForScoresheetDataRepository();
+    $repository = app(ScoresheetDataRepository::class);
 
     $playersBeforeRosterChange = $repository->playersForSide($game, TeamSide::Home);
 
@@ -43,10 +43,10 @@ test('players for side reflects roster changes on repeated reads', function (): 
 });
 
 test('latest toss payload returns the recorded toss payload', function (): void {
-    $game = gameWithNumberedRostersForCacheRepository();
+    $game = gameWithNumberedRostersForScoresheetDataRepository();
     $game->recordToss(TeamSide::Away, TeamAB::TeamB);
 
-    $repository = app(CacheRepository::class);
+    $repository = app(ScoresheetDataRepository::class);
     $payload = $repository->latestTossPayload($game);
 
     expect($payload)->not->toBeNull()
@@ -55,10 +55,10 @@ test('latest toss payload returns the recorded toss payload', function (): void 
 });
 
 test('latest toss payload reflects new toss events on repeated reads', function (): void {
-    $game = gameWithNumberedRostersForCacheRepository();
+    $game = gameWithNumberedRostersForScoresheetDataRepository();
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
-    $repository = app(CacheRepository::class);
+    $repository = app(ScoresheetDataRepository::class);
 
     $payloadBeforeSecondToss = $repository->latestTossPayload($game);
     $game->events()->create([
@@ -78,7 +78,7 @@ test('latest toss payload reflects new toss events on repeated reads', function 
         ->and($payloadAfterRecordingToss?->serving)->toBe(TeamAB::TeamB);
 });
 
-function gameWithNumberedRostersForCacheRepository(): Game
+function gameWithNumberedRostersForScoresheetDataRepository(): Game
 {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
