@@ -59,9 +59,11 @@ class TeamRoster extends Component
             'placeholderCount' => $placeholderCount,
             'hasRosterPlayers' => $rosterPlayerCount > 0,
             'staffMarkers' => $this->buildStaffMarkers($teamStaff),
-            'reverseStaffOrder' => $this->leftSide,
+            'reverseLayout' => $this->leftSide,
             'keyPrefix' => $this->leftSide ? 'left-player' : 'right-player',
             'markerTone' => $this->team === TeamAB::TeamA ? 'bg-blue-600' : 'bg-red-600',
+            'timeoutsTaken' => $this->timeoutsTaken(),
+            'substitutionsTaken' => $this->substitutionsTaken(),
         ]);
     }
 
@@ -175,6 +177,20 @@ class TeamRoster extends Component
     private function activeGame(): ?Game
     {
         return Game::query()->find($this->gameId);
+    }
+
+    private function timeoutsTaken(): int
+    {
+        $state = $this->gameState ?? GameState::initial();
+
+        return $this->team === TeamAB::TeamA ? $state->timeoutsTeamA : $state->timeoutsTeamB;
+    }
+
+    private function substitutionsTaken(): int
+    {
+        $state = $this->gameState ?? GameState::initial();
+
+        return $this->team === TeamAB::TeamA ? $state->substitutionsTeamA : $state->substitutionsTeamB;
     }
 
     private function gameSideResolver(): GameSideResolver

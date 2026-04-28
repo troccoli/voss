@@ -18,7 +18,7 @@
             role="list"
             class="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1"
         >
-            @foreach ($players as $player)
+            @foreach (($reverseLayout ? array_reverse($players) : $players) as $player)
                 <flux:badge
                     wire:key="{{ $keyPrefix }}-{{ $player['player_key'] }}"
                     data-team-roster-number="{{ $player['number'] }}"
@@ -36,7 +36,7 @@
             data-team-roster-staff-list
             @class([
                 'mt-2 flex flex-nowrap items-center gap-2',
-                'flex-row-reverse' => $reverseStaffOrder,
+                'flex-row-reverse' => $reverseLayout,
             ])
         >
             @foreach ($staffMarkers as $staffMarker)
@@ -54,4 +54,24 @@
             @endforeach
         </div>
     @endif
+
+    <div @class(['mt-4 flex gap-2', 'flex-row-reverse' => $reverseLayout])>
+        <flux:card
+            size="sm"
+            data-team-roster-timeouts
+            class="p-1.5 content-center-safe!"
+        >
+            <flux:text>Timeouts</flux:text>
+            <flux:heading size="xl" class="text-center">{{ $timeoutsTaken }}/2</flux:heading>
+        </flux:card>
+
+        <flux:card
+            size="sm"
+            data-team-roster-substitutions
+            class="p-1.5 content-center-safe!"
+        >
+            <flux:text>Substitutions</flux:text>
+            <flux:heading size="xl" class="text-center">{{ $substitutionsTaken }}/6</flux:heading>
+        </flux:card>
+    </div>
 </aside>
