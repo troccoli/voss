@@ -2,7 +2,7 @@
     @unless ($hasSubmittedToss)
         <div class="absolute bottom-4 right-4 z-20 sm:bottom-6 sm:right-6">
             <flux:modal.trigger name="submit-toss-result">
-                <flux:button variant="primary" icon="clipboard-document-check">
+                <flux:button variant="primary">
                     Submit Toss Result
                 </flux:button>
             </flux:modal.trigger>
@@ -26,7 +26,7 @@
                         <flux:radio value="away" :label="$awayTeamCode" />
                     </flux:radio.group>
                     @error('teamA')
-                        <flux:text class="text-red-600">{{ $message }}</flux:text>
+                    <flux:text class="text-red-600">{{ $message }}</flux:text>
                     @enderror
 
                     <flux:radio.group
@@ -39,11 +39,11 @@
                         <flux:radio value="away" :label="$awayTeamCode" />
                     </flux:radio.group>
                     @error('serving')
-                        <flux:text class="text-red-600">{{ $message }}</flux:text>
+                    <flux:text class="text-red-600">{{ $message }}</flux:text>
                     @enderror
 
                     @error('submit')
-                        <flux:text class="text-red-600">{{ $message }}</flux:text>
+                    <flux:text class="text-red-600">{{ $message }}</flux:text>
                     @enderror
 
                     <div class="flex items-center gap-2">
