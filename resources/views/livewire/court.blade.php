@@ -80,42 +80,50 @@
             @endforeach
         </section>
 
-        @if ($showRosters)
-            <div class="mt-4 flex w-full max-w-[600px] items-start gap-4 px-2 sm:gap-10 md:gap-16">
-                <div class="flex min-w-0 flex-1 justify-end">
-                    <livewire:team-roster
-                        :game-id="$gameId"
-                        :game-state="$gameState"
-                        :team="$leftTeam"
-                        :left-side="true"
-                        :key="'team-roster-left'"
-                    />
-                </div>
-
-                <div class="flex min-w-0 flex-1 justify-start">
-                    <livewire:team-roster
-                        :game-id="$gameId"
-                        :game-state="$gameState"
-                        :team="$rightTeam"
-                        :left-side="false"
-                        :key="'team-roster-right'"
-                    />
-                </div>
+        <div class="mt-6 flex items-start gap-4">
+            <div class="flex w-24 shrink-0 items-start justify-end sm:w-28">
+                <livewire:lineup-submission
+                    :team="$leftTeam"
+                    :game-id="$gameId"
+                    :game-state="$gameState"
+                    :key="'lineup-submission-left-'.$leftTeam->value"
+                />
             </div>
-        @endif
-    </div>
 
-    <div class="mx-auto mt-4 flex w-full max-w-[600px] justify-between gap-4 px-2">
-        <livewire:lineup-submission
-            :team="$leftTeam"
-            :game-id="$gameId"
-            :game-state="$gameState"
-            :key="'lineup-submission-left-'.$leftTeam->value" />
-        <livewire:lineup-submission
-            :team="$rightTeam"
-            :game-id="$gameId"
-            :game-state="$gameState"
-            :key="'lineup-submission-right-'.$rightTeam->value"
-        />
+            @if ($showRosters)
+                <div class="flex w-[360px] shrink-0 gap-4 sm:w-[480px] sm:gap-10 md:w-[600px] md:gap-16">
+                    <div class="flex min-w-0 flex-1 justify-end">
+                        <livewire:team-roster
+                            :game-id="$gameId"
+                            :game-state="$gameState"
+                            :team="$leftTeam"
+                            :left-side="true"
+                            :key="'team-roster-left'"
+                        />
+                    </div>
+
+                    <div class="flex min-w-0 flex-1 justify-start">
+                        <livewire:team-roster
+                            :game-id="$gameId"
+                            :game-state="$gameState"
+                            :team="$rightTeam"
+                            :left-side="false"
+                            :key="'team-roster-right'"
+                        />
+                    </div>
+                </div>
+            @else
+                <div class="w-[360px] shrink-0 sm:w-[480px] md:w-[600px]"></div>
+            @endif
+
+            <div class="flex w-24 shrink-0 items-start justify-start sm:w-28">
+                <livewire:lineup-submission
+                    :team="$rightTeam"
+                    :game-id="$gameId"
+                    :game-state="$gameState"
+                    :key="'lineup-submission-right-'.$rightTeam->value"
+                />
+            </div>
+        </div>
     </div>
 </div>
