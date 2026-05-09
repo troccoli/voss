@@ -313,5 +313,4 @@ class LineupSubmission extends Component
             6 => '',
         ];
     }
-
 }

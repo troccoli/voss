@@ -58,7 +58,6 @@ class Court extends Component
         ];
     }
 
-
     /**
      * @return array<int, int>
      */
