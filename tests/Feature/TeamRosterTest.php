@@ -369,6 +369,183 @@ test('requesting a timeout adds an error when no set is in progress', function (
         ->assertNotDispatched('timeout-recorded');
 });
 
+test('substitution card shows modal trigger when a set is in progress and substitutions remain', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])->assertSeeHtml('data-team-roster-substitutions')
+        ->assertSeeHtml('substitution-team_a');
+});
+
+test('substitution card is not a modal trigger when no set is in progress', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+    ])->assertSeeHtml('data-team-roster-substitutions')
+        ->assertDontSeeHtml('substitution-team_a');
+});
+
+test('substitution card is not a modal trigger when all 6 substitutions are used', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+    $state = $game->stateAt();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => GameState::fromAttributes(array_merge($state->toAttributes(), ['substitutions_team_a' => 6])),
+    ])->assertSeeHtml('data-team-roster-substitutions')
+        ->assertDontSeeHtml('substitution-team_a');
+});
+
+test('substitution modal shows on-court and bench player numbers', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])->assertSeeHtml('data-substitution-on-court-number="1"')
+        ->assertSeeHtml('data-substitution-on-court-number="6"')
+        ->assertDontSeeHtml('data-substitution-bench-number="1"');
+});
+
+test('substitution records event and dispatches events', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->set('playerOut', '1')
+        ->set('playerIn', '7')
+        ->call('submitSubstitution')
+        ->assertHasNoErrors()
+        ->assertDispatched('game-event-recorded')
+        ->assertDispatched('substitution-recorded', team: 'team_a');
+
+    $latestEvent = $game->fresh()->events->last();
+    expect($latestEvent->type)->toBe(GameEventType::SubstitutionCompleted);
+});
+
+test('substitution requires both player numbers', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->set('playerOut', '')
+        ->set('playerIn', '')
+        ->call('submitSubstitution')
+        ->assertHasErrors('substitution')
+        ->assertNotDispatched('game-event-recorded');
+});
+
+test('substituted player cannot be substituted again in the same set', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+    $game->recordSubstitution(TeamAB::TeamA, 1, 7);
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->set('playerOut', '7')
+        ->set('playerIn', '1')
+        ->call('submitSubstitution')
+        ->assertHasNoErrors()
+        ->assertDispatched('game-event-recorded');
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->fresh()->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->fresh()->stateAt(),
+    ])
+        ->set('playerOut', '1')
+        ->set('playerIn', '7')
+        ->call('submitSubstitution')
+        ->assertHasErrors('substitution')
+        ->assertNotDispatched('game-event-recorded');
+});
+
+test('substitution pair can only swap back once', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+    $game->recordSubstitution(TeamAB::TeamA, 1, 7);
+    $game->recordSubstitution(TeamAB::TeamA, 7, 1);
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->set('playerOut', '1')
+        ->set('playerIn', '7')
+        ->call('submitSubstitution')
+        ->assertHasErrors('substitution')
+        ->assertNotDispatched('game-event-recorded');
+});
+
+test('player with active pair constraint can only be replaced by their partner', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+    $game->recordSubstitution(TeamAB::TeamA, 1, 7);
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->set('playerOut', '7')
+        ->set('playerIn', '8')
+        ->call('submitSubstitution')
+        ->assertHasErrors('substitution')
+        ->assertNotDispatched('game-event-recorded');
+});
+
+test('substitution constraints reset between sets', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+    $game->recordSubstitution(TeamAB::TeamA, 1, 7);
+    $game->recordSubstitution(TeamAB::TeamA, 7, 1);
+
+    for ($i = 0; $i < 25; $i++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+
+    $game->recordLineup(2, TeamAB::TeamA, [1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6]);
+    $game->recordLineup(2, TeamAB::TeamB, [1 => 11, 2 => 12, 3 => 13, 4 => 14, 5 => 15, 6 => 16]);
+    $game->recordSetStarted();
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->set('playerOut', '1')
+        ->set('playerIn', '7')
+        ->call('submitSubstitution')
+        ->assertHasNoErrors()
+        ->assertDispatched('game-event-recorded');
+});
+
 function gameWithActiveSetForTeamRoster(): Game
 {
     $homeTeam = Team::factory()->create();
