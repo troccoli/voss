@@ -88,6 +88,12 @@
                     :game-state="$gameState"
                     :key="'lineup-submission-left-'.$leftTeam->value"
                 />
+                <livewire:rally-winner-controls
+                    :game-id="$gameId"
+                    :game-state="$gameState"
+                    side="left"
+                    :key="'rally-winner-left'"
+                />
             </div>
 
             @if ($showRosters)
@@ -122,6 +128,12 @@
                     :game-id="$gameId"
                     :game-state="$gameState"
                     :key="'lineup-submission-right-'.$rightTeam->value"
+                />
+                <livewire:rally-winner-controls
+                    :game-id="$gameId"
+                    :game-state="$gameState"
+                    side="right"
+                    :key="'rally-winner-right'"
                 />
             </div>
         </div>

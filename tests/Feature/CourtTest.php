@@ -340,25 +340,10 @@ test('court swaps lineup submission order as soon as a set ends before the next 
     ]);
 });
 
-test('court does not render rally winner controls', function (): void {
+test('court renders rally winner controls when set is in progress', function (): void {
     $game = Game::factory()->create();
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
-        'gameState' => gameState([
-            'set_number' => 1,
-            'set_in_progress' => true,
-        ]),
-    ])
-        ->assertDontSee('Winner')
-        ->assertDontSeeHtml('data-rally-winner-button="team_a"')
-        ->assertDontSeeHtml('data-rally-winner-button="team_b"');
-});
-
-test('rally winner controls show buttons only while a set is in progress and game is not ended', function (): void {
-    $game = Game::factory()->create();
-
-    Livewire::test(RallyWinnerControls::class, [
         'gameId' => $game->getKey(),
         'gameState' => gameState(['set_number' => 1, 'set_in_progress' => false]),
     ])
@@ -366,35 +351,72 @@ test('rally winner controls show buttons only while a set is in progress and gam
         ->assertDontSeeHtml('data-rally-winner-button="team_a"')
         ->assertDontSeeHtml('data-rally-winner-button="team_b"');
 
-    Livewire::test(RallyWinnerControls::class, [
+    Livewire::test(Court::class, [
         'gameId' => $game->getKey(),
         'gameState' => gameState(['set_number' => 1, 'set_in_progress' => true]),
     ])
         ->assertSee('Winner')
         ->assertSeeHtml('data-rally-winner-button="team_a"')
         ->assertSeeHtml('data-rally-winner-button="team_b"');
+});
+
+test('rally winner controls show button only while a set is in progress and game is not ended', function (): void {
+    $game = Game::factory()->create();
+
+    Livewire::test(RallyWinnerControls::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState(['set_number' => 1, 'set_in_progress' => false]),
+        'side' => 'left',
+    ])
+        ->assertDontSee('Winner')
+        ->assertDontSeeHtml('data-rally-winner-button="team_a"');
+
+    Livewire::test(RallyWinnerControls::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState(['set_number' => 1, 'set_in_progress' => true]),
+        'side' => 'left',
+    ])
+        ->assertSee('Winner')
+        ->assertSeeHtml('data-rally-winner-button="team_a"');
+
+    Livewire::test(RallyWinnerControls::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState(['set_number' => 1, 'set_in_progress' => true]),
+        'side' => 'right',
+    ])
+        ->assertSee('Winner')
+        ->assertSeeHtml('data-rally-winner-button="team_b"');
 
     Livewire::test(RallyWinnerControls::class, [
         'gameId' => $game->getKey(),
         'gameState' => gameState(['set_number' => 5, 'set_in_progress' => true, 'game_ended' => true]),
+        'side' => 'left',
     ])
         ->assertDontSee('Winner')
-        ->assertDontSeeHtml('data-rally-winner-button="team_a"')
-        ->assertDontSeeHtml('data-rally-winner-button="team_b"');
+        ->assertDontSeeHtml('data-rally-winner-button="team_a"');
 });
 
 test('rally winner controls swap sides as soon as sides swap', function (): void {
     $game = Game::factory()->create();
 
+    $state = gameState([
+        'set_number' => 2,
+        'sets_won_team_a' => 1,
+        'set_in_progress' => true,
+    ]);
+
     Livewire::test(RallyWinnerControls::class, [
         'gameId' => $game->getKey(),
-        'gameState' => gameState([
-            'set_number' => 2,
-            'sets_won_team_a' => 1,
-            'set_in_progress' => true,
-        ]),
+        'gameState' => $state,
+        'side' => 'left',
     ])
-        ->assertSeeHtml('data-rally-winner-side-team="left-team_b"')
+        ->assertSeeHtml('data-rally-winner-side-team="left-team_b"');
+
+    Livewire::test(RallyWinnerControls::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $state,
+        'side' => 'right',
+    ])
         ->assertSeeHtml('data-rally-winner-side-team="right-team_a"');
 });
 

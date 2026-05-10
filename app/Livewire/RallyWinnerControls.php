@@ -23,11 +23,14 @@ class RallyWinnerControls extends Component
     #[Reactive]
     public ?GameState $gameState = null;
 
-    public function mount(?int $gameId = null): void
+    public string $side = 'left';
+
+    public function mount(?int $gameId = null, string $side = 'left'): void
     {
         abort_if($gameId === null, 404);
 
         $this->gameId = $gameId;
+        $this->side = $side;
     }
 
     public function recordRallyWinner(string $team): void
@@ -67,6 +70,7 @@ class RallyWinnerControls extends Component
             'leftTeam' => $leftTeam,
             'rightTeam' => $rightTeam,
             'canRecordRallyWinner' => $state->setInProgress && ! $state->gameEnded,
+            'side' => $this->side,
         ]);
     }
 
