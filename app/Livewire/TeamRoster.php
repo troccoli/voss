@@ -243,6 +243,7 @@ class TeamRoster extends Component
             'timeoutsTaken' => $this->timeoutsTaken(),
             'substitutionsTaken' => $this->substitutionsTaken(),
             'canRequestTimeout' => $this->canRequestTimeout(),
+            'timeoutDuration' => config('game.timeout_duration'),
             'canRequestSubstitution' => $this->canRequestSubstitution(),
             'canShowSubstitutionFullModal' => $this->canShowSubstitutionFullModal(),
             'onCourtNumbers' => $onCourtNumbers,

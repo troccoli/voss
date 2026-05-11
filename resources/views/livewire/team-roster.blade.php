@@ -61,11 +61,12 @@
                 x-data="{
                     countdownOpen: false,
                     phase: 'countdown',
-                    seconds: 30,
+                    duration: {{ $timeoutDuration }},
+                    seconds: {{ $timeoutDuration }},
                     timer: null,
                     start() {
                         this.phase = 'countdown';
-                        this.seconds = 30;
+                        this.seconds = this.duration;
                         this.timer = setInterval(() => {
                             if (--this.seconds <= 0) {
                                 clearInterval(this.timer);
@@ -76,7 +77,7 @@
                     dismiss() {
                         clearInterval(this.timer);
                         this.phase = 'countdown';
-                        this.seconds = 30;
+                        this.seconds = this.duration;
                         this.countdownOpen = false;
                         $flux.modal('request-timeout-{{ $team->value }}-countdown').close();
                     }
