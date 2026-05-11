@@ -6,6 +6,8 @@ namespace Database\Seeders;
 
 use App\Enums\OfficialRole;
 use App\Enums\StaffRole;
+use App\Enums\TeamAB;
+use App\Enums\TeamSide;
 use App\Models\Championship;
 use App\Models\Game;
 use App\Models\Official;
@@ -13,13 +15,10 @@ use App\Models\Player;
 use App\Models\Staff;
 use App\Models\Team;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class ControlledGameSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     private const string HOME_TEAM_NAME = 'Dev Home Team';
 
     private const string AWAY_TEAM_NAME = 'Dev Away Team';
@@ -121,6 +120,24 @@ class ControlledGameSeeder extends Seeder
 
         foreach ($awayTeam->staff()->orderBy('id')->get() as $index => $staff) {
             $game->addStaff($staff, $awayStaffRoles[$index]);
+        }
+
+        $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+        $homeLineup = [1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6];
+        $awayLineup = [1 => 20, 2 => 21, 3 => 22, 4 => 23, 5 => 24, 6 => 25];
+
+        $setWinners = [TeamAB::TeamA, TeamAB::TeamB, TeamAB::TeamA, TeamAB::TeamB];
+
+        foreach ($setWinners as $index => $winner) {
+            $setNumber = $index + 1;
+            $game->recordLineup($setNumber, TeamAB::TeamA, $homeLineup);
+            $game->recordLineup($setNumber, TeamAB::TeamB, $awayLineup);
+            $game->recordSetStarted();
+
+            for ($i = 0; $i < 25; $i++) {
+                $game->recordRallyWinner($winner);
+            }
         }
     }
 }
