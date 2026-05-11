@@ -297,6 +297,59 @@
                     </div>
                 </form>
             </flux:modal>
+        @elseif ($canShowSubstitutionFullModal)
+            <flux:modal.trigger name="substitution-full-confirm-{{ $team->value }}">
+                <flux:card
+                    size="sm"
+                    data-team-roster-substitutions
+                    class="cursor-pointer p-1.5 content-center-safe! hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                >
+                    <flux:text>Substitutions</flux:text>
+                    <flux:heading size="xl" class="text-center">{{ $substitutionsTaken }}/6</flux:heading>
+                </flux:card>
+            </flux:modal.trigger>
+
+            <flux:modal name="substitution-full-confirm-{{ $team->value }}" class="min-w-[20rem]">
+                <div class="space-y-6">
+                    <div>
+                        <flux:heading size="lg">Request Substitution</flux:heading>
+                        <flux:text class="mt-2">Confirm that you want to request a substitution for this team.</flux:text>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <flux:spacer />
+                        <flux:modal.close>
+                            <flux:button type="button" variant="ghost">Cancel</flux:button>
+                        </flux:modal.close>
+                        <flux:button
+                            type="button"
+                            variant="primary"
+                            @click="$flux.modal('substitution-full-confirm-{{ $team->value }}').close(); $flux.modal('substitution-full-{{ $team->value }}').show()"
+                        >
+                            Confirm
+                        </flux:button>
+                    </div>
+                </div>
+            </flux:modal>
+
+            <flux:modal
+                name="substitution-full-{{ $team->value }}"
+                :dismissible="false"
+                :closable="false"
+                class="min-w-[20rem]"
+            >
+                <div class="space-y-6 text-center">
+                    <flux:heading size="lg">No substitutions left</flux:heading>
+                    <div class="flex justify-center">
+                        <flux:button
+                            type="button"
+                            variant="primary"
+                            @click="$flux.modal('substitution-full-{{ $team->value }}').close()"
+                        >
+                            Return to play
+                        </flux:button>
+                    </div>
+                </div>
+            </flux:modal>
         @else
             <flux:card
                 size="sm"

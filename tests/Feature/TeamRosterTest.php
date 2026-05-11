@@ -394,7 +394,7 @@ test('substitution card is not a modal trigger when no set is in progress', func
         ->assertDontSeeHtml('substitution-team_a');
 });
 
-test('substitution card is not a modal trigger when all 6 substitutions are used', function (): void {
+test('substitution card shows full modal trigger when all 6 substitutions are used', function (): void {
     $game = gameWithActiveSetForTeamRoster();
     $state = $game->stateAt();
 
@@ -404,7 +404,8 @@ test('substitution card is not a modal trigger when all 6 substitutions are used
         'leftSide' => true,
         'gameState' => GameState::fromAttributes(array_merge($state->toAttributes(), ['substitutions_team_a' => 6])),
     ])->assertSeeHtml('data-team-roster-substitutions')
-        ->assertDontSeeHtml('substitution-team_a');
+        ->assertSeeHtml('substitution-full-confirm-team_a')
+        ->assertDontSeeHtml('name="substitution-team_a"');
 });
 
 test('substitution modal shows on-court and bench player numbers', function (): void {
@@ -451,6 +452,26 @@ test('substitution requires both player numbers', function (): void {
     ])
         ->set('playerOut', '')
         ->set('playerIn', '')
+        ->call('submitSubstitution')
+        ->assertHasErrors('substitution')
+        ->assertNotDispatched('game-event-recorded');
+});
+
+test('substitution is rejected when team has used all 6 substitutions', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+
+    for ($i = 0; $i < 6; $i++) {
+        $game->recordSubstitution(TeamAB::TeamA, $i + 1, $i + 7);
+    }
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->set('playerOut', '1')
+        ->set('playerIn', '7')
         ->call('submitSubstitution')
         ->assertHasErrors('substitution')
         ->assertNotDispatched('game-event-recorded');

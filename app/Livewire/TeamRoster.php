@@ -96,6 +96,12 @@ class TeamRoster extends Component
 
         $constraints = $this->substitutionConstraints();
 
+        if ($constraints['count'] >= 6) {
+            $this->addError('substitution', 'This team has used all 6 substitutions for this set.');
+
+            return;
+        }
+
         if (in_array($playerOut, $constraints['locked'], true)) {
             $this->addError('substitution', "Player $playerOut cannot be substituted again this set.");
 
@@ -145,7 +151,7 @@ class TeamRoster extends Component
     /**
      * Returns substitution constraints for the current set.
      *
-     * @return array{locked: array<int, int>, partnerFor: array<int, int>}
+     * @return array{count: int, locked: array<int, int>, partnerFor: array<int, int>}
      */
     #[Computed]
     public function substitutionConstraints(): array
@@ -153,7 +159,7 @@ class TeamRoster extends Component
         $game = $this->activeGame();
 
         if ($game === null) {
-            return ['locked' => [], 'partnerFor' => []];
+            return ['count' => 0, 'locked' => [], 'partnerFor' => []];
         }
 
         $lastSetStarted = GameEvent::query()
@@ -175,6 +181,7 @@ class TeamRoster extends Component
         /** @var array<string, array{out: int, in: int, reversed: bool}> $pairs */
         $pairs = [];
         $locked = [];
+        $count = 0;
 
         foreach ($substitutions as $event) {
             /** @var SubstitutionCompletedPayload $payload */
@@ -184,6 +191,7 @@ class TeamRoster extends Component
                 continue;
             }
 
+            $count++;
             $pairKey = implode('-', [min($payload->playerOut, $payload->playerIn), max($payload->playerOut, $payload->playerIn)]);
 
             if (isset($pairs[$pairKey]) && ! $pairs[$pairKey]['reversed']) {
@@ -204,7 +212,7 @@ class TeamRoster extends Component
             }
         }
 
-        return ['locked' => array_values(array_unique($locked)), 'partnerFor' => $partnerFor];
+        return ['count' => $count, 'locked' => array_values(array_unique($locked)), 'partnerFor' => $partnerFor];
     }
 
     public function render(): View
@@ -236,6 +244,7 @@ class TeamRoster extends Component
             'substitutionsTaken' => $this->substitutionsTaken(),
             'canRequestTimeout' => $this->canRequestTimeout(),
             'canRequestSubstitution' => $this->canRequestSubstitution(),
+            'canShowSubstitutionFullModal' => $this->canShowSubstitutionFullModal(),
             'onCourtNumbers' => $onCourtNumbers,
             'benchNumbers' => $benchNumbers,
             'lockedNumbers' => $constraints['locked'],
@@ -379,6 +388,13 @@ class TeamRoster extends Component
         $state = $this->gameState ?? GameState::initial();
 
         return $state->setInProgress && ! $state->gameEnded && $this->substitutionsTaken() < 6;
+    }
+
+    private function canShowSubstitutionFullModal(): bool
+    {
+        $state = $this->gameState ?? GameState::initial();
+
+        return $state->setInProgress && ! $state->gameEnded && $this->substitutionsTaken() >= 6;
     }
 
     private function canRequestTimeout(): bool
