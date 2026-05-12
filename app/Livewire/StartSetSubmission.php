@@ -8,6 +8,7 @@ use App\Data\GameState\GameState;
 use App\Enums\TeamAB;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
+use App\Services\GameSideResolver;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -104,7 +105,7 @@ class StartSetSubmission extends Component
 
     private function hasSubmittedToss(GameState $state): bool
     {
-        return $state->teamASide !== null && $state->servingTeam !== null;
+        return app(GameSideResolver::class)->hasRequiredToss($state);
     }
 
     private function bothLineupsSubmittedForUpcomingSet(GameState $state): bool

@@ -89,7 +89,7 @@ test('lineup submission renders team a button and modal after toss is submitted'
     Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA, 'gameId' => $game->getKey()])
         ->assertSee('Submit Lineup')
         ->assertSee('Team A Lineup')
-        ->assertSeeHtml('submit-lineup-team_a')
+        ->assertSeeHtml('submit-lineup-team_a-left')
         ->assertSeeHtml('name="lineup[1]"')
         ->assertSeeHtml('autofocus')
         ->assertSeeHtml('name="lineup[6]"')
@@ -107,7 +107,7 @@ test('lineup submission renders team b button and modal after toss is submitted'
     Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamB, 'gameId' => $game->getKey()])
         ->assertSee('Submit Lineup')
         ->assertSee('Team B Lineup')
-        ->assertSeeHtml('submit-lineup-team_b')
+        ->assertSeeHtml('submit-lineup-team_b-left')
         ->assertSeeHtml('name="lineup[1]"')
         ->assertSeeHtml('name="lineup[6]"')
         ->assertSeeHtml('data-lineup-roster-numbers')
@@ -123,6 +123,14 @@ test('lineup submission rejects unsupported team value', function (): void {
 
     expect(fn (): Testable => Livewire::test(LineupSubmission::class, ['team' => 'invalid', 'gameId' => $game->getKey()]))
         ->toThrow(ViewException::class);
+});
+
+test('lineup submission modal name includes the court side to avoid stale modal reuse', function (): void {
+    $game = prepareGameForLineupSubmission();
+
+    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamB, 'gameId' => $game->getKey(), 'courtSide' => 'right'])
+        ->assertSeeHtml('submit-lineup-team_b-right')
+        ->assertDontSeeHtml('submit-lineup-team_b-left');
 });
 
 test('lineup submission records an event and dispatches a refresh event', function (): void {
@@ -234,6 +242,18 @@ test('lineup submission button remains visible for the other team when only one 
         ->assertSee('Team B Lineup');
 });
 
+test('lineup submission is hidden before the fifth set toss is submitted', function (): void {
+    $game = tiedLineupGameReadyForFifthSet();
+
+    Livewire::test(LineupSubmission::class, [
+        'team' => TeamAB::TeamA,
+        'gameId' => $game->getKey(),
+        'gameState' => $game->stateAt(),
+    ])
+        ->assertDontSee('Submit Lineup')
+        ->assertDontSee('Team A Lineup');
+});
+
 test('lineup submission visibility follows snapshot state without querying lineup events', function (): void {
     $game = Game::factory()->create();
 
@@ -278,3 +298,28 @@ test('lineup submission visibility follows snapshot state without querying lineu
         ->assertSee('Submit Lineup')
         ->assertSee('Team B Lineup');
 });
+
+function tiedLineupGameReadyForFifthSet(): Game
+{
+    $game = prepareGameForLineupSubmission();
+
+    foreach ([TeamAB::TeamA, TeamAB::TeamB, TeamAB::TeamA, TeamAB::TeamB] as $setWinner) {
+        $set = $game->stateAt()->setNumber + 1;
+        $game->recordLineup($set, TeamAB::TeamA, validLineupPositions());
+        $game->recordLineup($set, TeamAB::TeamB, [
+            1 => 11,
+            2 => 12,
+            3 => 13,
+            4 => 14,
+            5 => 15,
+            6 => 16,
+        ]);
+        $game->recordSetStarted();
+
+        for ($index = 0; $index < 25; $index++) {
+            $game->recordRallyWinner($setWinner);
+        }
+    }
+
+    return $game->fresh();
+}

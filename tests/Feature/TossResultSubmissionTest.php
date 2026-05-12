@@ -10,6 +10,7 @@ use App\Livewire\TossResultSubmission;
 use App\Models\Game;
 use App\Models\GameEvent;
 use App\Models\GameStateSnapshot;
+use App\Models\Player;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -30,7 +31,30 @@ test('submitting toss result creates a toss completed event', function (): void 
     expect($event)->not->toBeNull()
         ->and($event->type)->toBe(GameEventType::TossCompleted)
         ->and($event->payload->teamA)->toBe(TeamSide::Away)
+        ->and($event->payload->leftTeam)->toBe(TeamAB::TeamA)
         ->and($event->payload->serving)->toBe(TeamAB::TeamB);
+});
+
+test('submitting fifth set toss keeps team assignment and records left and serving teams', function (): void {
+    $game = tiedGameReadyForFifthSetToss();
+
+    Livewire::test(TossResultSubmission::class, ['gameId' => $game->getKey()])
+        ->assertSee('Submit Fifth Set Toss')
+        ->set('left', TeamSide::Away->value)
+        ->set('serving', TeamSide::Away->value)
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $event = $game->fresh()->events->last();
+    $state = $game->fresh()->stateAt();
+
+    expect($event)->not->toBeNull()
+        ->and($event->type)->toBe(GameEventType::TossCompleted)
+        ->and($event->payload->teamA)->toBe(TeamSide::Home)
+        ->and($event->payload->leftTeam)->toBe(TeamAB::TeamB)
+        ->and($event->payload->serving)->toBe(TeamAB::TeamB)
+        ->and($state->fifthSetLeftTeam)->toBe(TeamAB::TeamB)
+        ->and($state->servingTeam)->toBe(TeamAB::TeamB);
 });
 
 test('submitting toss result fails when there is no active game', function (): void {
@@ -121,3 +145,45 @@ test('toss submit button is hidden when snapshot state already includes toss dat
         ->assertDontSee('Submit Toss Result')
         ->assertDontSee('Save Toss Result');
 });
+
+function tiedGameReadyForFifthSetToss(): Game
+{
+    $game = Game::factory()->create();
+
+    for ($index = 0; $index < 6; $index++) {
+        $homePlayer = Player::factory()->for($game->homeTeam)->create();
+        $awayPlayer = Player::factory()->for($game->awayTeam)->create();
+        $game->addPlayer($homePlayer, number: $index + 1);
+        $game->addPlayer($awayPlayer, number: $index + 11);
+    }
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    foreach ([TeamAB::TeamA, TeamAB::TeamB, TeamAB::TeamA, TeamAB::TeamB] as $setWinner) {
+        $set = $game->stateAt()->setNumber + 1;
+        $game->recordLineup($set, TeamAB::TeamA, tossResultLineupPositions(1));
+        $game->recordLineup($set, TeamAB::TeamB, tossResultLineupPositions(11));
+        $game->recordSetStarted();
+
+        for ($rally = 0; $rally < 25; $rally++) {
+            $game->recordRallyWinner($setWinner);
+        }
+    }
+
+    return $game->fresh();
+}
+
+/**
+ * @return array<int, int>
+ */
+function tossResultLineupPositions(int $start): array
+{
+    return [
+        1 => $start,
+        2 => $start + 1,
+        3 => $start + 2,
+        4 => $start + 3,
+        5 => $start + 4,
+        6 => $start + 5,
+    ];
+}

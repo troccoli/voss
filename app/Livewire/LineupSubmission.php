@@ -9,6 +9,7 @@ use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
+use App\Services\GameSideResolver;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Validator;
@@ -24,26 +25,31 @@ class LineupSubmission extends Component
     #[Locked]
     public int $gameId;
 
+    #[Reactive]
     public TeamAB $team = TeamAB::TeamA;
 
     #[Reactive]
     public ?GameState $gameState = null;
 
+    #[Reactive]
+    public string $courtSide = 'left';
+
     /** @var array<int, string> */
     public array $lineup = [];
 
-    public function mount(TeamAB $team, ?int $gameId = null): void
+    public function mount(TeamAB $team, ?int $gameId = null, string $courtSide = 'left'): void
     {
         abort_if(is_null($gameId), 404);
 
         $this->team = $team;
         $this->gameId = $gameId;
+        $this->courtSide = $courtSide;
         $this->lineup = $this->defaultLineup();
     }
 
     public function modalName(): string
     {
-        return 'submit-lineup-'.$this->team->value;
+        return sprintf('submit-lineup-%s-%s', $this->team->value, $this->courtSide);
     }
 
     public function modalHeading(): string
@@ -239,7 +245,7 @@ class LineupSubmission extends Component
 
     private function canSubmitLineup(): bool
     {
-        if (! $this->hasSubmittedToss()) {
+        if (! $this->hasRequiredToss()) {
             return false;
         }
 
@@ -261,11 +267,11 @@ class LineupSubmission extends Component
         return $lineup !== [];
     }
 
-    private function hasSubmittedToss(): bool
+    private function hasRequiredToss(): bool
     {
         $state = $this->resolvedGameState();
 
-        return $state->teamASide !== null && $state->servingTeam !== null;
+        return app(GameSideResolver::class)->hasRequiredToss($state);
     }
 
     private function upcomingSetNumber(): int

@@ -27,9 +27,8 @@ class Scoreboard extends Component
     public function render(): View
     {
         $scoreboardState = $this->gameState ?? GameState::initial();
-        $completedSets = $scoreboardState->setsWonTeamA + $scoreboardState->setsWonTeamB;
-        $leftTeam = $this->gameSideResolver()->teamOnLeft($completedSets);
-        $rightTeam = $this->gameSideResolver()->teamOnRight($completedSets);
+        $leftTeam = $this->gameSideResolver()->teamOnLeftForState($scoreboardState);
+        $rightTeam = $this->gameSideResolver()->teamOnRightForState($scoreboardState);
         $teamCodes = $this->teamCountryCodes();
 
         return view('livewire.scoreboard', [

@@ -340,6 +340,33 @@ test('court swaps lineup submission order as soon as a set ends before the next 
     ]);
 });
 
+test('court uses the fifth set toss to place the correct team on the left before lineup submission', function (): void {
+    $game = gameWithNumberedRosters();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState([
+            'set_number' => 4,
+            'sets_won_team_a' => 2,
+            'sets_won_team_b' => 2,
+            'fifth_set_left_team' => TeamAB::TeamB->value,
+            'serving_team' => TeamAB::TeamB->value,
+            'set_in_progress' => false,
+        ]),
+    ])
+        ->assertSeeInOrder([
+            'submit-lineup-team_b',
+            'submit-lineup-team_a',
+        ])
+        ->assertSeeInOrder([
+            '2',
+            '9',
+            '3',
+            '12',
+        ]);
+});
+
 test('court renders rally winner controls when set is in progress', function (): void {
     $game = Game::factory()->create();
 

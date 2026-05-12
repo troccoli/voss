@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\GameState;
 
+use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Exceptions\InvalidGameEventTransition;
@@ -19,17 +20,24 @@ class GameEventRuleValidator
     {
         $state = $game->stateAt();
 
-        if ($state->gameEnded || $state->setNumber > 0 || $this->hasRecordedToss($game)) {
-            $this->fail('The toss can only be recorded once before the first set starts.');
+        if (! $this->hasRecordedToss($game)) {
+            if ($state->gameEnded || $state->setNumber > 0) {
+                $this->fail('The toss can only be recorded before the first set starts or before the fifth set.');
+            }
+
+            return;
         }
 
+        if (! $this->requiresFifthSetToss($state) || $state->fifthSetLeftTeam !== null) {
+            $this->fail('The toss can only be recorded before the first set starts or before the fifth set.');
+        }
     }
 
     public function assertCanRecordSetStarted(Game $game): void
     {
         $state = $game->stateAt();
 
-        if (! $this->hasRecordedToss($game)) {
+        if (! $this->hasRequiredToss($state)) {
             $this->fail('A set cannot start before the toss has been recorded.');
         }
 
@@ -54,7 +62,7 @@ class GameEventRuleValidator
     {
         $state = $game->stateAt();
 
-        if (! $this->hasRecordedToss($game)) {
+        if (! $this->hasRequiredToss($state)) {
             $this->fail('A lineup cannot be submitted before the toss has been recorded.');
         }
 
@@ -137,6 +145,28 @@ class GameEventRuleValidator
         return $game->events()
             ->where('type', GameEventType::TossCompleted)
             ->exists();
+    }
+
+    private function hasRequiredToss(GameState $state): bool
+    {
+        if ($state->teamASide === null || $state->servingTeam === null) {
+            return false;
+        }
+
+        if (! $this->requiresFifthSetToss($state)) {
+            return true;
+        }
+
+        return $state->fifthSetLeftTeam !== null;
+    }
+
+    private function requiresFifthSetToss(GameState $state): bool
+    {
+        return ! $state->gameEnded
+            && ! $state->setInProgress
+            && $state->setNumber === 4
+            && $state->setsWonTeamA === 2
+            && $state->setsWonTeamB === 2;
     }
 
     private function hasSubmittedLineupForSet(Game $game, TeamAB $team, int $setNumber): bool

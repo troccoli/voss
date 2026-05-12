@@ -43,15 +43,15 @@ class Court extends Component
     private function courtContext(): array
     {
         $game = $this->activeGame();
-        $completedSetCount = $this->completedSetCount();
-        $leftTeam = $this->gameSideResolver()->teamOnLeft($completedSetCount);
-        $rightTeam = $this->gameSideResolver()->teamOnRight($completedSetCount);
+        $state = $this->resolvedGameState();
+        $leftTeam = $this->gameSideResolver()->teamOnLeftForState($state);
+        $rightTeam = $this->gameSideResolver()->teamOnRightForState($state);
         $showRosters = $game !== null && $this->gameSideResolver()->hasRecordedToss($game);
 
         return [
             'leftTeam' => $leftTeam,
             'rightTeam' => $rightTeam,
-            'servingTeam' => $this->resolvedGameState()->servingTeam,
+            'servingTeam' => $state->servingTeam,
             'showRosters' => $showRosters,
             'leftRotation' => $this->rotationForTeam($leftTeam),
             'rightRotation' => $this->rotationForTeam($rightTeam),
@@ -71,13 +71,6 @@ class Court extends Component
     private function resolvedGameState(): GameState
     {
         return $this->gameState ?? GameState::initial();
-    }
-
-    private function completedSetCount(): int
-    {
-        $state = $this->resolvedGameState();
-
-        return $state->setsWonTeamA + $state->setsWonTeamB;
     }
 
     private function activeGame(): ?Game

@@ -105,6 +105,24 @@ test('start set button visibility follows snapshot state without querying lineup
         ->assertSee('Start Set 1');
 });
 
+test('start set button stays hidden before the fifth set toss is submitted', function (): void {
+    $game = gameReadyToStartSet();
+
+    foreach ([TeamAB::TeamA, TeamAB::TeamB, TeamAB::TeamA, TeamAB::TeamB] as $setWinner) {
+        $set = $game->stateAt()->setNumber + 1;
+        $game->recordLineup($set, TeamAB::TeamA, lineupPositionsForNumbers(1));
+        $game->recordLineup($set, TeamAB::TeamB, lineupPositionsForNumbers(11));
+        $game->recordSetStarted();
+
+        for ($index = 0; $index < 25; $index++) {
+            $game->recordRallyWinner($setWinner);
+        }
+    }
+
+    Livewire::test(StartSetSubmission::class, ['gameId' => $game->getKey(), 'gameState' => $game->stateAt()])
+        ->assertDontSee('Start Set 5');
+});
+
 /**
  * @return array<int, int>
  */

@@ -86,6 +86,7 @@
                     :team="$leftTeam"
                     :game-id="$gameId"
                     :game-state="$gameState"
+                    court-side="left"
                     :key="'lineup-submission-left-'.$leftTeam->value"
                 />
                 <livewire:rally-winner-controls
@@ -127,6 +128,7 @@
                     :team="$rightTeam"
                     :game-id="$gameId"
                     :game-state="$gameState"
+                    court-side="right"
                     :key="'lineup-submission-right-'.$rightTeam->value"
                 />
                 <livewire:rally-winner-controls

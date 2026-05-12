@@ -62,9 +62,8 @@ class RallyWinnerControls extends Component
     public function render(): View
     {
         $state = $this->gameState ?? GameState::initial();
-        $completedSetCount = $state->setsWonTeamA + $state->setsWonTeamB;
-        $leftTeam = $this->gameSideResolver()->teamOnLeft($completedSetCount);
-        $rightTeam = $this->gameSideResolver()->teamOnRight($completedSetCount);
+        $leftTeam = $this->gameSideResolver()->teamOnLeftForState($state);
+        $rightTeam = $this->gameSideResolver()->teamOnRightForState($state);
 
         return view('livewire.rally-winner-controls', [
             'leftTeam' => $leftTeam,

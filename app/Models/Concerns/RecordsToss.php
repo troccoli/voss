@@ -16,7 +16,7 @@ use App\Services\GameState\GameEventRuleValidator;
  */
 trait RecordsToss
 {
-    public function recordToss(TeamSide $teamA, TeamAB $serving): void
+    public function recordToss(TeamSide $teamA, TeamAB $serving, ?TeamAB $leftTeam = null): void
     {
         app(GameEventRuleValidator::class)->assertCanRecordToss($this);
 
@@ -25,6 +25,7 @@ trait RecordsToss
             'payload' => new TossCompletedPayload(
                 teamA: $teamA,
                 serving: $serving,
+                leftTeam: $leftTeam ?? TeamAB::TeamA,
             ),
         ]);
     }

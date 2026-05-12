@@ -9,6 +9,7 @@ use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
+use App\Services\GameSideResolver;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
@@ -27,6 +28,8 @@ class TossResultSubmission extends Component
 
     public string $teamA = TeamSide::Home->value;
 
+    public string $left = TeamSide::Home->value;
+
     public string $serving = TeamSide::Home->value;
 
     public function mount(?int $gameId = null): void
@@ -39,8 +42,10 @@ class TossResultSubmission extends Component
      */
     protected function rules(): array
     {
+        $sideField = $this->isFifthSetToss() ? 'left' : 'teamA';
+
         return [
-            'teamA' => ['required', Rule::enum(TeamSide::class)],
+            $sideField => ['required', Rule::enum(TeamSide::class)],
             'serving' => ['required', Rule::enum(TeamSide::class)],
         ];
     }
@@ -52,6 +57,7 @@ class TossResultSubmission extends Component
     {
         return [
             'teamA.required' => 'Select whether Team A is home or away.',
+            'left.required' => 'Select which team will start on the left.',
             'serving.required' => 'Select whether the home or away team serves first.',
         ];
     }
@@ -75,13 +81,32 @@ class TossResultSubmission extends Component
         }
 
         try {
-            $teamASide = TeamSide::from($this->teamA);
-            $servingSide = TeamSide::from($this->serving);
+            if ($this->isFifthSetToss()) {
+                $teamASide = $this->resolvedGameState($activeGame)->teamASide;
 
-            $activeGame->recordToss(
-                teamA: $teamASide,
-                serving: $servingSide === $teamASide ? TeamAB::TeamA : TeamAB::TeamB,
-            );
+                if ($teamASide === null) {
+                    $this->addError('submit', 'The initial toss must be recorded before the fifth set toss.');
+
+                    return;
+                }
+
+                $leftSide = TeamSide::from($this->left);
+                $servingSide = TeamSide::from($this->serving);
+
+                $activeGame->recordToss(
+                    teamA: $teamASide,
+                    serving: $this->teamForSide($teamASide, $servingSide),
+                    leftTeam: $this->teamForSide($teamASide, $leftSide),
+                );
+            } else {
+                $teamASide = TeamSide::from($this->teamA);
+                $servingSide = TeamSide::from($this->serving);
+
+                $activeGame->recordToss(
+                    teamA: $teamASide,
+                    serving: $this->teamForSide($teamASide, $servingSide),
+                );
+            }
         } catch (InvalidGameEventTransition $exception) {
             $this->addError('submit', $exception->getMessage());
 
@@ -93,6 +118,7 @@ class TossResultSubmission extends Component
 
         $this->resetValidation();
         $this->teamA = TeamSide::Home->value;
+        $this->left = TeamSide::Home->value;
         $this->serving = TeamSide::Home->value;
     }
 
@@ -102,6 +128,7 @@ class TossResultSubmission extends Component
 
         return view('livewire.toss-result-submission', [
             'hasSubmittedToss' => $this->hasSubmittedToss($activeGame),
+            'isFifthSetToss' => $this->isFifthSetToss(),
             'homeTeamCode' => $activeGame?->homeTeam->country_code ?? 'Home Team',
             'awayTeamCode' => $activeGame?->awayTeam->country_code ?? 'Away Team',
         ]);
@@ -111,7 +138,7 @@ class TossResultSubmission extends Component
     {
         $state = $this->resolvedGameState($activeGame);
 
-        return $state->teamASide !== null && $state->servingTeam !== null;
+        return $this->gameSideResolver()->hasRequiredToss($state);
     }
 
     private function resolvedGameState(?Game $activeGame = null): GameState
@@ -139,5 +166,22 @@ class TossResultSubmission extends Component
             ->with(['homeTeam', 'awayTeam'])
             ->whereKey($this->gameId)
             ->first();
+    }
+
+    private function isFifthSetToss(): bool
+    {
+        return $this->gameSideResolver()->requiresFifthSetToss($this->resolvedGameState());
+    }
+
+    private function teamForSide(TeamSide $teamASide, TeamSide $selectedSide): TeamAB
+    {
+        return $selectedSide === $teamASide
+            ? TeamAB::TeamA
+            : TeamAB::TeamB;
+    }
+
+    private function gameSideResolver(): GameSideResolver
+    {
+        return app(GameSideResolver::class);
     }
 }

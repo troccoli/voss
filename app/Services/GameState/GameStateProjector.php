@@ -73,6 +73,10 @@ class GameStateProjector
         $state->teamASide = $payload->teamA;
         $state->servingTeam = $payload->serving;
 
+        if ($this->requiresFifthSetToss($state)) {
+            $state->fifthSetLeftTeam = $payload->leftTeam;
+        }
+
         return $state;
     }
 
@@ -145,7 +149,11 @@ class GameStateProjector
     {
         $state->setNumber = max(1, $state->setNumber + 1);
         $state->resetCurrentSetCounters();
-        $state->servingTeam = $this->servingTeamForSet($event->game_id, $state->setNumber) ?? $state->servingTeam;
+
+        if ($state->setNumber !== 5 || $state->fifthSetLeftTeam === null) {
+            $state->servingTeam = $this->servingTeamForSet($event->game_id, $state->setNumber) ?? $state->servingTeam;
+        }
+
         $state->setInProgress = true;
 
         return $state;
@@ -160,7 +168,13 @@ class GameStateProjector
         }
 
         $nextSetNumber = max(1, $state->setNumber + 1);
-        $state->servingTeam = $this->servingTeamForSet($event->game_id, $nextSetNumber) ?? $state->servingTeam;
+
+        if ($nextSetNumber === 5 && $state->setsWonTeamA === 2 && $state->setsWonTeamB === 2) {
+            $state->servingTeam = null;
+            $state->fifthSetLeftTeam = null;
+        } else {
+            $state->servingTeam = $this->servingTeamForSet($event->game_id, $nextSetNumber) ?? $state->servingTeam;
+        }
 
         $state->scoreTeamA = 0;
         $state->scoreTeamB = 0;
@@ -274,5 +288,14 @@ class GameStateProjector
         return $team === TeamAB::TeamA
             ? TeamAB::TeamB
             : TeamAB::TeamA;
+    }
+
+    private function requiresFifthSetToss(GameState $state): bool
+    {
+        return ! $state->gameEnded
+            && ! $state->setInProgress
+            && $state->setNumber === 4
+            && $state->setsWonTeamA === 2
+            && $state->setsWonTeamB === 2;
     }
 }

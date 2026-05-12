@@ -28,6 +28,7 @@ class GameState implements Wireable
         public int $substitutionsTeamA = 0,
         public int $substitutionsTeamB = 0,
         public ?TeamSide $teamASide = null,
+        public ?TeamAB $fifthSetLeftTeam = null,
         public ?TeamAB $servingTeam = null,
         public bool $setInProgress = false,
         public bool $gameEnded = false,
@@ -51,6 +52,7 @@ class GameState implements Wireable
             substitutionsTeamA: $snapshot->substitutions_team_a,
             substitutionsTeamB: $snapshot->substitutions_team_b,
             teamASide: $snapshot->team_a_side,
+            fifthSetLeftTeam: $snapshot->fifth_set_left_team,
             servingTeam: $snapshot->serving_team,
             setInProgress: $snapshot->set_in_progress,
             gameEnded: $snapshot->game_ended,
@@ -79,6 +81,9 @@ class GameState implements Wireable
             substitutionsTeamB: self::toInteger($attributes['substitutions_team_b'] ?? 0),
             teamASide: is_string($attributes['team_a_side'] ?? null)
                 ? TeamSide::tryFrom($attributes['team_a_side'])
+                : null,
+            fifthSetLeftTeam: is_string($attributes['fifth_set_left_team'] ?? null)
+                ? TeamAB::tryFrom($attributes['fifth_set_left_team'])
                 : null,
             servingTeam: is_string($attributes['serving_team'] ?? null)
                 ? TeamAB::tryFrom($attributes['serving_team'])
@@ -116,6 +121,7 @@ class GameState implements Wireable
             'substitutions_team_a' => $this->substitutionsTeamA,
             'substitutions_team_b' => $this->substitutionsTeamB,
             'team_a_side' => $this->teamASide?->value,
+            'fifth_set_left_team' => $this->fifthSetLeftTeam?->value,
             'serving_team' => $this->servingTeam?->value,
             'rotation_team_a' => $this->rotationTeamA,
             'rotation_team_b' => $this->rotationTeamB,

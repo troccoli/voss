@@ -142,6 +142,43 @@ test('state resets points as soon as a set ends before the next set starts', fun
         ->and($state->scoreTeamB)->toBe(0);
 });
 
+test('fifth set toss clears the automatic rotation and then drives left side and serving', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    ensureRostersForProjection($game, $homeTeam, $awayTeam);
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    foreach ([TeamAB::TeamA, TeamAB::TeamB, TeamAB::TeamA, TeamAB::TeamB] as $setWinner) {
+        submitProjectionLineupsForSet($game, $game->stateAt()->setNumber + 1);
+        $game->recordSetStarted();
+
+        for ($index = 0; $index < 25; $index++) {
+            $game->recordRallyWinner($setWinner);
+        }
+    }
+
+    $stateBeforeFifthSetToss = $game->fresh()->stateAt();
+
+    expect($stateBeforeFifthSetToss->setNumber)->toBe(4)
+        ->and($stateBeforeFifthSetToss->setsWonTeamA)->toBe(2)
+        ->and($stateBeforeFifthSetToss->setsWonTeamB)->toBe(2)
+        ->and($stateBeforeFifthSetToss->servingTeam)->toBeNull()
+        ->and($stateBeforeFifthSetToss->fifthSetLeftTeam)->toBeNull();
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamB, TeamAB::TeamB);
+    submitProjectionLineupsForSet($game, 5);
+    $game->recordSetStarted();
+
+    $stateAfterFifthSetStart = $game->fresh()->stateAt();
+
+    expect($stateAfterFifthSetStart->setNumber)->toBe(5)
+        ->and($stateAfterFifthSetStart->setInProgress)->toBeTrue()
+        ->and($stateAfterFifthSetStart->servingTeam)->toBe(TeamAB::TeamB)
+        ->and($stateAfterFifthSetStart->fifthSetLeftTeam)->toBe(TeamAB::TeamB);
+});
+
 test('serving remains on the same court side after a set ends and sides swap', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();

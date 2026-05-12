@@ -3,29 +3,31 @@
         <div class="absolute bottom-4 right-4 z-20 sm:bottom-6 sm:right-6">
             <flux:modal.trigger name="submit-toss-result">
                 <flux:button variant="primary">
-                    Submit Toss Result
+                    {{ $isFifthSetToss ? 'Submit Fifth Set Toss' : 'Submit Toss Result' }}
                 </flux:button>
             </flux:modal.trigger>
 
             <flux:modal name="submit-toss-result" class="min-w-[30rem]">
                 <form wire:submit="submit" class="space-y-6">
                     <div>
-                        <flux:heading size="lg">Submit Toss Result</flux:heading>
+                        <flux:heading size="lg">{{ $isFifthSetToss ? 'Submit Fifth Set Toss' : 'Submit Toss Result' }}</flux:heading>
                         <flux:text class="mt-2">
-                            Select which side is Team A and which team serves first.
+                            {{ $isFifthSetToss
+                                ? 'Select which team starts on the left and which team serves first.'
+                                : 'Select which side is Team A and which team serves first.' }}
                         </flux:text>
                     </div>
 
                     <flux:radio.group
-                        wire:model="teamA"
-                        label="Team A"
+                        wire:model="{{ $isFifthSetToss ? 'left' : 'teamA' }}"
+                        label="{{ $isFifthSetToss ? 'Left Team' : 'Team A' }}"
                         variant="segmented"
-                        :invalid="$errors->has('teamA')"
+                        :invalid="$errors->has($isFifthSetToss ? 'left' : 'teamA')"
                     >
                         <flux:radio value="home" :label="$homeTeamCode" />
                         <flux:radio value="away" :label="$awayTeamCode" />
                     </flux:radio.group>
-                    @error('teamA')
+                    @error($isFifthSetToss ? 'left' : 'teamA')
                     <flux:text class="text-red-600">{{ $message }}</flux:text>
                     @enderror
 
@@ -51,7 +53,9 @@
                         <flux:modal.close>
                             <flux:button type="button" variant="ghost">Cancel</flux:button>
                         </flux:modal.close>
-                        <flux:button type="submit" variant="primary">Save Toss Result</flux:button>
+                        <flux:button type="submit" variant="primary">
+                            {{ $isFifthSetToss ? 'Save Fifth Set Toss' : 'Save Toss Result' }}
+                        </flux:button>
                     </div>
                 </form>
             </flux:modal>

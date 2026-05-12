@@ -88,7 +88,29 @@ test('a toss can be recorded with the correct type and payload', function (): vo
     expect($event->type)->toBe(GameEventType::TossCompleted)
         ->and($event->payload)->toBeInstanceOf(TossCompletedPayload::class)
         ->and($event->payload->teamA)->toBe(TeamSide::Home)
+        ->and($event->payload->leftTeam)->toBe(TeamAB::TeamA)
         ->and($event->payload->serving)->toBe(TeamAB::TeamA);
+});
+
+test('a fifth set toss keeps team a and team b fixed while changing the left side', function (): void {
+    $game = Game::factory()->create();
+
+    ensureStartingLineupRoster($game);
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    foreach ([TeamAB::TeamA, TeamAB::TeamB, TeamAB::TeamA, TeamAB::TeamB] as $setWinner) {
+        submitLineupsForSet($game, $game->stateAt()->setNumber + 1);
+        $game->recordSetStarted();
+        winSet($game, $setWinner);
+    }
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamB, TeamAB::TeamB);
+
+    $event = $game->events->last();
+
+    expect($event->payload->teamA)->toBe(TeamSide::Home)
+        ->and($event->payload->leftTeam)->toBe(TeamAB::TeamB)
+        ->and($event->payload->serving)->toBe(TeamAB::TeamB);
 });
 
 test('team b is derived as the other team when team a is the away team', function (): void {
