@@ -22,6 +22,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function (): void {
+    config()->set('game.between_sets_duration', 0);
+});
+
 function prepareActiveSet(Game $game): void
 {
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);

@@ -17,6 +17,10 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function (): void {
+    config()->set('game.between_sets_duration', 0);
+});
+
 test('court does not show player lists before toss is submitted', function (): void {
     $game = gameWithNumberedRosters();
 

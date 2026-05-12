@@ -16,6 +16,7 @@ use App\Models\Staff;
 use App\Models\Team;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Config;
 
 class ControlledGameSeeder extends Seeder
 {
@@ -27,6 +28,18 @@ class ControlledGameSeeder extends Seeder
      * Run the database seeds.
      */
     public function run(): void
+    {
+        $betweenSetsDuration = Config::integer('game.between_sets_duration');
+        Config::set('game.between_sets_duration', 0);
+
+        try {
+            $this->seedControlledGame();
+        } finally {
+            Config::set('game.between_sets_duration', $betweenSetsDuration);
+        }
+    }
+
+    private function seedControlledGame(): void
     {
         $championship = Championship::factory()->named('Dev Controlled Championship')->create();
 

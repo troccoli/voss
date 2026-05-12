@@ -9,6 +9,8 @@ use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
+use App\Models\GameEvent;
+use Carbon\CarbonImmutable;
 
 class GameEventRuleValidator
 {
@@ -47,6 +49,10 @@ class GameEventRuleValidator
 
         if ($state->setInProgress) {
             $this->fail('A set is already in progress.');
+        }
+
+        if ($this->setBreakIsInProgress($game, $state)) {
+            $this->fail('The interval between sets has not elapsed yet.');
         }
 
         $upcomingSet = $state->setNumber + 1;
@@ -176,6 +182,41 @@ class GameEventRuleValidator
             ->where('payload->set', $setNumber)
             ->where('payload->team', $team->value)
             ->exists();
+    }
+
+    private function setBreakIsInProgress(Game $game, GameState $state): bool
+    {
+        if ($state->setNumber === 0 || $state->gameEnded) {
+            return false;
+        }
+
+        $lastSetEndedAt = $this->lastSetEndedAt($game);
+
+        if ($lastSetEndedAt === null) {
+            return false;
+        }
+
+        return $lastSetEndedAt
+            ->addSeconds($this->betweenSetsDuration())
+            ->isFuture();
+    }
+
+    private function lastSetEndedAt(Game $game): ?CarbonImmutable
+    {
+        /** @var GameEvent|null $setEndedEvent */
+        $setEndedEvent = $game->events()
+            ->reorder()
+            ->where('type', GameEventType::SetEnded)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->first();
+
+        return $setEndedEvent?->created_at;
+    }
+
+    private function betweenSetsDuration(): int
+    {
+        return max(0, (int) config('game.between_sets_duration', 180));
     }
 
     private function fail(string $message): never

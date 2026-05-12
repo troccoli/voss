@@ -16,6 +16,10 @@ use Illuminate\Support\Carbon;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function (): void {
+    config()->set('game.between_sets_duration', 0);
+});
+
 test('state snapshots are projected as game events are recorded', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();

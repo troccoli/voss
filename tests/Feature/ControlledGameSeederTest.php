@@ -13,6 +13,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 test('controlled game seeder creates predictable teams and game rosters', function (): void {
+    config()->set('game.between_sets_duration', 180);
+
     $this->seed(ControlledGameSeeder::class);
 
     $game = Game::query()->with(['homeTeam', 'awayTeam', 'players', 'staff', 'officials'])->sole();
@@ -73,4 +75,12 @@ test('controlled game seeder creates predictable teams and game rosters', functi
         ->and($awayRoleCounts[StaffRole::Therapist->value] ?? 0)->toBe(0);
 
     expect($game->officials)->toHaveCount(count(OfficialRole::cases()));
+});
+
+test('controlled game seeder restores the configured between-sets interval after seeding', function (): void {
+    config()->set('game.between_sets_duration', 180);
+
+    $this->seed(ControlledGameSeeder::class);
+
+    expect(config('game.between_sets_duration'))->toBe(180);
 });

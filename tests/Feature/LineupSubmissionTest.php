@@ -21,6 +21,10 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function (): void {
+    config()->set('game.between_sets_duration', 0);
+});
+
 /**
  * @return array<int, string>
  */

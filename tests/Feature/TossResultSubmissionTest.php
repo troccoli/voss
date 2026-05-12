@@ -17,6 +17,10 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function (): void {
+    config()->set('game.between_sets_duration', 0);
+});
+
 test('submitting toss result creates a toss completed event', function (): void {
     $game = Game::factory()->create();
 
