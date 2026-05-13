@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\GameEventType;
+use App\Events\Payloads\CourtSidesSwappedPayload;
 use App\Events\Payloads\GameEndedPayload;
 use App\Events\Payloads\GameEventPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
@@ -64,6 +65,7 @@ class GameEvent extends Model
                     GameEventType::TossCompleted => TossCompletedPayload::fromArray($data),
                     GameEventType::LineupSubmitted => LineupSubmittedPayload::fromArray($data),
                     GameEventType::RallyEnded => RallyEndedPayload::fromArray($data),
+                    GameEventType::CourtSidesSwapped => CourtSidesSwappedPayload::fromArray($data),
                     GameEventType::SubstitutionCompleted => SubstitutionCompletedPayload::fromArray($data),
                     GameEventType::TimeOutRequested => TimeOutRequestedPayload::fromArray($data),
                     GameEventType::SetStarted => SetStartedPayload::fromArray($data),

@@ -183,6 +183,43 @@ test('fifth set toss clears the automatic rotation and then drives left side and
         ->and($stateAfterFifthSetStart->fifthSetLeftTeam)->toBe(TeamAB::TeamB);
 });
 
+test('fifth set side swap updates the left team while keeping the serving team unchanged', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    ensureRostersForProjection($game, $homeTeam, $awayTeam);
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    foreach ([TeamAB::TeamA, TeamAB::TeamB, TeamAB::TeamA, TeamAB::TeamB] as $setWinner) {
+        submitProjectionLineupsForSet($game, $game->stateAt()->setNumber + 1);
+        $game->recordSetStarted();
+
+        for ($index = 0; $index < 25; $index++) {
+            $game->recordRallyWinner($setWinner);
+        }
+    }
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA, TeamAB::TeamA);
+    submitProjectionLineupsForSet($game, 5);
+    $game->recordSetStarted();
+
+    for ($index = 0; $index < 8; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+
+    $game->recordCourtSidesSwapped();
+
+    $state = $game->fresh()->stateAt();
+
+    expect($state->setNumber)->toBe(5)
+        ->and($state->fifthSetLeftTeam)->toBe(TeamAB::TeamB)
+        ->and($state->fifthSetSideSwapped)->toBeTrue()
+        ->and($state->servingTeam)->toBe(TeamAB::TeamA)
+        ->and($state->scoreTeamA)->toBe(8)
+        ->and($state->scoreTeamB)->toBe(0);
+});
+
 test('serving remains on the same court side after a set ends and sides swap', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();

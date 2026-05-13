@@ -144,6 +144,43 @@ test('scoreboard resolves team a side from latest snapshot without requiring tos
         ]);
 });
 
+test('scoreboard swaps teams after the fifth set court change', function (): void {
+    $game = gameWithDistinctTeamCountryCodes();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    $teamACode = $game->homeTeam->country_code;
+    $teamBCode = $game->awayTeam->country_code;
+
+    Livewire::test(Scoreboard::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => GameState::fromAttributes([
+            'set_number' => 5,
+            'sets_won_team_a' => 2,
+            'sets_won_team_b' => 2,
+            'score_team_a' => 8,
+            'score_team_b' => 7,
+            'fifth_set_left_team' => TeamAB::TeamB->value,
+            'fifth_set_side_swapped' => true,
+        ]),
+    ])
+        ->assertSeeHtml('data-scoreboard-left-team="team_b"')
+        ->assertSeeHtml('data-scoreboard-right-team="team_a"')
+        ->assertSeeInOrder([
+            $teamBCode,
+            'Sets',
+            $teamACode,
+            '2',
+            ':',
+            '2',
+            $teamBCode,
+            'Points',
+            $teamACode,
+            '7',
+            ':',
+            '8',
+        ]);
+});
+
 function gameWithDistinctTeamCountryCodes(): Game
 {
     $homeTeam = Team::factory()->create();

@@ -96,6 +96,27 @@ class GameEventRuleValidator
         }
     }
 
+    public function assertCanRecordCourtSidesSwapped(Game $game): void
+    {
+        $state = $game->stateAt();
+
+        if ($state->gameEnded || ! $state->setInProgress || $state->setNumber !== 5) {
+            $this->fail('Court sides can only be swapped during the fifth set.');
+        }
+
+        if ($state->fifthSetLeftTeam === null) {
+            $this->fail('Court sides cannot be swapped before the fifth set toss has been recorded.');
+        }
+
+        if ($state->fifthSetSideSwapped) {
+            $this->fail('Court sides have already been swapped in the fifth set.');
+        }
+
+        if (max($state->scoreTeamA, $state->scoreTeamB) < 8) {
+            $this->fail('Court sides can only be swapped once a team reaches 8 points in the fifth set.');
+        }
+    }
+
     public function assertCanRecordSubstitution(Game $game): void
     {
         $state = $game->stateAt();

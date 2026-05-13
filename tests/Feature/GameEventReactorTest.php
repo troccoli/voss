@@ -10,6 +10,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function (): void {
+    config()->set('game.between_sets_duration', 0);
+});
+
 test('in sets one to four the set auto-ends at 25 points with a two-point lead', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
@@ -56,6 +60,7 @@ test('in the fifth set the set auto-ends at 15 points with a two-point lead', fu
         }
     }
 
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA, TeamAB::TeamA);
     submitReactorLineupsForSet($game, 5);
     $game->recordSetStarted(); // 5th set
 

@@ -3,6 +3,7 @@
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
+use App\Events\Payloads\CourtSidesSwappedPayload;
 use App\Events\Payloads\GameEndedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\RallyEndedPayload;
@@ -115,6 +116,62 @@ test('a fifth set toss keeps team a and team b fixed while changing the left sid
     expect($event->payload->teamA)->toBe(TeamSide::Home)
         ->and($event->payload->leftTeam)->toBe(TeamAB::TeamB)
         ->and($event->payload->serving)->toBe(TeamAB::TeamB);
+});
+
+test('court sides can be swapped once a team reaches 8 points in the fifth set', function (): void {
+    $game = Game::factory()->create();
+
+    ensureStartingLineupRoster($game);
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    foreach ([TeamAB::TeamA, TeamAB::TeamB, TeamAB::TeamA, TeamAB::TeamB] as $setWinner) {
+        submitLineupsForSet($game, $game->stateAt()->setNumber + 1);
+        $game->recordSetStarted();
+        winSet($game, $setWinner);
+    }
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamB, TeamAB::TeamA);
+    submitLineupsForSet($game, 5);
+    $game->recordSetStarted();
+
+    for ($index = 0; $index < 8; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+
+    $game->recordCourtSidesSwapped();
+
+    $event = $game->fresh()->events->last();
+    $state = $game->fresh()->stateAt();
+
+    expect($event->type)->toBe(GameEventType::CourtSidesSwapped)
+        ->and($event->payload)->toBeInstanceOf(CourtSidesSwappedPayload::class)
+        ->and($state->fifthSetLeftTeam)->toBe(TeamAB::TeamB)
+        ->and($state->fifthSetSideSwapped)->toBeTrue()
+        ->and($state->servingTeam)->toBe(TeamAB::TeamA);
+});
+
+test('court sides cannot be swapped before a team reaches 8 points in the fifth set', function (): void {
+    $game = Game::factory()->create();
+
+    ensureStartingLineupRoster($game);
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    foreach ([TeamAB::TeamA, TeamAB::TeamB, TeamAB::TeamA, TeamAB::TeamB] as $setWinner) {
+        submitLineupsForSet($game, $game->stateAt()->setNumber + 1);
+        $game->recordSetStarted();
+        winSet($game, $setWinner);
+    }
+
+    $game->recordToss(TeamSide::Home, TeamAB::TeamB, TeamAB::TeamA);
+    submitLineupsForSet($game, 5);
+    $game->recordSetStarted();
+
+    for ($index = 0; $index < 7; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+
+    expect(fn () => $game->recordCourtSidesSwapped())
+        ->toThrow(InvalidGameEventTransition::class, 'Court sides can only be swapped once a team reaches 8 points in the fifth set.');
 });
 
 test('team b is derived as the other team when team a is the away team', function (): void {

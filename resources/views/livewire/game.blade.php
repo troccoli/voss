@@ -23,4 +23,20 @@
             </div>
         </div>
     </flux:modal>
+
+    <flux:modal
+        name="fifth-set-side-change"
+        class="min-w-80 text-center"
+        :dismissible="false"
+        :closable="false"
+        x-on:keydown.escape.window.capture.prevent.stop=""
+        x-on:cancel.prevent.stop=""
+    >
+        <div class="space-y-4">
+            <flux:heading size="xl">Teams to change court</flux:heading>
+            <div class="pt-2">
+                <flux:button variant="primary" wire:click="acknowledgeFifthSetSideChange">Dismiss</flux:button>
+            </div>
+        </div>
+    </flux:modal>
 </div>

@@ -7,6 +7,7 @@ namespace App\Services\GameState;
 use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
+use App\Events\Payloads\CourtSidesSwappedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Events\Payloads\SubstitutionCompletedPayload;
@@ -27,6 +28,7 @@ class GameStateProjector
             GameEventType::TossCompleted => $this->applyTossCompleted($state, $event),
             GameEventType::LineupSubmitted => $this->applyLineupSubmitted($state, $event),
             GameEventType::RallyEnded => $this->applyRallyEnded($state, $event),
+            GameEventType::CourtSidesSwapped => $this->applyCourtSidesSwapped($state, $event),
             GameEventType::SubstitutionCompleted => $this->applySubstitutionCompleted($state, $event),
             GameEventType::TimeOutRequested => $this->applyTimeOutRequested($state, $event),
             GameEventType::SetStarted => $this->applySetStarted($state, $event),
@@ -75,7 +77,22 @@ class GameStateProjector
 
         if ($this->requiresFifthSetToss($state)) {
             $state->fifthSetLeftTeam = $payload->leftTeam;
+            $state->fifthSetSideSwapped = false;
         }
+
+        return $state;
+    }
+
+    private function applyCourtSidesSwapped(GameState $state, GameEvent $event): GameState
+    {
+        /** @var CourtSidesSwappedPayload $payload */
+        $payload = $event->payload;
+
+        if ($state->fifthSetLeftTeam !== null) {
+            $state->fifthSetLeftTeam = $this->oppositeTeam($state->fifthSetLeftTeam);
+        }
+
+        $state->fifthSetSideSwapped = true;
 
         return $state;
     }
@@ -172,6 +189,7 @@ class GameStateProjector
         if ($nextSetNumber === 5 && $state->setsWonTeamA === 2 && $state->setsWonTeamB === 2) {
             $state->servingTeam = null;
             $state->fifthSetLeftTeam = null;
+            $state->fifthSetSideSwapped = false;
         } else {
             $state->servingTeam = $this->servingTeamForSet($event->game_id, $nextSetNumber) ?? $state->servingTeam;
         }

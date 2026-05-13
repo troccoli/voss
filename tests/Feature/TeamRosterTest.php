@@ -17,6 +17,10 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function (): void {
+    config()->set('game.between_sets_duration', 0);
+});
+
 test('team roster shows fallback text when there are no players', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();

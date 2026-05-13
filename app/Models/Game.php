@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Data\GameState\GameState;
 use App\Enums\OfficialRole;
 use App\Enums\StaffRole;
+use App\Models\Concerns\RecordsCourtSideSwap;
 use App\Models\Concerns\RecordsEndOfGame;
 use App\Models\Concerns\RecordsEndOfRally;
 use App\Models\Concerns\RecordsEndOfSet;
@@ -56,6 +57,7 @@ class Game extends Model
     /** @use HasFactory<GameFactory> */
     use HasFactory;
 
+    use RecordsCourtSideSwap;
     use RecordsEndOfGame;
     use RecordsEndOfRally;
     use RecordsEndOfSet;

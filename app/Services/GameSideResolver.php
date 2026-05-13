@@ -111,4 +111,13 @@ class GameSideResolver
             && $state->setsWonTeamA === 2
             && $state->setsWonTeamB === 2;
     }
+
+    public function shouldPromptForFifthSetSideSwap(GameState $state): bool
+    {
+        return $state->setInProgress
+            && $state->setNumber === 5
+            && ! $state->gameEnded
+            && ! $state->fifthSetSideSwapped
+            && max($state->scoreTeamA, $state->scoreTeamB) >= 8;
+    }
 }

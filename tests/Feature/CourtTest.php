@@ -371,6 +371,30 @@ test('court uses the fifth set toss to place the correct team on the left before
         ]);
 });
 
+test('court swaps sides in the fifth set after the 8-point side change', function (): void {
+    $game = gameWithNumberedRosters();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameState([
+            'set_number' => 5,
+            'sets_won_team_a' => 2,
+            'sets_won_team_b' => 2,
+            'fifth_set_left_team' => TeamAB::TeamB->value,
+            'fifth_set_side_swapped' => true,
+            'serving_team' => TeamAB::TeamA->value,
+            'rotation_team_a' => [1 => 12],
+            'rotation_team_b' => [1 => 9],
+            'set_in_progress' => true,
+        ]),
+    ])
+        ->assertSeeHtml('data-court-marker="left-team_b-1"')
+        ->assertSeeHtml('data-court-marker="right-team_a-1"')
+        ->assertSeeHtml('data-court-serving-player="1"')
+        ->assertSeeHtml('-right-10 top-[14%]');
+});
+
 test('court renders rally winner controls when set is in progress', function (): void {
     $game = Game::factory()->create();
 

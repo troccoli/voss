@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $substitutions_team_b
  * @property TeamSide|null $team_a_side
  * @property TeamAB|null $fifth_set_left_team
+ * @property bool $fifth_set_side_swapped
  * @property TeamAB|null $serving_team
  * @property array<int, int> $rotation_team_a
  * @property array<int, int> $rotation_team_b
@@ -55,6 +56,7 @@ class GameStateSnapshot extends Model
             'substitutions_team_b' => 'integer',
             'team_a_side' => TeamSide::class,
             'fifth_set_left_team' => TeamAB::class,
+            'fifth_set_side_swapped' => 'boolean',
             'serving_team' => TeamAB::class,
             'rotation_team_a' => 'array',
             'rotation_team_b' => 'array',

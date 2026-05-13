@@ -13,6 +13,10 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function (): void {
+    config()->set('game.between_sets_duration', 0);
+});
+
 test('game component hydrates state from the passed game', function (): void {
     $game = GameModel::factory()->create();
     $game->recordToss(TeamSide::Away, TeamAB::TeamB);

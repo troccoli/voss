@@ -28,6 +28,8 @@ class Game extends Component
 
     public ?int $finalScoreLoser = null;
 
+    public bool $showFifthSetSideChangePrompt = false;
+
     public function mount(GameModel $game): void
     {
         $this->gameId = $game->getKey();
@@ -42,9 +44,11 @@ class Game extends Component
         $previousSetsWonTeamA = isset($this->gameState) ? $this->gameState->setsWonTeamA : 0;
         $previousScoreTeamA = isset($this->gameState) ? $this->gameState->scoreTeamA : 0;
         $previousScoreTeamB = isset($this->gameState) ? $this->gameState->scoreTeamB : 0;
+        $previousShowFifthSetSideChangePrompt = $this->showFifthSetSideChangePrompt;
 
         $game = GameModel::query()->findSole($this->gameId);
         $this->gameState = $game->stateAt();
+        $this->showFifthSetSideChangePrompt = $this->gameSideResolver()->shouldPromptForFifthSetSideSwap($this->gameState);
 
         if ($wasSetInProgress && ! $this->gameState->setInProgress && ! $this->gameState->gameEnded) {
             $winnerIsTeamA = $this->gameState->setsWonTeamA > $previousSetsWonTeamA;
@@ -54,6 +58,14 @@ class Game extends Component
             $this->finalScoreWinner = $winnerIsTeamA ? $previousScoreTeamA : $previousScoreTeamB;
             $this->finalScoreLoser = $winnerIsTeamA ? $previousScoreTeamB : $previousScoreTeamA;
             Flux::modal('set-ended')->show();
+        }
+
+        if ($this->showFifthSetSideChangePrompt) {
+            if (! $previousShowFifthSetSideChangePrompt) {
+                Flux::modal('fifth-set-side-change')->show();
+            }
+        } else {
+            Flux::modal('fifth-set-side-change')->close();
         }
     }
 
@@ -66,6 +78,14 @@ class Game extends Component
         Flux::modal('set-ended')->close();
     }
 
+    public function acknowledgeFifthSetSideChange(): void
+    {
+        $game = GameModel::query()->findSole($this->gameId);
+        $game->recordCourtSidesSwapped();
+        $this->synchronizeGameContext();
+        $this->dispatch('game-event-recorded');
+    }
+
     public function render(): View
     {
         return view('livewire.game', [
@@ -73,6 +93,7 @@ class Game extends Component
             'setWinnerCode' => $this->setWinnerCode,
             'finalScoreWinner' => $this->finalScoreWinner,
             'finalScoreLoser' => $this->finalScoreLoser,
+            'showFifthSetSideChangePrompt' => $this->showFifthSetSideChangePrompt,
         ]);
     }
 
@@ -83,5 +104,10 @@ class Game extends Component
         return $resolver->sideForTeam($game, $team) === TeamSide::Home
             ? $game->homeTeam->country_code
             : $game->awayTeam->country_code;
+    }
+
+    private function gameSideResolver(): GameSideResolver
+    {
+        return app(GameSideResolver::class);
     }
 }
