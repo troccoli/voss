@@ -408,7 +408,7 @@ test('substitution card shows full modal trigger when all 6 substitutions are us
         'leftSide' => true,
         'gameState' => GameState::fromAttributes(array_merge($state->toAttributes(), ['substitutions_team_a' => 6])),
     ])->assertSeeHtml('data-team-roster-substitutions')
-        ->assertSeeHtml('substitution-full-confirm-team_a')
+        ->assertSeeHtml("\$flux.modal('substitution-full-confirm-team_a').show()")
         ->assertDontSeeHtml('name="substitution-team_a"');
 });
 

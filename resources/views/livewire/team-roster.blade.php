@@ -103,7 +103,12 @@
                     </flux:card>
                 </flux:modal.trigger>
 
-                <flux:modal name="request-timeout-{{ $team->value }}-confirm" class="min-w-[20rem]">
+                <flux:modal
+                    name="request-timeout-{{ $team->value }}-confirm"
+                    :dismissible="false"
+                    :closable="false"
+                    class="min-w-[20rem]"
+                >
                     <div class="space-y-6">
                         <div>
                             <flux:heading size="lg">Request Timeout</flux:heading>
@@ -112,7 +117,7 @@
                         @error('timeout')
                             <flux:text class="text-red-600">{{ $message }}</flux:text>
                         @enderror
-                        <div class="flex items-center gap-2">
+                        <div class="mt-8 flex items-center gap-2">
                             <flux:spacer />
                             <flux:modal.close>
                                 <flux:button type="button" variant="ghost">Cancel</flux:button>
@@ -163,19 +168,20 @@
         @endif
 
         @if ($canRequestSubstitution)
-            <flux:modal.trigger name="substitution-{{ $team->value }}">
-                <flux:card
-                    size="sm"
-                    data-team-roster-substitutions
-                    class="cursor-pointer p-1.5 content-center-safe! hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                >
-                    <flux:text>Substitutions</flux:text>
-                    <flux:heading size="xl" class="text-center">{{ $substitutionsTaken }}/6</flux:heading>
-                </flux:card>
-            </flux:modal.trigger>
+            <flux:card
+                size="sm"
+                data-team-roster-substitutions
+                class="cursor-pointer p-1.5 content-center-safe! hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                @click="$flux.modal('substitution-{{ $team->value }}').show()"
+            >
+                <flux:text>Substitutions</flux:text>
+                <flux:heading size="xl" class="text-center">{{ $substitutionsTaken }}/6</flux:heading>
+            </flux:card>
 
             <flux:modal
                 name="substitution-{{ $team->value }}"
+                :dismissible="false"
+                :closable="false"
                 class="min-w-[20rem]"
                 x-on:substitution-recorded.window="
                     if ($event.detail.team === '{{ $team->value }}') {
@@ -287,7 +293,7 @@
                         <flux:text class="text-red-600">{{ $message }}</flux:text>
                     @enderror
 
-                    <div class="flex items-center mt-8">
+                    <div class="mt-8 flex items-center gap-2">
                         <flux:spacer />
                         <flux:modal.close>
                             <flux:button type="button" variant="ghost">Cancel</flux:button>
@@ -299,18 +305,22 @@
                 </form>
             </flux:modal>
         @elseif ($canShowSubstitutionFullModal)
-            <flux:modal.trigger name="substitution-full-confirm-{{ $team->value }}">
-                <flux:card
-                    size="sm"
-                    data-team-roster-substitutions
-                    class="cursor-pointer p-1.5 content-center-safe! hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                >
-                    <flux:text>Substitutions</flux:text>
-                    <flux:heading size="xl" class="text-center">{{ $substitutionsTaken }}/6</flux:heading>
-                </flux:card>
-            </flux:modal.trigger>
+            <flux:card
+                size="sm"
+                data-team-roster-substitutions
+                class="cursor-pointer p-1.5 content-center-safe! hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                @click="$flux.modal('substitution-full-confirm-{{ $team->value }}').show()"
+            >
+                <flux:text>Substitutions</flux:text>
+                <flux:heading size="xl" class="text-center">{{ $substitutionsTaken }}/6</flux:heading>
+            </flux:card>
 
-            <flux:modal name="substitution-full-confirm-{{ $team->value }}" class="min-w-[20rem]">
+            <flux:modal
+                name="substitution-full-confirm-{{ $team->value }}"
+                :dismissible="false"
+                :closable="false"
+                class="min-w-[20rem]"
+            >
                 <div class="space-y-6">
                     <div>
                         <flux:heading size="lg">Request Substitution</flux:heading>
