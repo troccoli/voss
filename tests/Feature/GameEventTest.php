@@ -545,6 +545,21 @@ test('an improper request can be recorded with the correct type and payload', fu
         ->and($event->payload->requestType)->toBe(ImproperRequestType::Timeout);
 });
 
+test('an improper substitution request stores the request type', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Substitution);
+
+    $event = $game->events->last();
+    expect($event->type)->toBe(GameEventType::ImproperRequestRecorded)
+        ->and($event->payload)->toBeInstanceOf(ImproperRequestRecordedPayload::class)
+        ->and($event->payload->team)->toBe(TeamAB::TeamA)
+        ->and($event->payload->requestType)->toBe(ImproperRequestType::Substitution);
+});
+
 test('timeout counts reset to zero when a set ends', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();

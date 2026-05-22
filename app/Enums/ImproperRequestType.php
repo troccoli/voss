@@ -7,4 +7,5 @@ namespace App\Enums;
 enum ImproperRequestType: string
 {
     case Timeout = 'timeout';
+    case Substitution = 'substitution';
 }

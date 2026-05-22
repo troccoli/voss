@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
+use App\Enums\ImproperRequestType;
 use App\Enums\StaffRole;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
@@ -415,6 +416,35 @@ test('substitution card shows full modal trigger when all 6 substitutions are us
     ])->assertSeeHtml('data-team-roster-substitutions')
         ->assertSeeHtml("\$flux.modal('substitution-full-confirm-team_a').show()")
         ->assertDontSeeHtml('name="substitution-team_a"');
+});
+
+test('requesting a substitution records an improper request when all substitutions are used', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+    $game->recordSubstitution(TeamAB::TeamA, 1, 7);
+    $game->recordSubstitution(TeamAB::TeamA, 7, 1);
+    $game->recordSubstitution(TeamAB::TeamA, 2, 8);
+    $game->recordSubstitution(TeamAB::TeamA, 8, 2);
+    $game->recordSubstitution(TeamAB::TeamA, 3, 9);
+    $game->recordSubstitution(TeamAB::TeamA, 9, 3);
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestSubstitutionWhenFull')
+        ->assertHasNoErrors()
+        ->assertDispatched('game-event-recorded')
+        ->assertDispatched('substitution-improper-request-recorded', team: 'team_a');
+
+    $freshGame = $game->fresh();
+    $latestEvent = $freshGame->events->last();
+
+    expect($latestEvent->type)->toBe(GameEventType::ImproperRequestRecorded)
+        ->and($latestEvent->payload->requestType)->toBe(ImproperRequestType::Substitution)
+        ->and($freshGame->stateAt()->substitutionsTeamA)->toBe(6)
+        ->and($freshGame->stateAt()->improperRequestsTeamA)->toBe(1);
 });
 
 test('substitution modal shows on-court and bench player numbers', function (): void {

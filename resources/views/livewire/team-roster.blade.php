@@ -325,6 +325,12 @@
                 :dismissible="false"
                 :closable="false"
                 class="min-w-[20rem]"
+                x-on:substitution-improper-request-recorded.window="
+                    if ($event.detail.team === '{{ $team->value }}') {
+                        $flux.modal('substitution-full-confirm-{{ $team->value }}').close();
+                        $flux.modal('substitution-full-{{ $team->value }}').show();
+                    }
+                "
             >
                 <div class="space-y-6">
                     <div>
@@ -339,7 +345,7 @@
                         <flux:button
                             type="button"
                             variant="primary"
-                            @click="$flux.modal('substitution-full-confirm-{{ $team->value }}').close(); $flux.modal('substitution-full-{{ $team->value }}').show()"
+                            wire:click="requestSubstitutionWhenFull"
                         >
                             Confirm
                         </flux:button>
@@ -354,7 +360,12 @@
                 class="min-w-[20rem]"
             >
                 <div class="space-y-6 text-center">
-                    <flux:heading size="lg">No substitutions left</flux:heading>
+                    <div>
+                        <flux:heading size="lg">Improper request</flux:heading>
+                        <flux:text class="mt-2">
+                            This team has already used all six substitutions in this set, so this request constitutes an improper request.
+                        </flux:text>
+                    </div>
                     <div class="flex justify-center">
                         <flux:button
                             type="button"

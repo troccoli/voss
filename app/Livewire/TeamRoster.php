@@ -155,6 +155,34 @@ class TeamRoster extends Component
         $this->dispatch('substitution-recorded', team: $this->team->value);
     }
 
+    public function requestSubstitutionWhenFull(): void
+    {
+        $activeGame = $this->activeGame();
+
+        if ($activeGame === null) {
+            $this->addError('substitution', 'No active game is available to record the substitution.');
+
+            return;
+        }
+
+        if ($this->substitutionConstraints()['count'] < 6) {
+            $this->addError('substitution', 'This team still has substitutions available.');
+
+            return;
+        }
+
+        try {
+            $activeGame->recordImproperRequest($this->team, ImproperRequestType::Substitution);
+        } catch (InvalidGameEventTransition $exception) {
+            $this->addError('substitution', $exception->getMessage());
+
+            return;
+        }
+
+        $this->dispatch('game-event-recorded');
+        $this->dispatch('substitution-improper-request-recorded', team: $this->team->value);
+    }
+
     /**
      * Returns substitution constraints for the current set.
      *
