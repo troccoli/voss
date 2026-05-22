@@ -29,6 +29,10 @@ class GameState implements Wireable
         public int $substitutionsTeamB = 0,
         public int $improperRequestsTeamA = 0,
         public int $improperRequestsTeamB = 0,
+        public int $delayWarningsTeamA = 0,
+        public int $delayWarningsTeamB = 0,
+        public int $delayPenaltiesTeamA = 0,
+        public int $delayPenaltiesTeamB = 0,
         public ?TeamSide $teamASide = null,
         public ?TeamAB $fifthSetLeftTeam = null,
         public bool $fifthSetSideSwapped = false,
@@ -56,6 +60,10 @@ class GameState implements Wireable
             substitutionsTeamB: $snapshot->substitutions_team_b,
             improperRequestsTeamA: $snapshot->improper_requests_team_a,
             improperRequestsTeamB: $snapshot->improper_requests_team_b,
+            delayWarningsTeamA: $snapshot->delay_warnings_team_a,
+            delayWarningsTeamB: $snapshot->delay_warnings_team_b,
+            delayPenaltiesTeamA: $snapshot->delay_penalties_team_a,
+            delayPenaltiesTeamB: $snapshot->delay_penalties_team_b,
             teamASide: $snapshot->team_a_side,
             fifthSetLeftTeam: $snapshot->fifth_set_left_team,
             fifthSetSideSwapped: $snapshot->fifth_set_side_swapped,
@@ -87,6 +95,10 @@ class GameState implements Wireable
             substitutionsTeamB: self::toInteger($attributes['substitutions_team_b'] ?? 0),
             improperRequestsTeamA: self::toInteger($attributes['improper_requests_team_a'] ?? 0),
             improperRequestsTeamB: self::toInteger($attributes['improper_requests_team_b'] ?? 0),
+            delayWarningsTeamA: self::toInteger($attributes['delay_warnings_team_a'] ?? 0),
+            delayWarningsTeamB: self::toInteger($attributes['delay_warnings_team_b'] ?? 0),
+            delayPenaltiesTeamA: self::toInteger($attributes['delay_penalties_team_a'] ?? 0),
+            delayPenaltiesTeamB: self::toInteger($attributes['delay_penalties_team_b'] ?? 0),
             teamASide: is_string($attributes['team_a_side'] ?? null)
                 ? TeamSide::tryFrom($attributes['team_a_side'])
                 : null,
@@ -131,6 +143,10 @@ class GameState implements Wireable
             'substitutions_team_b' => $this->substitutionsTeamB,
             'improper_requests_team_a' => $this->improperRequestsTeamA,
             'improper_requests_team_b' => $this->improperRequestsTeamB,
+            'delay_warnings_team_a' => $this->delayWarningsTeamA,
+            'delay_warnings_team_b' => $this->delayWarningsTeamB,
+            'delay_penalties_team_a' => $this->delayPenaltiesTeamA,
+            'delay_penalties_team_b' => $this->delayPenaltiesTeamB,
             'team_a_side' => $this->teamASide?->value,
             'fifth_set_left_team' => $this->fifthSetLeftTeam?->value,
             'fifth_set_side_swapped' => $this->fifthSetSideSwapped,
@@ -163,8 +179,6 @@ class GameState implements Wireable
         $this->timeoutsTeamB = 0;
         $this->substitutionsTeamA = 0;
         $this->substitutionsTeamB = 0;
-        $this->improperRequestsTeamA = 0;
-        $this->improperRequestsTeamB = 0;
     }
 
     /**

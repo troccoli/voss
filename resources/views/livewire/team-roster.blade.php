@@ -87,7 +87,7 @@
                         $flux.modal('request-timeout-{{ $team->value }}-confirm').close();
                         $flux.modal('request-timeout-{{ $team->value }}-countdown').show();
                         countdownOpen = true;
-                        $event.detail.hasTimeoutLeft ? start() : (phase = 'improper');
+                        $event.detail.hasTimeoutLeft ? start() : (phase = ($event.detail.delayPenalty ? 'penalty' : ($event.detail.delayWarning ? 'delay' : 'improper')));
                     }
                 "
                 x-on:keydown.escape.window="if (countdownOpen) $event.preventDefault()"
@@ -153,6 +153,30 @@
                             <flux:heading size="lg">Improper request</flux:heading>
                             <flux:text class="mt-2">
                                 This team has already used both time-outs in this set, so this request constitutes an improper request.
+                            </flux:text>
+                        </div>
+                        <div class="flex justify-center">
+                            <flux:button type="button" variant="primary" @click="dismiss()">Return to play</flux:button>
+                        </div>
+                    </div>
+
+                    <div x-show="phase === 'delay'" class="space-y-6 text-center">
+                        <div>
+                            <flux:heading size="lg">Delay warning</flux:heading>
+                            <flux:text class="mt-2">
+                                This is the team's second improper request, so this request now constitutes a delay warning.
+                            </flux:text>
+                        </div>
+                        <div class="flex justify-center">
+                            <flux:button type="button" variant="primary" @click="dismiss()">Return to play</flux:button>
+                        </div>
+                    </div>
+
+                    <div x-show="phase === 'penalty'" class="space-y-6 text-center">
+                        <div>
+                            <flux:heading size="lg">Delay penalty</flux:heading>
+                            <flux:text class="mt-2">
+                                This is the team's third improper request, so this request now constitutes a delay penalty and awards the rally to the opponent.
                             </flux:text>
                         </div>
                         <div class="flex justify-center">
@@ -310,73 +334,114 @@
                 </form>
             </flux:modal>
         @elseif ($canShowSubstitutionFullModal)
-            <flux:card
-                size="sm"
-                data-team-roster-substitutions
-                class="cursor-pointer p-1.5 content-center-safe! hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                @click="$flux.modal('substitution-full-confirm-{{ $team->value }}').show()"
+            <div
+                x-data="{ substitutionFullPhase: 'improper' }"
             >
-                <flux:text>Substitutions</flux:text>
-                <flux:heading size="xl" class="text-center">{{ $substitutionsTaken }}/6</flux:heading>
-            </flux:card>
+                <flux:card
+                    size="sm"
+                    data-team-roster-substitutions
+                    class="cursor-pointer p-1.5 content-center-safe! hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                    @click="$flux.modal('substitution-full-confirm-{{ $team->value }}').show()"
+                >
+                    <flux:text>Substitutions</flux:text>
+                    <flux:heading size="xl" class="text-center">{{ $substitutionsTaken }}/6</flux:heading>
+                </flux:card>
 
-            <flux:modal
-                name="substitution-full-confirm-{{ $team->value }}"
-                :dismissible="false"
-                :closable="false"
-                class="min-w-[20rem]"
-                x-on:substitution-improper-request-recorded.window="
-                    if ($event.detail.team === '{{ $team->value }}') {
-                        $flux.modal('substitution-full-confirm-{{ $team->value }}').close();
-                        $flux.modal('substitution-full-{{ $team->value }}').show();
-                    }
-                "
-            >
-                <div class="space-y-6">
-                    <div>
-                        <flux:heading size="lg">Request Substitution</flux:heading>
-                        <flux:text class="mt-2">Confirm that you want to request a substitution for this team.</flux:text>
+                <flux:modal
+                    name="substitution-full-confirm-{{ $team->value }}"
+                    :dismissible="false"
+                    :closable="false"
+                    class="min-w-[20rem]"
+                    x-on:substitution-improper-request-recorded.window="
+                        if ($event.detail.team === '{{ $team->value }}') {
+                            substitutionFullPhase = $event.detail.delayPenalty ? 'penalty' : ($event.detail.delayWarning ? 'delay' : 'improper');
+                            $flux.modal('substitution-full-confirm-{{ $team->value }}').close();
+                            $flux.modal('substitution-full-{{ $team->value }}').show();
+                        }
+                    "
+                >
+                    <div class="space-y-6">
+                        <div>
+                            <flux:heading size="lg">Request Substitution</flux:heading>
+                            <flux:text class="mt-2">Confirm that you want to request a substitution for this team.</flux:text>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <flux:spacer />
+                            <flux:modal.close>
+                                <flux:button type="button" variant="ghost">Cancel</flux:button>
+                            </flux:modal.close>
+                            <flux:button
+                                type="button"
+                                variant="primary"
+                                wire:click="requestSubstitutionWhenFull"
+                            >
+                                Confirm
+                            </flux:button>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <flux:spacer />
-                        <flux:modal.close>
-                            <flux:button type="button" variant="ghost">Cancel</flux:button>
-                        </flux:modal.close>
-                        <flux:button
-                            type="button"
-                            variant="primary"
-                            wire:click="requestSubstitutionWhenFull"
-                        >
-                            Confirm
-                        </flux:button>
-                    </div>
-                </div>
-            </flux:modal>
+                </flux:modal>
 
-            <flux:modal
-                name="substitution-full-{{ $team->value }}"
-                :dismissible="false"
-                :closable="false"
-                class="min-w-[20rem]"
-            >
-                <div class="space-y-6 text-center">
-                    <div>
-                        <flux:heading size="lg">Improper request</flux:heading>
-                        <flux:text class="mt-2">
-                            This team has already used all six substitutions in this set, so this request constitutes an improper request.
-                        </flux:text>
+                <flux:modal
+                    name="substitution-full-{{ $team->value }}"
+                    :dismissible="false"
+                    :closable="false"
+                    class="min-w-[20rem]"
+                >
+                    <div x-show="substitutionFullPhase === 'improper'" class="space-y-6 text-center">
+                        <div>
+                            <flux:heading size="lg">Improper request</flux:heading>
+                            <flux:text class="mt-2">
+                                This team has already used all six substitutions in this set, so this request constitutes an improper request.
+                            </flux:text>
+                        </div>
+                        <div class="flex justify-center">
+                            <flux:button
+                                type="button"
+                                variant="primary"
+                                @click="$flux.modal('substitution-full-{{ $team->value }}').close()"
+                            >
+                                Return to play
+                            </flux:button>
+                        </div>
                     </div>
-                    <div class="flex justify-center">
-                        <flux:button
-                            type="button"
-                            variant="primary"
-                            @click="$flux.modal('substitution-full-{{ $team->value }}').close()"
-                        >
-                            Return to play
-                        </flux:button>
+
+                    <div x-show="substitutionFullPhase === 'delay'" class="space-y-6 text-center">
+                        <div>
+                            <flux:heading size="lg">Delay warning</flux:heading>
+                            <flux:text class="mt-2">
+                                This is the team's second improper request, so this request now constitutes a delay warning.
+                            </flux:text>
+                        </div>
+                        <div class="flex justify-center">
+                            <flux:button
+                                type="button"
+                                variant="primary"
+                                @click="$flux.modal('substitution-full-{{ $team->value }}').close()"
+                            >
+                                Return to play
+                            </flux:button>
+                        </div>
                     </div>
-                </div>
-            </flux:modal>
+
+                    <div x-show="substitutionFullPhase === 'penalty'" class="space-y-6 text-center">
+                        <div>
+                            <flux:heading size="lg">Delay penalty</flux:heading>
+                            <flux:text class="mt-2">
+                                This is the team's third improper request, so this request now constitutes a delay penalty and awards the rally to the opponent.
+                            </flux:text>
+                        </div>
+                        <div class="flex justify-center">
+                            <flux:button
+                                type="button"
+                                variant="primary"
+                                @click="$flux.modal('substitution-full-{{ $team->value }}').close()"
+                            >
+                                Return to play
+                            </flux:button>
+                        </div>
+                    </div>
+                </flux:modal>
+            </div>
         @else
             <flux:card
                 size="sm"

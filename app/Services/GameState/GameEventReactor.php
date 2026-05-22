@@ -19,13 +19,13 @@ class GameEventReactor
     public function reactTo(GameEvent $event): void
     {
         match ($event->type) {
-            GameEventType::RallyEnded => $this->onRallyEnded($event),
+            GameEventType::RallyEnded, GameEventType::DelayPenaltyRecorded => $this->onRallyAwarded($event),
             GameEventType::SetEnded => $this->onSetEnded($event),
             default => null,
         };
     }
 
-    protected function onRallyEnded(GameEvent $event): void
+    protected function onRallyAwarded(GameEvent $event): void
     {
         $state = $event->game->stateAt();
 

@@ -67,11 +67,13 @@ class TeamRoster extends Component
         $timeoutsTaken = $this->team === TeamAB::TeamA ? $state->timeoutsTeamA : $state->timeoutsTeamB;
         $hasTimeoutLeft = $timeoutsTaken < 2;
 
+        $recordedRequestType = null;
+
         try {
             if ($hasTimeoutLeft) {
                 $activeGame->recordTimeOut($this->team);
             } else {
-                $activeGame->recordImproperRequest($this->team, ImproperRequestType::Timeout);
+                $recordedRequestType = $activeGame->recordImproperRequest($this->team, ImproperRequestType::Timeout);
             }
         } catch (InvalidGameEventTransition $exception) {
             $this->addError('timeout', $exception->getMessage());
@@ -85,6 +87,8 @@ class TeamRoster extends Component
             team: $this->team->value,
             hasTimeoutLeft: $hasTimeoutLeft,
             improperRequest: ! $hasTimeoutLeft,
+            delayWarning: $recordedRequestType === GameEventType::DelayWarningRecorded,
+            delayPenalty: $recordedRequestType === GameEventType::DelayPenaltyRecorded,
         );
     }
 
@@ -172,7 +176,7 @@ class TeamRoster extends Component
         }
 
         try {
-            $activeGame->recordImproperRequest($this->team, ImproperRequestType::Substitution);
+            $recordedRequestType = $activeGame->recordImproperRequest($this->team, ImproperRequestType::Substitution);
         } catch (InvalidGameEventTransition $exception) {
             $this->addError('substitution', $exception->getMessage());
 
@@ -180,7 +184,12 @@ class TeamRoster extends Component
         }
 
         $this->dispatch('game-event-recorded');
-        $this->dispatch('substitution-improper-request-recorded', team: $this->team->value);
+        $this->dispatch(
+            'substitution-improper-request-recorded',
+            team: $this->team->value,
+            delayWarning: $recordedRequestType === GameEventType::DelayWarningRecorded,
+            delayPenalty: $recordedRequestType === GameEventType::DelayPenaltyRecorded,
+        );
     }
 
     /**

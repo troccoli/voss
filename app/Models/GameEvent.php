@@ -6,6 +6,8 @@ namespace App\Models;
 
 use App\Enums\GameEventType;
 use App\Events\Payloads\CourtSidesSwappedPayload;
+use App\Events\Payloads\DelayPenaltyRecordedPayload;
+use App\Events\Payloads\DelayWarningRecordedPayload;
 use App\Events\Payloads\GameEndedPayload;
 use App\Events\Payloads\GameEventPayload;
 use App\Events\Payloads\ImproperRequestRecordedPayload;
@@ -70,6 +72,8 @@ class GameEvent extends Model
                     GameEventType::SubstitutionCompleted => SubstitutionCompletedPayload::fromArray($data),
                     GameEventType::TimeOutRequested => TimeOutRequestedPayload::fromArray($data),
                     GameEventType::ImproperRequestRecorded => ImproperRequestRecordedPayload::fromArray($data),
+                    GameEventType::DelayWarningRecorded => DelayWarningRecordedPayload::fromArray($data),
+                    GameEventType::DelayPenaltyRecorded => DelayPenaltyRecordedPayload::fromArray($data),
                     GameEventType::SetStarted => SetStartedPayload::fromArray($data),
                     GameEventType::SetEnded => SetEndedPayload::fromArray($data),
                     GameEventType::GameEnded => GameEndedPayload::fromArray($data),

@@ -297,7 +297,7 @@ test('requesting a timeout dispatches hasTimeoutLeft true when timeouts remain',
         'gameState' => $game->stateAt(),
     ])
         ->call('requestTimeout')
-        ->assertDispatched('timeout-recorded', team: 'team_a', hasTimeoutLeft: true, improperRequest: false);
+        ->assertDispatched('timeout-recorded', team: 'team_a', hasTimeoutLeft: true, improperRequest: false, delayWarning: false, delayPenalty: false);
 });
 
 test('requesting a timeout records an improper request when no timeouts remain', function (): void {
@@ -314,7 +314,7 @@ test('requesting a timeout records an improper request when no timeouts remain',
         ->call('requestTimeout')
         ->assertHasNoErrors()
         ->assertDispatched('game-event-recorded')
-        ->assertDispatched('timeout-recorded', team: 'team_a', hasTimeoutLeft: false, improperRequest: true);
+        ->assertDispatched('timeout-recorded', team: 'team_a', hasTimeoutLeft: false, improperRequest: true, delayWarning: false, delayPenalty: false);
 
     $freshGame = $game->fresh();
     $latestEvent = $freshGame->events->last();
@@ -322,6 +322,70 @@ test('requesting a timeout records an improper request when no timeouts remain',
     expect($latestEvent->type)->toBe(GameEventType::ImproperRequestRecorded)
         ->and($freshGame->stateAt()->timeoutsTeamA)->toBe(2)
         ->and($freshGame->stateAt()->improperRequestsTeamA)->toBe(1);
+});
+
+test('second improper timeout request records a delay warning across sets', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+    $game->recordTimeOut(TeamAB::TeamA);
+    $game->recordTimeOut(TeamAB::TeamA);
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Timeout);
+
+    for ($i = 0; $i < 25; $i++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+
+    $game->recordLineup(2, TeamAB::TeamA, [1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6]);
+    $game->recordLineup(2, TeamAB::TeamB, [1 => 11, 2 => 12, 3 => 13, 4 => 14, 5 => 15, 6 => 16]);
+    $game->recordSetStarted();
+    $game->recordTimeOut(TeamAB::TeamA);
+    $game->recordTimeOut(TeamAB::TeamA);
+
+    expect($game->fresh()->stateAt()->improperRequestsTeamA)->toBe(1);
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestTimeout')
+        ->assertHasNoErrors()
+        ->assertDispatched('game-event-recorded')
+        ->assertDispatched('timeout-recorded', team: 'team_a', hasTimeoutLeft: false, improperRequest: true, delayWarning: true, delayPenalty: false);
+
+    $freshGame = $game->fresh();
+    $latestEvent = $freshGame->events->last();
+
+    expect($latestEvent->type)->toBe(GameEventType::DelayWarningRecorded)
+        ->and($freshGame->stateAt()->improperRequestsTeamA)->toBe(1)
+        ->and($freshGame->stateAt()->delayWarningsTeamA)->toBe(1);
+});
+
+test('third improper timeout request records a delay penalty', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+    $game->recordTimeOut(TeamAB::TeamA);
+    $game->recordTimeOut(TeamAB::TeamA);
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Timeout);
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Substitution);
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestTimeout')
+        ->assertHasNoErrors()
+        ->assertDispatched('game-event-recorded')
+        ->assertDispatched('timeout-recorded', team: 'team_a', hasTimeoutLeft: false, improperRequest: true, delayWarning: false, delayPenalty: true);
+
+    $freshGame = $game->fresh();
+    $latestEvent = $freshGame->events->last();
+
+    expect($latestEvent->type)->toBe(GameEventType::DelayPenaltyRecorded)
+        ->and($freshGame->stateAt()->scoreTeamB)->toBe(1)
+        ->and($freshGame->stateAt()->servingTeam)->toBe(TeamAB::TeamB)
+        ->and($freshGame->stateAt()->delayPenaltiesTeamA)->toBe(1);
 });
 
 test('timeout card becomes interactive again for a new set after two timeouts in the previous set', function (): void {
@@ -420,12 +484,7 @@ test('substitution card shows full modal trigger when all 6 substitutions are us
 
 test('requesting a substitution records an improper request when all substitutions are used', function (): void {
     $game = gameWithActiveSetForTeamRoster();
-    $game->recordSubstitution(TeamAB::TeamA, 1, 7);
-    $game->recordSubstitution(TeamAB::TeamA, 7, 1);
-    $game->recordSubstitution(TeamAB::TeamA, 2, 8);
-    $game->recordSubstitution(TeamAB::TeamA, 8, 2);
-    $game->recordSubstitution(TeamAB::TeamA, 3, 9);
-    $game->recordSubstitution(TeamAB::TeamA, 9, 3);
+    recordSixSubstitutionsForTeamRoster($game);
 
     Livewire::test(TeamRoster::class, [
         'gameId' => $game->getKey(),
@@ -436,7 +495,7 @@ test('requesting a substitution records an improper request when all substitutio
         ->call('requestSubstitutionWhenFull')
         ->assertHasNoErrors()
         ->assertDispatched('game-event-recorded')
-        ->assertDispatched('substitution-improper-request-recorded', team: 'team_a');
+        ->assertDispatched('substitution-improper-request-recorded', team: 'team_a', delayWarning: false, delayPenalty: false);
 
     $freshGame = $game->fresh();
     $latestEvent = $freshGame->events->last();
@@ -445,6 +504,57 @@ test('requesting a substitution records an improper request when all substitutio
         ->and($latestEvent->payload->requestType)->toBe(ImproperRequestType::Substitution)
         ->and($freshGame->stateAt()->substitutionsTeamA)->toBe(6)
         ->and($freshGame->stateAt()->improperRequestsTeamA)->toBe(1);
+});
+
+test('second improper substitution request records a delay warning', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Timeout);
+    recordSixSubstitutionsForTeamRoster($game);
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestSubstitutionWhenFull')
+        ->assertHasNoErrors()
+        ->assertDispatched('game-event-recorded')
+        ->assertDispatched('substitution-improper-request-recorded', team: 'team_a', delayWarning: true, delayPenalty: false);
+
+    $freshGame = $game->fresh();
+    $latestEvent = $freshGame->events->last();
+
+    expect($latestEvent->type)->toBe(GameEventType::DelayWarningRecorded)
+        ->and($latestEvent->payload->requestType)->toBe(ImproperRequestType::Substitution)
+        ->and($freshGame->stateAt()->improperRequestsTeamA)->toBe(1)
+        ->and($freshGame->stateAt()->delayWarningsTeamA)->toBe(1);
+});
+
+test('third improper substitution request records a delay penalty', function (): void {
+    $game = gameWithActiveSetForTeamRoster();
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Timeout);
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Substitution);
+    recordSixSubstitutionsForTeamRoster($game);
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestSubstitutionWhenFull')
+        ->assertHasNoErrors()
+        ->assertDispatched('game-event-recorded')
+        ->assertDispatched('substitution-improper-request-recorded', team: 'team_a', delayWarning: false, delayPenalty: true);
+
+    $freshGame = $game->fresh();
+    $latestEvent = $freshGame->events->last();
+
+    expect($latestEvent->type)->toBe(GameEventType::DelayPenaltyRecorded)
+        ->and($latestEvent->payload->requestType)->toBe(ImproperRequestType::Substitution)
+        ->and($freshGame->stateAt()->scoreTeamB)->toBe(1)
+        ->and($freshGame->stateAt()->delayPenaltiesTeamA)->toBe(1);
 });
 
 test('substitution modal shows on-court and bench player numbers', function (): void {
@@ -628,6 +738,16 @@ function gameWithActiveSetForTeamRoster(): Game
     $game->recordSetStarted();
 
     return $game;
+}
+
+function recordSixSubstitutionsForTeamRoster(Game $game): void
+{
+    $game->recordSubstitution(TeamAB::TeamA, 1, 7);
+    $game->recordSubstitution(TeamAB::TeamA, 7, 1);
+    $game->recordSubstitution(TeamAB::TeamA, 2, 8);
+    $game->recordSubstitution(TeamAB::TeamA, 8, 2);
+    $game->recordSubstitution(TeamAB::TeamA, 3, 9);
+    $game->recordSubstitution(TeamAB::TeamA, 9, 3);
 }
 
 function gameWithNumberedRostersForTeamRoster(): Game

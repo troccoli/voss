@@ -8,6 +8,8 @@ use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Events\Payloads\CourtSidesSwappedPayload;
+use App\Events\Payloads\DelayPenaltyRecordedPayload;
+use App\Events\Payloads\DelayWarningRecordedPayload;
 use App\Events\Payloads\ImproperRequestRecordedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\RallyEndedPayload;
@@ -33,6 +35,8 @@ class GameStateProjector
             GameEventType::SubstitutionCompleted => $this->applySubstitutionCompleted($state, $event),
             GameEventType::TimeOutRequested => $this->applyTimeOutRequested($state, $event),
             GameEventType::ImproperRequestRecorded => $this->applyImproperRequestRecorded($state, $event),
+            GameEventType::DelayWarningRecorded => $this->applyDelayWarningRecorded($state, $event),
+            GameEventType::DelayPenaltyRecorded => $this->applyDelayPenaltyRecorded($state, $event),
             GameEventType::SetStarted => $this->applySetStarted($state, $event),
             GameEventType::SetEnded => $this->applySetEnded($state, $event),
             GameEventType::GameEnded => $this->applyGameEnded($state),
@@ -117,19 +121,8 @@ class GameStateProjector
     {
         /** @var RallyEndedPayload $payload */
         $payload = $event->payload;
-        $winner = $payload->team;
 
-        if ($winner === TeamAB::TeamA) {
-            $state->scoreTeamA++;
-        } else {
-            $state->scoreTeamB++;
-        }
-
-        if ($state->servingTeam !== null && $state->servingTeam !== $winner) {
-            $this->rotateTeam($state, $winner);
-        }
-
-        $state->servingTeam = $winner;
+        $this->awardRallyTo($state, $payload->team);
 
         return $state;
     }
@@ -146,6 +139,22 @@ class GameStateProjector
             $state->substitutionsTeamB++;
             $state->rotationTeamB = $this->substitute($state->rotationTeamB, $payload->playerOut, $payload->playerIn);
         }
+
+        return $state;
+    }
+
+    private function applyDelayPenaltyRecorded(GameState $state, GameEvent $event): GameState
+    {
+        /** @var DelayPenaltyRecordedPayload $payload */
+        $payload = $event->payload;
+
+        if ($payload->team === TeamAB::TeamA) {
+            $state->delayPenaltiesTeamA++;
+        } else {
+            $state->delayPenaltiesTeamB++;
+        }
+
+        $this->awardRallyTo($state, $payload->awardedTeam);
 
         return $state;
     }
@@ -173,6 +182,20 @@ class GameStateProjector
             $state->improperRequestsTeamA++;
         } else {
             $state->improperRequestsTeamB++;
+        }
+
+        return $state;
+    }
+
+    private function applyDelayWarningRecorded(GameState $state, GameEvent $event): GameState
+    {
+        /** @var DelayWarningRecordedPayload $payload */
+        $payload = $event->payload;
+
+        if ($payload->team === TeamAB::TeamA) {
+            $state->delayWarningsTeamA++;
+        } else {
+            $state->delayWarningsTeamB++;
         }
 
         return $state;
@@ -214,8 +237,6 @@ class GameStateProjector
         $state->scoreTeamB = 0;
         $state->timeoutsTeamA = 0;
         $state->timeoutsTeamB = 0;
-        $state->improperRequestsTeamA = 0;
-        $state->improperRequestsTeamB = 0;
         $state->rotationTeamA = [];
         $state->rotationTeamB = [];
         $state->setInProgress = false;
@@ -240,6 +261,21 @@ class GameStateProjector
         }
 
         $state->rotationTeamB = $this->rotate($state->rotationTeamB);
+    }
+
+    private function awardRallyTo(GameState $state, TeamAB $winner): void
+    {
+        if ($winner === TeamAB::TeamA) {
+            $state->scoreTeamA++;
+        } else {
+            $state->scoreTeamB++;
+        }
+
+        if ($state->servingTeam !== null && $state->servingTeam !== $winner) {
+            $this->rotateTeam($state, $winner);
+        }
+
+        $state->servingTeam = $winner;
     }
 
     /**

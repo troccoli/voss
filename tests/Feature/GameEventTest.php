@@ -5,6 +5,8 @@ use App\Enums\ImproperRequestType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Events\Payloads\CourtSidesSwappedPayload;
+use App\Events\Payloads\DelayPenaltyRecordedPayload;
+use App\Events\Payloads\DelayWarningRecordedPayload;
 use App\Events\Payloads\GameEndedPayload;
 use App\Events\Payloads\ImproperRequestRecordedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
@@ -558,6 +560,81 @@ test('an improper substitution request stores the request type', function (): vo
         ->and($event->payload)->toBeInstanceOf(ImproperRequestRecordedPayload::class)
         ->and($event->payload->team)->toBe(TeamAB::TeamA)
         ->and($event->payload->requestType)->toBe(ImproperRequestType::Substitution);
+});
+
+test('a second improper request records a delay warning', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Timeout);
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Substitution);
+
+    $event = $game->events->last();
+    expect($event->type)->toBe(GameEventType::DelayWarningRecorded)
+        ->and($event->payload)->toBeInstanceOf(DelayWarningRecordedPayload::class)
+        ->and($event->payload->team)->toBe(TeamAB::TeamA)
+        ->and($event->payload->requestType)->toBe(ImproperRequestType::Substitution)
+        ->and($game->fresh()->stateAt()->improperRequestsTeamA)->toBe(1)
+        ->and($game->fresh()->stateAt()->delayWarningsTeamA)->toBe(1);
+});
+
+test('a third improper request records a delay penalty and awards the rally to the opponent', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Timeout);
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Substitution);
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Timeout);
+
+    $event = $game->events->last();
+    $state = $game->fresh()->stateAt();
+
+    expect($event->type)->toBe(GameEventType::DelayPenaltyRecorded)
+        ->and($event->payload)->toBeInstanceOf(DelayPenaltyRecordedPayload::class)
+        ->and($event->payload->team)->toBe(TeamAB::TeamA)
+        ->and($event->payload->awardedTeam)->toBe(TeamAB::TeamB)
+        ->and($event->payload->requestType)->toBe(ImproperRequestType::Timeout)
+        ->and($state->scoreTeamB)->toBe(1)
+        ->and($state->servingTeam)->toBe(TeamAB::TeamB)
+        ->and($state->rotationTeamB[1])->toBe(12)
+        ->and($state->delayPenaltiesTeamA)->toBe(1);
+});
+
+test('a delay penalty awards only a point when the opponent is already serving', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $game->recordImproperRequest(TeamAB::TeamB, ImproperRequestType::Timeout);
+    $game->recordImproperRequest(TeamAB::TeamB, ImproperRequestType::Substitution);
+    $game->recordImproperRequest(TeamAB::TeamB, ImproperRequestType::Timeout);
+
+    $state = $game->fresh()->stateAt();
+
+    expect($state->scoreTeamA)->toBe(1)
+        ->and($state->servingTeam)->toBe(TeamAB::TeamA)
+        ->and($state->rotationTeamA[1])->toBe(1)
+        ->and($state->delayPenaltiesTeamB)->toBe(1);
+});
+
+test('improper requests do not reset when a set ends', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Timeout);
+
+    winSet($game, TeamAB::TeamA);
+
+    $state = $game->fresh()->stateAt();
+    expect($state->improperRequestsTeamA)->toBe(1)
+        ->and($state->delayWarningsTeamA)->toBe(0);
 });
 
 test('timeout counts reset to zero when a set ends', function (): void {
