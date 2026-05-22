@@ -2,6 +2,7 @@
 
 use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
+use App\Enums\ImproperRequestType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Events\Payloads\SetStartedPayload;
@@ -61,6 +62,7 @@ test('state snapshots are projected as game events are recorded', function (): v
     $game->recordRallyWinner(TeamAB::TeamA);
     $game->recordRallyWinner(TeamAB::TeamB);
     $game->recordTimeOut(TeamAB::TeamB);
+    $game->recordImproperRequest(TeamAB::TeamB, ImproperRequestType::Timeout);
     $game->recordSubstitution(
         TeamAB::TeamA,
         playerOut: 1,
@@ -79,6 +81,8 @@ test('state snapshots are projected as game events are recorded', function (): v
         ->and($state->timeoutsTeamB)->toBe(1)
         ->and($state->substitutionsTeamA)->toBe(1)
         ->and($state->substitutionsTeamB)->toBe(0)
+        ->and($state->improperRequestsTeamA)->toBe(0)
+        ->and($state->improperRequestsTeamB)->toBe(1)
         ->and($state->teamASide)->toBe(TeamSide::Home)
         ->and($state->servingTeam)->toBe(TeamAB::TeamB)
         ->and($state->rotationTeamA[1])->toBe(7)

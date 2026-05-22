@@ -296,14 +296,13 @@ test('requesting a timeout dispatches hasTimeoutLeft true when timeouts remain',
         'gameState' => $game->stateAt(),
     ])
         ->call('requestTimeout')
-        ->assertDispatched('timeout-recorded', team: 'team_a', hasTimeoutLeft: true);
+        ->assertDispatched('timeout-recorded', team: 'team_a', hasTimeoutLeft: true, improperRequest: false);
 });
 
-test('requesting a timeout dispatches hasTimeoutLeft false and does not record an event when no timeouts remain', function (): void {
+test('requesting a timeout records an improper request when no timeouts remain', function (): void {
     $game = gameWithActiveSetForTeamRoster();
     $game->recordTimeOut(TeamAB::TeamA);
     $game->recordTimeOut(TeamAB::TeamA);
-    $eventCountBefore = $game->events()->count();
 
     Livewire::test(TeamRoster::class, [
         'gameId' => $game->getKey(),
@@ -312,10 +311,16 @@ test('requesting a timeout dispatches hasTimeoutLeft false and does not record a
         'gameState' => $game->stateAt(),
     ])
         ->call('requestTimeout')
-        ->assertDispatched('timeout-recorded', team: 'team_a', hasTimeoutLeft: false)
-        ->assertNotDispatched('game-event-recorded');
+        ->assertHasNoErrors()
+        ->assertDispatched('game-event-recorded')
+        ->assertDispatched('timeout-recorded', team: 'team_a', hasTimeoutLeft: false, improperRequest: true);
 
-    expect($game->events()->count())->toBe($eventCountBefore);
+    $freshGame = $game->fresh();
+    $latestEvent = $freshGame->events->last();
+
+    expect($latestEvent->type)->toBe(GameEventType::ImproperRequestRecorded)
+        ->and($freshGame->stateAt()->timeoutsTeamA)->toBe(2)
+        ->and($freshGame->stateAt()->improperRequestsTeamA)->toBe(1);
 });
 
 test('timeout card becomes interactive again for a new set after two timeouts in the previous set', function (): void {

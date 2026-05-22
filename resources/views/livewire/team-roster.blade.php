@@ -87,7 +87,7 @@
                         $flux.modal('request-timeout-{{ $team->value }}-confirm').close();
                         $flux.modal('request-timeout-{{ $team->value }}-countdown').show();
                         countdownOpen = true;
-                        $event.detail.hasTimeoutLeft ? start() : (phase = 'notimeout');
+                        $event.detail.hasTimeoutLeft ? start() : (phase = 'improper');
                     }
                 "
                 x-on:keydown.escape.window="if (countdownOpen) $event.preventDefault()"
@@ -148,8 +148,13 @@
                         </div>
                     </div>
 
-                    <div x-show="phase === 'notimeout'" class="space-y-6 text-center">
-                        <flux:heading size="lg">No timeout left</flux:heading>
+                    <div x-show="phase === 'improper'" class="space-y-6 text-center">
+                        <div>
+                            <flux:heading size="lg">Improper request</flux:heading>
+                            <flux:text class="mt-2">
+                                This team has already used both time-outs in this set, so this request constitutes an improper request.
+                            </flux:text>
+                        </div>
                         <div class="flex justify-center">
                             <flux:button type="button" variant="primary" @click="dismiss()">Return to play</flux:button>
                         </div>

@@ -11,6 +11,7 @@ use App\Models\Concerns\RecordsCourtSideSwap;
 use App\Models\Concerns\RecordsEndOfGame;
 use App\Models\Concerns\RecordsEndOfRally;
 use App\Models\Concerns\RecordsEndOfSet;
+use App\Models\Concerns\RecordsImproperRequest;
 use App\Models\Concerns\RecordsLineup;
 use App\Models\Concerns\RecordsStartOfSet;
 use App\Models\Concerns\RecordsSubstitution;
@@ -61,6 +62,7 @@ class Game extends Model
     use RecordsEndOfGame;
     use RecordsEndOfRally;
     use RecordsEndOfSet;
+    use RecordsImproperRequest;
     use RecordsLineup;
     use RecordsStartOfSet;
     use RecordsSubstitution;

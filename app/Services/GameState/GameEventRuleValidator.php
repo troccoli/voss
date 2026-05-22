@@ -135,6 +135,15 @@ class GameEventRuleValidator
         }
     }
 
+    public function assertCanRecordImproperRequest(Game $game): void
+    {
+        $state = $game->stateAt();
+
+        if ($state->gameEnded || ! $state->setInProgress) {
+            $this->fail('An improper request can only be recorded while a set is in progress.');
+        }
+    }
+
     public function assertCanRecordSetEnded(Game $game): void
     {
         $state = $game->stateAt();

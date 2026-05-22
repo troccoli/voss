@@ -8,6 +8,7 @@ use App\Enums\GameEventType;
 use App\Events\Payloads\CourtSidesSwappedPayload;
 use App\Events\Payloads\GameEndedPayload;
 use App\Events\Payloads\GameEventPayload;
+use App\Events\Payloads\ImproperRequestRecordedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Events\Payloads\SetEndedPayload;
@@ -68,6 +69,7 @@ class GameEvent extends Model
                     GameEventType::CourtSidesSwapped => CourtSidesSwappedPayload::fromArray($data),
                     GameEventType::SubstitutionCompleted => SubstitutionCompletedPayload::fromArray($data),
                     GameEventType::TimeOutRequested => TimeOutRequestedPayload::fromArray($data),
+                    GameEventType::ImproperRequestRecorded => ImproperRequestRecordedPayload::fromArray($data),
                     GameEventType::SetStarted => SetStartedPayload::fromArray($data),
                     GameEventType::SetEnded => SetEndedPayload::fromArray($data),
                     GameEventType::GameEnded => GameEndedPayload::fromArray($data),

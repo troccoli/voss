@@ -6,6 +6,7 @@ namespace App\Livewire;
 
 use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
+use App\Enums\ImproperRequestType;
 use App\Enums\StaffRole;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
@@ -66,19 +67,25 @@ class TeamRoster extends Component
         $timeoutsTaken = $this->team === TeamAB::TeamA ? $state->timeoutsTeamA : $state->timeoutsTeamB;
         $hasTimeoutLeft = $timeoutsTaken < 2;
 
-        if ($hasTimeoutLeft) {
-            try {
+        try {
+            if ($hasTimeoutLeft) {
                 $activeGame->recordTimeOut($this->team);
-            } catch (InvalidGameEventTransition $exception) {
-                $this->addError('timeout', $exception->getMessage());
-
-                return;
+            } else {
+                $activeGame->recordImproperRequest($this->team, ImproperRequestType::Timeout);
             }
+        } catch (InvalidGameEventTransition $exception) {
+            $this->addError('timeout', $exception->getMessage());
 
-            $this->dispatch('game-event-recorded');
+            return;
         }
 
-        $this->dispatch('timeout-recorded', team: $this->team->value, hasTimeoutLeft: $hasTimeoutLeft);
+        $this->dispatch('game-event-recorded');
+        $this->dispatch(
+            'timeout-recorded',
+            team: $this->team->value,
+            hasTimeoutLeft: $hasTimeoutLeft,
+            improperRequest: ! $hasTimeoutLeft,
+        );
     }
 
     public function submitSubstitution(): void

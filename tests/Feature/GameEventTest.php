@@ -1,10 +1,12 @@
 <?php
 
 use App\Enums\GameEventType;
+use App\Enums\ImproperRequestType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Events\Payloads\CourtSidesSwappedPayload;
 use App\Events\Payloads\GameEndedPayload;
+use App\Events\Payloads\ImproperRequestRecordedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Events\Payloads\SetEndedPayload;
@@ -527,6 +529,21 @@ test('time-out requested event stores the requesting team', function (TeamAB $te
     'team A' => [TeamAB::TeamA],
     'team B' => [TeamAB::TeamB],
 ]);
+
+test('an improper request can be recorded with the correct type and payload', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Timeout);
+
+    $event = $game->events->last();
+    expect($event->type)->toBe(GameEventType::ImproperRequestRecorded)
+        ->and($event->payload)->toBeInstanceOf(ImproperRequestRecordedPayload::class)
+        ->and($event->payload->team)->toBe(TeamAB::TeamA)
+        ->and($event->payload->requestType)->toBe(ImproperRequestType::Timeout);
+});
 
 test('timeout counts reset to zero when a set ends', function (): void {
     $homeTeam = Team::factory()->create();

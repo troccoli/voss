@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $timeouts_team_b
  * @property int $substitutions_team_a
  * @property int $substitutions_team_b
+ * @property int $improper_requests_team_a
+ * @property int $improper_requests_team_b
  * @property TeamSide|null $team_a_side
  * @property TeamAB|null $fifth_set_left_team
  * @property bool $fifth_set_side_swapped
@@ -54,6 +56,8 @@ class GameStateSnapshot extends Model
             'timeouts_team_b' => 'integer',
             'substitutions_team_a' => 'integer',
             'substitutions_team_b' => 'integer',
+            'improper_requests_team_a' => 'integer',
+            'improper_requests_team_b' => 'integer',
             'team_a_side' => TeamSide::class,
             'fifth_set_left_team' => TeamAB::class,
             'fifth_set_side_swapped' => 'boolean',

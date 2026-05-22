@@ -27,6 +27,8 @@ class GameState implements Wireable
         public int $timeoutsTeamB = 0,
         public int $substitutionsTeamA = 0,
         public int $substitutionsTeamB = 0,
+        public int $improperRequestsTeamA = 0,
+        public int $improperRequestsTeamB = 0,
         public ?TeamSide $teamASide = null,
         public ?TeamAB $fifthSetLeftTeam = null,
         public bool $fifthSetSideSwapped = false,
@@ -52,6 +54,8 @@ class GameState implements Wireable
             timeoutsTeamB: $snapshot->timeouts_team_b,
             substitutionsTeamA: $snapshot->substitutions_team_a,
             substitutionsTeamB: $snapshot->substitutions_team_b,
+            improperRequestsTeamA: $snapshot->improper_requests_team_a,
+            improperRequestsTeamB: $snapshot->improper_requests_team_b,
             teamASide: $snapshot->team_a_side,
             fifthSetLeftTeam: $snapshot->fifth_set_left_team,
             fifthSetSideSwapped: $snapshot->fifth_set_side_swapped,
@@ -81,6 +85,8 @@ class GameState implements Wireable
             timeoutsTeamB: self::toInteger($attributes['timeouts_team_b'] ?? 0),
             substitutionsTeamA: self::toInteger($attributes['substitutions_team_a'] ?? 0),
             substitutionsTeamB: self::toInteger($attributes['substitutions_team_b'] ?? 0),
+            improperRequestsTeamA: self::toInteger($attributes['improper_requests_team_a'] ?? 0),
+            improperRequestsTeamB: self::toInteger($attributes['improper_requests_team_b'] ?? 0),
             teamASide: is_string($attributes['team_a_side'] ?? null)
                 ? TeamSide::tryFrom($attributes['team_a_side'])
                 : null,
@@ -123,6 +129,8 @@ class GameState implements Wireable
             'timeouts_team_b' => $this->timeoutsTeamB,
             'substitutions_team_a' => $this->substitutionsTeamA,
             'substitutions_team_b' => $this->substitutionsTeamB,
+            'improper_requests_team_a' => $this->improperRequestsTeamA,
+            'improper_requests_team_b' => $this->improperRequestsTeamB,
             'team_a_side' => $this->teamASide?->value,
             'fifth_set_left_team' => $this->fifthSetLeftTeam?->value,
             'fifth_set_side_swapped' => $this->fifthSetSideSwapped,
@@ -155,6 +163,8 @@ class GameState implements Wireable
         $this->timeoutsTeamB = 0;
         $this->substitutionsTeamA = 0;
         $this->substitutionsTeamB = 0;
+        $this->improperRequestsTeamA = 0;
+        $this->improperRequestsTeamB = 0;
     }
 
     /**

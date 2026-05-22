@@ -8,6 +8,7 @@ use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Events\Payloads\CourtSidesSwappedPayload;
+use App\Events\Payloads\ImproperRequestRecordedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Events\Payloads\SubstitutionCompletedPayload;
@@ -31,6 +32,7 @@ class GameStateProjector
             GameEventType::CourtSidesSwapped => $this->applyCourtSidesSwapped($state, $event),
             GameEventType::SubstitutionCompleted => $this->applySubstitutionCompleted($state, $event),
             GameEventType::TimeOutRequested => $this->applyTimeOutRequested($state, $event),
+            GameEventType::ImproperRequestRecorded => $this->applyImproperRequestRecorded($state, $event),
             GameEventType::SetStarted => $this->applySetStarted($state, $event),
             GameEventType::SetEnded => $this->applySetEnded($state, $event),
             GameEventType::GameEnded => $this->applyGameEnded($state),
@@ -162,6 +164,20 @@ class GameStateProjector
         return $state;
     }
 
+    private function applyImproperRequestRecorded(GameState $state, GameEvent $event): GameState
+    {
+        /** @var ImproperRequestRecordedPayload $payload */
+        $payload = $event->payload;
+
+        if ($payload->team === TeamAB::TeamA) {
+            $state->improperRequestsTeamA++;
+        } else {
+            $state->improperRequestsTeamB++;
+        }
+
+        return $state;
+    }
+
     private function applySetStarted(GameState $state, GameEvent $event): GameState
     {
         $state->setNumber = max(1, $state->setNumber + 1);
@@ -198,6 +214,8 @@ class GameStateProjector
         $state->scoreTeamB = 0;
         $state->timeoutsTeamA = 0;
         $state->timeoutsTeamB = 0;
+        $state->improperRequestsTeamA = 0;
+        $state->improperRequestsTeamB = 0;
         $state->rotationTeamA = [];
         $state->rotationTeamB = [];
         $state->setInProgress = false;
