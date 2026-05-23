@@ -12,6 +12,7 @@ use App\Events\Payloads\GameEndedPayload;
 use App\Events\Payloads\GameEventPayload;
 use App\Events\Payloads\ImproperRequestRecordedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
+use App\Events\Payloads\MisconductRecordedPayload;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Events\Payloads\SetEndedPayload;
 use App\Events\Payloads\SetStartedPayload;
@@ -74,6 +75,7 @@ class GameEvent extends Model
                     GameEventType::ImproperRequestRecorded => ImproperRequestRecordedPayload::fromArray($data),
                     GameEventType::DelayWarningRecorded => DelayWarningRecordedPayload::fromArray($data),
                     GameEventType::DelayPenaltyRecorded => DelayPenaltyRecordedPayload::fromArray($data),
+                    GameEventType::MisconductRecorded => MisconductRecordedPayload::fromArray($data),
                     GameEventType::SetStarted => SetStartedPayload::fromArray($data),
                     GameEventType::SetEnded => SetEndedPayload::fromArray($data),
                     GameEventType::GameEnded => GameEndedPayload::fromArray($data),

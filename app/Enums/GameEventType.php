@@ -15,6 +15,7 @@ enum GameEventType: string
     case ImproperRequestRecorded = 'improper_request_recorded';
     case DelayWarningRecorded = 'delay_warning_recorded';
     case DelayPenaltyRecorded = 'delay_penalty_recorded';
+    case MisconductRecorded = 'misconduct_recorded';
     case SetStarted = 'set_started';
     case SetEnded = 'set_ended';
     case GameEnded = 'game_ended';

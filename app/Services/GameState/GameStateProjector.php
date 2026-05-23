@@ -6,12 +6,14 @@ namespace App\Services\GameState;
 
 use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
+use App\Enums\MisconductSanction;
 use App\Enums\TeamAB;
 use App\Events\Payloads\CourtSidesSwappedPayload;
 use App\Events\Payloads\DelayPenaltyRecordedPayload;
 use App\Events\Payloads\DelayWarningRecordedPayload;
 use App\Events\Payloads\ImproperRequestRecordedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
+use App\Events\Payloads\MisconductRecordedPayload;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Events\Payloads\SubstitutionCompletedPayload;
 use App\Events\Payloads\TimeOutRequestedPayload;
@@ -37,6 +39,7 @@ class GameStateProjector
             GameEventType::ImproperRequestRecorded => $this->applyImproperRequestRecorded($state, $event),
             GameEventType::DelayWarningRecorded => $this->applyDelayWarningRecorded($state, $event),
             GameEventType::DelayPenaltyRecorded => $this->applyDelayPenaltyRecorded($state, $event),
+            GameEventType::MisconductRecorded => $this->applyMisconductRecorded($state, $event),
             GameEventType::SetStarted => $this->applySetStarted($state, $event),
             GameEventType::SetEnded => $this->applySetEnded($state, $event),
             GameEventType::GameEnded => $this->applyGameEnded($state),
@@ -197,6 +200,29 @@ class GameStateProjector
         } else {
             $state->delayWarningsTeamB++;
         }
+
+        return $state;
+    }
+
+    private function applyMisconductRecorded(GameState $state, GameEvent $event): GameState
+    {
+        /** @var MisconductRecordedPayload $payload */
+        $payload = $event->payload;
+
+        match ($payload->sanction) {
+            MisconductSanction::Warning => $payload->team === TeamAB::TeamA
+                ? $state->misconductWarningsTeamA++
+                : $state->misconductWarningsTeamB++,
+            MisconductSanction::Penalty => $payload->team === TeamAB::TeamA
+                ? $state->misconductPenaltiesTeamA++
+                : $state->misconductPenaltiesTeamB++,
+            MisconductSanction::Expulsion => $payload->team === TeamAB::TeamA
+                ? $state->misconductExpulsionsTeamA++
+                : $state->misconductExpulsionsTeamB++,
+            MisconductSanction::Disqualification => $payload->team === TeamAB::TeamA
+                ? $state->misconductDisqualificationsTeamA++
+                : $state->misconductDisqualificationsTeamB++,
+        };
 
         return $state;
     }

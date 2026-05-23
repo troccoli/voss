@@ -452,5 +452,6 @@
                 <flux:heading size="xl" class="text-center">{{ $substitutionsTaken }}/6</flux:heading>
             </flux:card>
         @endif
+
     </div>
 </aside>

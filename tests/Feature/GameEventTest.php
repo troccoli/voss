@@ -2,6 +2,9 @@
 
 use App\Enums\GameEventType;
 use App\Enums\ImproperRequestType;
+use App\Enums\MisconductSanction;
+use App\Enums\MisconductSubjectType;
+use App\Enums\StaffRole;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Events\Payloads\CourtSidesSwappedPayload;
@@ -10,6 +13,7 @@ use App\Events\Payloads\DelayWarningRecordedPayload;
 use App\Events\Payloads\GameEndedPayload;
 use App\Events\Payloads\ImproperRequestRecordedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
+use App\Events\Payloads\MisconductRecordedPayload;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Events\Payloads\SetEndedPayload;
 use App\Events\Payloads\SetStartedPayload;
@@ -21,6 +25,7 @@ use App\Models\Game;
 use App\Models\GameEvent;
 use App\Models\GameStateSnapshot;
 use App\Models\Player;
+use App\Models\Staff;
 use App\Models\Team;
 use App\Services\GameState\GameEventRuleValidator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -635,6 +640,81 @@ test('improper requests do not reset when a set ends', function (): void {
     $state = $game->fresh()->stateAt();
     expect($state->improperRequestsTeamA)->toBe(1)
         ->and($state->delayWarningsTeamA)->toBe(0);
+});
+
+test('misconduct can be recorded for a player with the correct type and payload', function (MisconductSanction $sanction): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $player = $game->homePlayers()->firstOrFail();
+
+    $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Player,
+        subjectId: $player->getKey(),
+        sanction: $sanction,
+    );
+
+    $event = $game->events->last();
+    expect($event->type)->toBe(GameEventType::MisconductRecorded)
+        ->and($event->payload)->toBeInstanceOf(MisconductRecordedPayload::class)
+        ->and($event->payload->team)->toBe(TeamAB::TeamA)
+        ->and($event->payload->subjectType)->toBe(MisconductSubjectType::Player)
+        ->and($event->payload->subjectId)->toBe($player->getKey())
+        ->and($event->payload->sanction)->toBe($sanction);
+})->with([
+    'warning' => [MisconductSanction::Warning],
+    'penalty' => [MisconductSanction::Penalty],
+    'expulsion' => [MisconductSanction::Expulsion],
+    'disqualification' => [MisconductSanction::Disqualification],
+]);
+
+test('misconduct can be recorded for staff', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $staff = Staff::factory()->for($homeTeam)->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $game->addStaff($staff, StaffRole::Coach);
+
+    $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Staff,
+        subjectId: $staff->getKey(),
+        sanction: MisconductSanction::Expulsion,
+    );
+
+    $event = $game->events->last();
+    expect($event->type)->toBe(GameEventType::MisconductRecorded)
+        ->and($event->payload)->toBeInstanceOf(MisconductRecordedPayload::class)
+        ->and($event->payload->subjectType)->toBe(MisconductSubjectType::Staff)
+        ->and($event->payload->subjectId)->toBe($staff->getKey())
+        ->and($event->payload->sanction)->toBe(MisconductSanction::Expulsion);
+});
+
+test('misconduct counts do not reset when a set ends', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $player = $game->homePlayers()->firstOrFail();
+
+    $game->recordMisconduct(TeamAB::TeamA, MisconductSubjectType::Player, $player->getKey(), MisconductSanction::Warning);
+    $game->recordMisconduct(TeamAB::TeamA, MisconductSubjectType::Player, $player->getKey(), MisconductSanction::Penalty);
+    $game->recordMisconduct(TeamAB::TeamA, MisconductSubjectType::Player, $player->getKey(), MisconductSanction::Expulsion);
+    $game->recordMisconduct(TeamAB::TeamA, MisconductSubjectType::Player, $player->getKey(), MisconductSanction::Disqualification);
+
+    winSet($game, TeamAB::TeamA);
+
+    $state = $game->fresh()->stateAt();
+    expect($state->misconductWarningsTeamA)->toBe(1)
+        ->and($state->misconductPenaltiesTeamA)->toBe(1)
+        ->and($state->misconductExpulsionsTeamA)->toBe(1)
+        ->and($state->misconductDisqualificationsTeamA)->toBe(1);
 });
 
 test('timeout counts reset to zero when a set ends', function (): void {

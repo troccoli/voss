@@ -13,6 +13,7 @@ use App\Models\Concerns\RecordsEndOfRally;
 use App\Models\Concerns\RecordsEndOfSet;
 use App\Models\Concerns\RecordsImproperRequest;
 use App\Models\Concerns\RecordsLineup;
+use App\Models\Concerns\RecordsMisconduct;
 use App\Models\Concerns\RecordsStartOfSet;
 use App\Models\Concerns\RecordsSubstitution;
 use App\Models\Concerns\RecordsTimeOut;
@@ -64,6 +65,7 @@ class Game extends Model
     use RecordsEndOfSet;
     use RecordsImproperRequest;
     use RecordsLineup;
+    use RecordsMisconduct;
     use RecordsStartOfSet;
     use RecordsSubstitution;
     use RecordsTimeOut;

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 88" role="img" aria-labelledby="title desc">
+    <title id="title">Yellow card</title>
+    <desc id="desc">A yellow volleyball sanction card shaped like a playing card.</desc>
+    <rect x="9" y="5" width="46" height="78" rx="7" fill="#d4a900"/>
+    <rect x="11.5" y="7.5" width="41" height="73" rx="5" fill="none" stroke="#fef3c7" stroke-width="3"/>
+    <rect x="12.25" y="8.25" width="39.5" height="71.5" rx="4.5" fill="#ffea00" opacity="0.62"/>
+</svg>

@@ -6,6 +6,7 @@ namespace App\Services\GameState;
 
 use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
+use App\Enums\MisconductSubjectType;
 use App\Enums\TeamAB;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
@@ -141,6 +142,36 @@ class GameEventRuleValidator
 
         if ($state->gameEnded || ! $state->setInProgress) {
             $this->fail('An improper request can only be recorded while a set is in progress.');
+        }
+    }
+
+    public function assertCanRecordMisconduct(
+        Game $game,
+        TeamAB $team,
+        MisconductSubjectType $subjectType,
+        int $subjectId,
+    ): void {
+        $state = $game->stateAt();
+
+        if ($state->gameEnded) {
+            $this->fail('Misconduct cannot be recorded after the game has ended.');
+        }
+
+        $teamId = $team === TeamAB::TeamA ? $game->home_team_id : $game->away_team_id;
+
+        $isRostered = match ($subjectType) {
+            MisconductSubjectType::Player => $game->players()
+                ->whereKey($subjectId)
+                ->wherePivot('team_id', $teamId)
+                ->exists(),
+            MisconductSubjectType::Staff => $game->staff()
+                ->whereKey($subjectId)
+                ->wherePivot('team_id', $teamId)
+                ->exists(),
+        };
+
+        if (! $isRostered) {
+            $this->fail('Misconduct can only be recorded for a rostered player or staff member.');
         }
     }
 

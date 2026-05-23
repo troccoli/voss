@@ -415,6 +415,36 @@ test('court renders rally winner controls when set is in progress', function ():
         ->assertSeeHtml('data-rally-winner-button="team_b"');
 });
 
+test('court renders misconduct controls on both sides', function (): void {
+    $game = gameWithNumberedRosters();
+    $game->recordToss(TeamSide::Home, TeamAB::TeamA);
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => gameStateWithSubmittedLineups(['set_number' => 1]),
+    ])
+        ->assertSeeHtml('data-misconduct-controls="left"')
+        ->assertSeeHtml('data-misconduct-controls="right"')
+        ->assertSeeHtml('data-misconduct-button="warning"')
+        ->assertSeeHtml('data-misconduct-button="penalty"')
+        ->assertSeeHtml('data-misconduct-button="expulsion"')
+        ->assertSeeHtml('data-misconduct-button="disqualification"')
+        ->assertSeeHtml('data-delay-controls="left"')
+        ->assertSeeHtml('data-delay-controls="right"')
+        ->assertSeeHtml('data-delay-button="delay-warning"')
+        ->assertSeeHtml('data-delay-button="delay-penalty"')
+        ->assertSeeHtml('yellow-card.svg')
+        ->assertSeeHtml('red-card.svg')
+        ->assertSeeHtml('yellow-red-card.svg')
+        ->assertSeeHtml('yellow-red-side-by-side-card.svg')
+        ->assertSee('Minor misconduct')
+        ->assertSee('Penalty')
+        ->assertSee('Expulsion')
+        ->assertSee('Disqualification')
+        ->assertSee('Delay warning')
+        ->assertSee('Delay penalty');
+});
+
 test('rally winner controls show button only while a set is in progress and game is not ended', function (): void {
     $game = Game::factory()->create();
 
