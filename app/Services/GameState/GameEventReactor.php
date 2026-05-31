@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Services\GameState;
 
 use App\Enums\GameEventType;
+use App\Enums\MisconductSanction;
 use App\Events\Payloads\GameEndedPayload;
 use App\Events\Payloads\GameEventPayload;
+use App\Events\Payloads\MisconductRecordedPayload;
 use App\Events\Payloads\SetEndedPayload;
 use App\Models\GameEvent;
 
@@ -20,9 +22,22 @@ class GameEventReactor
     {
         match ($event->type) {
             GameEventType::RallyEnded, GameEventType::DelayPenaltyRecorded => $this->onRallyAwarded($event),
+            GameEventType::MisconductRecorded => $this->onMisconductRecorded($event),
             GameEventType::SetEnded => $this->onSetEnded($event),
             default => null,
         };
+    }
+
+    protected function onMisconductRecorded(GameEvent $event): void
+    {
+        /** @var MisconductRecordedPayload $payload */
+        $payload = $event->payload;
+
+        if ($payload->sanction !== MisconductSanction::Penalty) {
+            return;
+        }
+
+        $this->onRallyAwarded($event);
     }
 
     protected function onRallyAwarded(GameEvent $event): void

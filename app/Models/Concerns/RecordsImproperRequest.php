@@ -58,6 +58,31 @@ trait RecordsImproperRequest
         return GameEventType::ImproperRequestRecorded;
     }
 
+    public function recordDelayWarning(TeamAB $team): void
+    {
+        app(GameEventRuleValidator::class)->assertCanRecordDelayWarning($this, $team);
+
+        $this->events()->create([
+            'type' => GameEventType::DelayWarningRecorded,
+            'payload' => new DelayWarningRecordedPayload(
+                team: $team,
+            ),
+        ]);
+    }
+
+    public function recordDelayPenalty(TeamAB $team): void
+    {
+        app(GameEventRuleValidator::class)->assertCanRecordDelayPenalty($this);
+
+        $this->events()->create([
+            'type' => GameEventType::DelayPenaltyRecorded,
+            'payload' => new DelayPenaltyRecordedPayload(
+                team: $team,
+                awardedTeam: $this->opponentOf($team),
+            ),
+        ]);
+    }
+
     private function hasDelayWarningFor(TeamAB $team): bool
     {
         $state = $this->stateAt();

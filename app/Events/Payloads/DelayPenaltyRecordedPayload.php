@@ -12,7 +12,7 @@ final readonly class DelayPenaltyRecordedPayload implements GameEventPayload
     public function __construct(
         public TeamAB $team,
         public TeamAB $awardedTeam,
-        public ImproperRequestType $requestType,
+        public ?ImproperRequestType $requestType = null,
     ) {}
 
     /** @param array<string, mixed> $data */
@@ -21,17 +21,22 @@ final readonly class DelayPenaltyRecordedPayload implements GameEventPayload
         return new self(
             team: TeamAB::from($data['team']),
             awardedTeam: TeamAB::from($data['awarded_team']),
-            requestType: ImproperRequestType::from($data['request_type']),
+            requestType: isset($data['request_type']) ? ImproperRequestType::from($data['request_type']) : null,
         );
     }
 
-    /** @return array{team: string, awarded_team: string, request_type: string} */
+    /** @return array{team: string, awarded_team: string, request_type?: string} */
     public function toArray(): array
     {
-        return [
+        $payload = [
             'team' => $this->team->value,
             'awarded_team' => $this->awardedTeam->value,
-            'request_type' => $this->requestType->value,
         ];
+
+        if ($this->requestType !== null) {
+            $payload['request_type'] = $this->requestType->value;
+        }
+
+        return $payload;
     }
 }

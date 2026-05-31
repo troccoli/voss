@@ -23,7 +23,7 @@ trait RecordsMisconduct
         int $subjectId,
         MisconductSanction $sanction,
     ): void {
-        app(GameEventRuleValidator::class)->assertCanRecordMisconduct($this, $team, $subjectType, $subjectId);
+        app(GameEventRuleValidator::class)->assertCanRecordMisconduct($this, $team, $subjectType, $subjectId, $sanction);
 
         $this->events()->create([
             'type' => GameEventType::MisconductRecorded,

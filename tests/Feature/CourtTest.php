@@ -4,13 +4,20 @@ declare(strict_types=1);
 
 use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
+use App\Enums\MisconductSanction;
+use App\Enums\MisconductSubjectType;
+use App\Enums\StaffRole;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
+use App\Events\Payloads\DelayPenaltyRecordedPayload;
+use App\Events\Payloads\DelayWarningRecordedPayload;
+use App\Events\Payloads\MisconductRecordedPayload;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Livewire\Court;
 use App\Livewire\RallyWinnerControls;
 use App\Models\Game;
 use App\Models\Player;
+use App\Models\Staff;
 use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -429,20 +436,28 @@ test('court renders misconduct controls on both sides', function (): void {
         ->assertSeeHtml('data-misconduct-button="penalty"')
         ->assertSeeHtml('data-misconduct-button="expulsion"')
         ->assertSeeHtml('data-misconduct-button="disqualification"')
+        ->assertSee('Misconduct')
+        ->assertSeeHtml('aria-label="Minor misconduct"')
+        ->assertSeeHtml('aria-label="Penalty"')
+        ->assertSeeHtml('aria-label="Expulsion"')
+        ->assertSeeHtml('aria-label="Disqualification"')
         ->assertSeeHtml('data-delay-controls="left"')
         ->assertSeeHtml('data-delay-controls="right"')
         ->assertSeeHtml('data-delay-button="delay-warning"')
         ->assertSeeHtml('data-delay-button="delay-penalty"')
+        ->assertSee('Delay')
+        ->assertSeeHtml('aria-label="Delay warning"')
+        ->assertSeeHtml('aria-label="Delay penalty"')
         ->assertSeeHtml('yellow-card.svg')
         ->assertSeeHtml('red-card.svg')
         ->assertSeeHtml('yellow-red-card.svg')
         ->assertSeeHtml('yellow-red-side-by-side-card.svg')
-        ->assertSee('Minor misconduct')
-        ->assertSee('Penalty')
-        ->assertSee('Expulsion')
-        ->assertSee('Disqualification')
-        ->assertSee('Delay warning')
-        ->assertSee('Delay penalty');
+        ->assertDontSeeHtml('<span class="text-left text-xs leading-tight">Minor misconduct</span>')
+        ->assertDontSeeHtml('<span class="text-left text-xs leading-tight">Penalty</span>')
+        ->assertDontSeeHtml('<span class="text-left text-xs leading-tight">Expulsion</span>')
+        ->assertDontSeeHtml('<span class="text-left text-xs leading-tight">Disqualification</span>')
+        ->assertDontSeeHtml('<span class="text-left text-xs leading-tight">Delay warning</span>')
+        ->assertDontSeeHtml('<span class="text-left text-xs leading-tight">Delay penalty</span>');
 });
 
 test('rally winner controls show button only while a set is in progress and game is not ended', function (): void {
@@ -524,6 +539,318 @@ test('rally winner controls record rally winner for the selected team and dispat
         ->and($latestEvent->type)->toBe(GameEventType::RallyEnded)
         ->and($latestEvent->payload)->toBeInstanceOf(RallyEndedPayload::class)
         ->and($latestEvent->payload->team)->toBe(TeamAB::TeamA);
+});
+
+test('court delay warning button confirms and records a delay warning', function (): void {
+    $game = gameWithStartedSet();
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestDelayWarning', TeamAB::TeamA->value)
+        ->assertSet('pendingDelayWarningTeam', TeamAB::TeamA->value)
+        ->call('recordPendingDelayWarning')
+        ->assertSet('pendingDelayWarningTeam', null)
+        ->assertSet('delaySanctionRecordedTitle', 'Delay warning recorded')
+        ->assertSee('A delay warning has been recorded for Team A.')
+        ->assertDontSeeHtml('data-delay-warning-recorded-indicator="left-team_a"')
+        ->assertDispatched('game-event-recorded');
+
+    $latestEvent = $game->fresh()->events->last();
+
+    expect($latestEvent)->not->toBeNull()
+        ->and($latestEvent->type)->toBe(GameEventType::DelayWarningRecorded)
+        ->and($latestEvent->payload)->toBeInstanceOf(DelayWarningRecordedPayload::class)
+        ->and($latestEvent->payload->team)->toBe(TeamAB::TeamA)
+        ->and($latestEvent->payload->requestType)->toBeNull()
+        ->and($game->fresh()->stateAt()->delayWarningsTeamA)->toBe(1);
+});
+
+test('court delay warning button can record a warning between sets', function (): void {
+    $game = gameWithStartedSet();
+
+    for ($index = 0; $index < 25; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamA);
+    }
+
+    $betweenSetsState = $game->fresh()->stateAt();
+
+    expect($betweenSetsState->setInProgress)->toBeFalse();
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $betweenSetsState,
+    ])
+        ->call('requestDelayWarning', TeamAB::TeamB->value)
+        ->call('recordPendingDelayWarning')
+        ->assertSet('delaySanctionRecordedTitle', 'Delay warning recorded')
+        ->assertSee('A delay warning has been recorded for Team B.')
+        ->assertDispatched('game-event-recorded');
+
+    $latestEvent = $game->fresh()->events->last();
+
+    expect($latestEvent)->not->toBeNull()
+        ->and($latestEvent->type)->toBe(GameEventType::DelayWarningRecorded)
+        ->and($latestEvent->payload)->toBeInstanceOf(DelayWarningRecordedPayload::class)
+        ->and($latestEvent->payload->team)->toBe(TeamAB::TeamB)
+        ->and($game->fresh()->stateAt()->delayWarningsTeamB)->toBe(1);
+});
+
+test('court disables the delay warning button when a warning already exists', function (): void {
+    $game = gameWithStartedSet();
+    $game->recordDelayWarning(TeamAB::TeamA);
+
+    $component = Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->stateAt(),
+    ]);
+
+    expect($component->html())
+        ->toMatch('/<button[^>]*(?:disabled[^>]*data-delay-button="delay-warning"|data-delay-button="delay-warning"[^>]*disabled)[^>]*data-delay-side-team="left-team_a"/')
+        ->toContain('data-delay-warning-recorded-indicator="left-team_a"')
+        ->toContain('opacity-60');
+});
+
+test('court delay penalty button confirms and records a repeatable delay penalty', function (): void {
+    $game = gameWithStartedSet();
+    $game->recordDelayWarning(TeamAB::TeamA);
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestDelayPenalty', TeamAB::TeamA->value)
+        ->assertSet('pendingDelayPenaltyTeam', TeamAB::TeamA->value)
+        ->call('recordPendingDelayPenalty')
+        ->assertSet('pendingDelayPenaltyTeam', null)
+        ->assertSet('delaySanctionRecordedTitle', 'Delay penalty recorded')
+        ->assertSee('A delay penalty has been recorded for Team A.')
+        ->assertDispatched('game-event-recorded');
+
+    $state = $game->fresh()->stateAt();
+    $latestEvent = $game->fresh()->events->last();
+
+    expect($latestEvent)->not->toBeNull()
+        ->and($latestEvent->type)->toBe(GameEventType::DelayPenaltyRecorded)
+        ->and($latestEvent->payload)->toBeInstanceOf(DelayPenaltyRecordedPayload::class)
+        ->and($latestEvent->payload->team)->toBe(TeamAB::TeamA)
+        ->and($latestEvent->payload->awardedTeam)->toBe(TeamAB::TeamB)
+        ->and($latestEvent->payload->requestType)->toBeNull()
+        ->and($state->scoreTeamB)->toBe(1)
+        ->and($state->servingTeam)->toBe(TeamAB::TeamB)
+        ->and($state->delayPenaltiesTeamA)->toBe(1);
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestDelayPenalty', TeamAB::TeamA->value)
+        ->call('recordPendingDelayPenalty')
+        ->assertSet('delaySanctionRecordedTitle', 'Delay penalty recorded')
+        ->assertDispatched('game-event-recorded');
+
+    expect($game->fresh()->stateAt()->delayPenaltiesTeamA)->toBe(2);
+
+    $component = Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->stateAt(),
+    ]);
+
+    expect($component->html())
+        ->toMatch('/<button(?![^>]*disabled=)[^>]*data-delay-button="delay-penalty"[^>]*data-delay-side-team="left-team_a"/')
+        ->not->toContain('data-delay-penalty-locked-indicator="left-team_a"');
+});
+
+test('court disables the delay penalty button with a lock until a warning exists', function (): void {
+    $game = gameWithStartedSet();
+
+    $component = Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->stateAt(),
+    ])
+        ->assertViewHas('leftDelayPenaltyDisabled', true);
+
+    expect($component->html())
+        ->toMatch('/<button[^>]*(?:disabled[^>]*data-delay-button="delay-penalty"|data-delay-button="delay-penalty"[^>]*disabled)[^>]*data-delay-side-team="left-team_a"/')
+        ->toContain('data-delay-penalty-locked-indicator="left-team_a"')
+        ->toContain('data-delay-penalty-locked-icon');
+});
+
+test('court misconduct flow shows rostered players and staff for the team', function (): void {
+    $game = gameWithStartedSet();
+    $staff = Staff::factory()->for($game->homeTeam)->create();
+    $game->addStaff($staff, StaffRole::Coach);
+
+    $player = $game->homePlayers()->wherePivot('number', 1)->firstOrFail();
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestMisconduct', TeamAB::TeamA->value, MisconductSanction::Penalty->value)
+        ->assertSet('pendingMisconductTeam', TeamAB::TeamA->value)
+        ->assertSet('pendingMisconductSanction', MisconductSanction::Penalty->value)
+        ->assertViewHas('misconductSubjects', function (array $subjects) use ($player, $staff): bool {
+            $hasPlayer = collect($subjects['players'])->contains(fn (array $subject): bool => $subject['subject_id'] === $player->getKey()
+                && $subject['subject_type'] === MisconductSubjectType::Player->value
+                && $subject['marker'] === '1');
+
+            $hasStaff = collect($subjects['staff'])->contains(fn (array $subject): bool => $subject['subject_id'] === $staff->getKey()
+                && $subject['subject_type'] === MisconductSubjectType::Staff->value
+                && $subject['marker'] === 'C');
+
+            return $hasPlayer && $hasStaff;
+        })
+        ->assertSeeHtml('data-misconduct-subject-button="player-'.$player->getKey().'"')
+        ->assertSeeHtml('data-misconduct-subject-button="staff-'.$staff->getKey().'"')
+        ->assertSeeHtml('rounded-full')
+        ->assertSeeHtml('bg-blue-600')
+        ->assertDontSee($player->first_name)
+        ->assertDontSee($player->last_name)
+        ->assertDontSee($staff->first_name)
+        ->assertDontSee($staff->last_name);
+});
+
+test('court misconduct flow records a sanction against a player after confirmation', function (): void {
+    $game = gameWithStartedSet();
+    $player = $game->homePlayers()->wherePivot('number', 1)->firstOrFail();
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestMisconduct', TeamAB::TeamA->value, MisconductSanction::Penalty->value)
+        ->call('selectMisconductSubject', MisconductSubjectType::Player->value, $player->getKey())
+        ->assertSet('pendingMisconductSubjectType', MisconductSubjectType::Player->value)
+        ->assertSet('pendingMisconductSubjectId', $player->getKey())
+        ->call('recordPendingMisconduct')
+        ->assertSet('pendingMisconductTeam', null)
+        ->assertSet('delaySanctionRecordedTitle', 'Misconduct recorded')
+        ->assertSee('Penalty has been recorded for 1')
+        ->assertDispatched('game-event-recorded');
+
+    $latestEvent = $game->fresh()->events->last();
+
+    expect($latestEvent)->not->toBeNull()
+        ->and($latestEvent->type)->toBe(GameEventType::MisconductRecorded)
+        ->and($latestEvent->payload)->toBeInstanceOf(MisconductRecordedPayload::class)
+        ->and($latestEvent->payload->team)->toBe(TeamAB::TeamA)
+        ->and($latestEvent->payload->subjectType)->toBe(MisconductSubjectType::Player)
+        ->and($latestEvent->payload->subjectId)->toBe($player->getKey())
+        ->and($latestEvent->payload->sanction)->toBe(MisconductSanction::Penalty);
+});
+
+test('court misconduct flow records a sanction against staff after confirmation', function (): void {
+    $game = gameWithStartedSet();
+    $staff = Staff::factory()->for($game->homeTeam)->create();
+    $game->addStaff($staff, StaffRole::Coach);
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->stateAt(),
+    ])
+        ->call('requestMisconduct', TeamAB::TeamA->value, MisconductSanction::Expulsion->value)
+        ->call('selectMisconductSubject', MisconductSubjectType::Staff->value, $staff->getKey())
+        ->assertSet('pendingMisconductSubjectType', MisconductSubjectType::Staff->value)
+        ->assertSet('pendingMisconductSubjectId', $staff->getKey())
+        ->call('recordPendingMisconduct')
+        ->assertSet('pendingMisconductTeam', null)
+        ->assertSet('delaySanctionRecordedTitle', 'Misconduct recorded')
+        ->assertSee('Expulsion has been recorded for C')
+        ->assertDispatched('game-event-recorded');
+
+    $latestEvent = $game->fresh()->events->last();
+
+    expect($latestEvent)->not->toBeNull()
+        ->and($latestEvent->type)->toBe(GameEventType::MisconductRecorded)
+        ->and($latestEvent->payload)->toBeInstanceOf(MisconductRecordedPayload::class)
+        ->and($latestEvent->payload->team)->toBe(TeamAB::TeamA)
+        ->and($latestEvent->payload->subjectType)->toBe(MisconductSubjectType::Staff)
+        ->and($latestEvent->payload->subjectId)->toBe($staff->getKey())
+        ->and($latestEvent->payload->sanction)->toBe(MisconductSanction::Expulsion);
+});
+
+test('court disables minor misconduct with a check once it has been recorded for the team', function (): void {
+    $game = gameWithStartedSet();
+    $player = $game->homePlayers()->wherePivot('number', 1)->firstOrFail();
+
+    $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Player,
+        subjectId: $player->getKey(),
+        sanction: MisconductSanction::Warning,
+    );
+
+    $component = Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->fresh()->stateAt(),
+    ])
+        ->assertViewHas('leftMinorMisconductDisabled', true);
+
+    expect($component->html())
+        ->toMatch('/<button[^>]*(?:disabled[^>]*data-misconduct-button="warning"|data-misconduct-button="warning"[^>]*disabled)[^>]*data-misconduct-side-team="left-team_a"/')
+        ->toContain('data-minor-misconduct-recorded-indicator="left-team_a"')
+        ->toContain('opacity-60');
+});
+
+test('court misconduct picker marks people unavailable for same or lower sanctions', function (): void {
+    $game = gameWithStartedSet();
+    $player = $game->homePlayers()->wherePivot('number', 1)->firstOrFail();
+    $staff = Staff::factory()->for($game->homeTeam)->create();
+    $game->addStaff($staff, StaffRole::Coach);
+
+    $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Player,
+        subjectId: $player->getKey(),
+        sanction: MisconductSanction::Penalty,
+    );
+    $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Staff,
+        subjectId: $staff->getKey(),
+        sanction: MisconductSanction::Expulsion,
+    );
+
+    $component = Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->fresh()->stateAt(),
+    ])
+        ->call('requestMisconduct', TeamAB::TeamA->value, MisconductSanction::Penalty->value)
+        ->assertViewHas('misconductSubjects', function (array $subjects) use ($player, $staff): bool {
+            $playerUnavailable = collect($subjects['players'])->contains(fn (array $subject): bool => $subject['subject_id'] === $player->getKey()
+                && $subject['unavailable'] === true
+                && str_ends_with((string) $subject['unavailable_icon'], '/icons/red-card.svg'));
+
+            $staffUnavailable = collect($subjects['staff'])->contains(fn (array $subject): bool => $subject['subject_id'] === $staff->getKey()
+                && $subject['unavailable'] === true
+                && str_ends_with((string) $subject['unavailable_icon'], '/icons/yellow-red-card.svg'));
+
+            return $playerUnavailable && $staffUnavailable;
+        });
+
+    expect($component->html())
+        ->toContain('data-misconduct-subject-unavailable-indicator="player-'.$player->getKey().'"')
+        ->toContain('data-misconduct-subject-unavailable-indicator="staff-'.$staff->getKey().'"')
+        ->toContain('red-card.svg')
+        ->toContain('yellow-red-card.svg')
+        ->not->toContain('x-mark');
+
+    Livewire::test(Court::class, [
+        'gameId' => $game->getKey(),
+        'gameState' => $game->fresh()->stateAt(),
+    ])
+        ->call('requestMisconduct', TeamAB::TeamA->value, MisconductSanction::Expulsion->value)
+        ->assertViewHas('misconductSubjects', function (array $subjects) use ($player, $staff): bool {
+            $playerAvailable = collect($subjects['players'])->contains(fn (array $subject): bool => $subject['subject_id'] === $player->getKey()
+                && $subject['unavailable'] === false);
+
+            $staffUnavailable = collect($subjects['staff'])->contains(fn (array $subject): bool => $subject['subject_id'] === $staff->getKey()
+                && $subject['unavailable'] === true);
+
+            return $playerAvailable && $staffUnavailable;
+        });
 });
 
 function gameWithNumberedRosters(): Game

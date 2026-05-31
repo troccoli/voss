@@ -6,8 +6,10 @@ namespace App\Services\GameState;
 
 use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
+use App\Enums\MisconductSanction;
 use App\Enums\MisconductSubjectType;
 use App\Enums\TeamAB;
+use App\Events\Payloads\MisconductRecordedPayload;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
 use App\Models\GameEvent;
@@ -145,16 +147,51 @@ class GameEventRuleValidator
         }
     }
 
+    public function assertCanRecordDelayWarning(Game $game, TeamAB $team): void
+    {
+        $state = $game->stateAt();
+
+        if ($state->gameEnded) {
+            $this->fail('A delay warning cannot be recorded after the game has ended.');
+        }
+
+        $hasDelaySanction = $team === TeamAB::TeamA
+            ? $state->delayWarningsTeamA + $state->delayPenaltiesTeamA > 0
+            : $state->delayWarningsTeamB + $state->delayPenaltiesTeamB > 0;
+
+        if ($hasDelaySanction) {
+            $this->fail('This team already has a delay warning.');
+        }
+    }
+
+    public function assertCanRecordDelayPenalty(Game $game): void
+    {
+        $state = $game->stateAt();
+
+        if ($state->gameEnded) {
+            $this->fail('A delay penalty cannot be recorded after the game has ended.');
+        }
+    }
+
     public function assertCanRecordMisconduct(
         Game $game,
         TeamAB $team,
         MisconductSubjectType $subjectType,
         int $subjectId,
+        MisconductSanction $sanction,
     ): void {
         $state = $game->stateAt();
 
         if ($state->gameEnded) {
             $this->fail('Misconduct cannot be recorded after the game has ended.');
+        }
+
+        $hasMinorMisconduct = $team === TeamAB::TeamA
+            ? $state->misconductWarningsTeamA > 0
+            : $state->misconductWarningsTeamB > 0;
+
+        if ($sanction === MisconductSanction::Warning && $hasMinorMisconduct) {
+            $this->fail('This team already has a minor misconduct warning.');
         }
 
         $teamId = $team === TeamAB::TeamA ? $game->home_team_id : $game->away_team_id;
@@ -172,6 +209,21 @@ class GameEventRuleValidator
 
         if (! $isRostered) {
             $this->fail('Misconduct can only be recorded for a rostered player or staff member.');
+        }
+
+        $highestRecordedSanction = $game->events()
+            ->where('type', GameEventType::MisconductRecorded)
+            ->get()
+            ->map(fn (GameEvent $event): mixed => $event->payload)
+            ->filter(fn (mixed $payload): bool => $payload instanceof MisconductRecordedPayload
+                && $payload->team === $team
+                && $payload->subjectType === $subjectType
+                && $payload->subjectId === $subjectId)
+            ->map(fn (MisconductRecordedPayload $payload): int => $this->misconductSanctionRank($payload->sanction))
+            ->max();
+
+        if ($highestRecordedSanction !== null && $this->misconductSanctionRank($sanction) <= $highestRecordedSanction) {
+            $this->fail('This person already has the same or a higher misconduct sanction.');
         }
     }
 
@@ -283,5 +335,15 @@ class GameEventRuleValidator
     private function fail(string $message): never
     {
         throw new InvalidGameEventTransition($message);
+    }
+
+    private function misconductSanctionRank(MisconductSanction $sanction): int
+    {
+        return match ($sanction) {
+            MisconductSanction::Warning => 1,
+            MisconductSanction::Penalty => 2,
+            MisconductSanction::Expulsion => 3,
+            MisconductSanction::Disqualification => 4,
+        };
     }
 }

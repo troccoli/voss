@@ -208,6 +208,7 @@ class GameStateProjector
     {
         /** @var MisconductRecordedPayload $payload */
         $payload = $event->payload;
+        $opponent = $payload->team === TeamAB::TeamA ? TeamAB::TeamB : TeamAB::TeamA;
 
         match ($payload->sanction) {
             MisconductSanction::Warning => $payload->team === TeamAB::TeamA
@@ -223,6 +224,10 @@ class GameStateProjector
                 ? $state->misconductDisqualificationsTeamA++
                 : $state->misconductDisqualificationsTeamB++,
         };
+
+        if ($payload->sanction === MisconductSanction::Penalty) {
+            $this->awardRallyTo($state, $opponent);
+        }
 
         return $state;
     }

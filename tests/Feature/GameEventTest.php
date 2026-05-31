@@ -627,6 +627,28 @@ test('a delay penalty awards only a point when the opponent is already serving',
         ->and($state->delayPenaltiesTeamB)->toBe(1);
 });
 
+test('a manual delay penalty can be recorded repeatedly and awards the opponent', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $game->recordDelayPenalty(TeamAB::TeamA);
+    $game->recordDelayPenalty(TeamAB::TeamA);
+
+    $event = $game->events->last();
+    $state = $game->fresh()->stateAt();
+
+    expect($event->type)->toBe(GameEventType::DelayPenaltyRecorded)
+        ->and($event->payload)->toBeInstanceOf(DelayPenaltyRecordedPayload::class)
+        ->and($event->payload->team)->toBe(TeamAB::TeamA)
+        ->and($event->payload->awardedTeam)->toBe(TeamAB::TeamB)
+        ->and($event->payload->requestType)->toBeNull()
+        ->and($state->scoreTeamB)->toBe(2)
+        ->and($state->servingTeam)->toBe(TeamAB::TeamB)
+        ->and($state->delayPenaltiesTeamA)->toBe(2);
+});
+
 test('improper requests do not reset when a set ends', function (): void {
     $homeTeam = Team::factory()->create();
     $awayTeam = Team::factory()->create();
@@ -693,6 +715,179 @@ test('misconduct can be recorded for staff', function (): void {
         ->and($event->payload->subjectType)->toBe(MisconductSubjectType::Staff)
         ->and($event->payload->subjectId)->toBe($staff->getKey())
         ->and($event->payload->sanction)->toBe(MisconductSanction::Expulsion);
+});
+
+test('a misconduct penalty awards a point and service to the other team', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $player = $game->homePlayers()->firstOrFail();
+
+    $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Player,
+        subjectId: $player->getKey(),
+        sanction: MisconductSanction::Penalty,
+    );
+
+    $state = $game->fresh()->stateAt();
+
+    expect($state->misconductPenaltiesTeamA)->toBe(1)
+        ->and($state->scoreTeamB)->toBe(1)
+        ->and($state->servingTeam)->toBe(TeamAB::TeamB)
+        ->and($state->rotationTeamB[1])->toBe(12);
+});
+
+test('misconduct sanctions other than penalty do not award a point', function (MisconductSanction $sanction): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $player = $game->homePlayers()->firstOrFail();
+
+    $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Player,
+        subjectId: $player->getKey(),
+        sanction: $sanction,
+    );
+
+    $state = $game->fresh()->stateAt();
+
+    expect($state->scoreTeamA)->toBe(0)
+        ->and($state->scoreTeamB)->toBe(0)
+        ->and($state->servingTeam)->toBe(TeamAB::TeamA)
+        ->and($state->rotationTeamB[1])->toBe(11);
+})->with([
+    'warning' => [MisconductSanction::Warning],
+    'expulsion' => [MisconductSanction::Expulsion],
+    'disqualification' => [MisconductSanction::Disqualification],
+]);
+
+test('a misconduct penalty can end a set', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+
+    prepareActiveSet($game);
+    $player = $game->homePlayers()->firstOrFail();
+
+    for ($index = 0; $index < 24; $index++) {
+        $game->recordRallyWinner(TeamAB::TeamB);
+    }
+
+    $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Player,
+        subjectId: $player->getKey(),
+        sanction: MisconductSanction::Penalty,
+    );
+
+    $state = $game->fresh()->stateAt();
+
+    expect($state->setsWonTeamB)->toBe(1)
+        ->and($state->setInProgress)->toBeFalse()
+        ->and($state->scoreTeamA)->toBe(0)
+        ->and($state->scoreTeamB)->toBe(0);
+});
+
+test('misconduct can be recorded before the match starts', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    $player = Player::factory()->for($homeTeam)->create();
+
+    $game->addPlayer($player, number: 7);
+    $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Player,
+        subjectId: $player->getKey(),
+        sanction: MisconductSanction::Warning,
+    );
+
+    $event = $game->events->last();
+
+    expect($event->type)->toBe(GameEventType::MisconductRecorded)
+        ->and($event->payload)->toBeInstanceOf(MisconductRecordedPayload::class)
+        ->and($event->payload->team)->toBe(TeamAB::TeamA)
+        ->and($event->payload->subjectType)->toBe(MisconductSubjectType::Player)
+        ->and($event->payload->subjectId)->toBe($player->getKey())
+        ->and($event->payload->sanction)->toBe(MisconductSanction::Warning);
+});
+
+test('minor misconduct can only be recorded once per team in a game', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    $firstPlayer = Player::factory()->for($homeTeam)->create();
+    $secondPlayer = Player::factory()->for($homeTeam)->create();
+
+    $game->addPlayer($firstPlayer, number: 7);
+    $game->addPlayer($secondPlayer, number: 8);
+
+    $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Player,
+        subjectId: $firstPlayer->getKey(),
+        sanction: MisconductSanction::Warning,
+    );
+
+    expect(fn () => $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Player,
+        subjectId: $secondPlayer->getKey(),
+        sanction: MisconductSanction::Warning,
+    ))->toThrow(InvalidGameEventTransition::class, 'This team already has a minor misconduct warning.');
+});
+
+test('a person cannot receive the same or a lower misconduct sanction', function (): void {
+    $homeTeam = Team::factory()->create();
+    $awayTeam = Team::factory()->create();
+    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    $player = Player::factory()->for($homeTeam)->create();
+    $staff = Staff::factory()->for($homeTeam)->create();
+
+    $game->addPlayer($player, number: 7);
+    $game->addStaff($staff, StaffRole::Coach);
+
+    $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Player,
+        subjectId: $player->getKey(),
+        sanction: MisconductSanction::Penalty,
+    );
+    $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Staff,
+        subjectId: $staff->getKey(),
+        sanction: MisconductSanction::Expulsion,
+    );
+
+    expect(fn () => $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Player,
+        subjectId: $player->getKey(),
+        sanction: MisconductSanction::Penalty,
+    ))->toThrow(InvalidGameEventTransition::class, 'This person already has the same or a higher misconduct sanction.');
+
+    expect(fn () => $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Staff,
+        subjectId: $staff->getKey(),
+        sanction: MisconductSanction::Penalty,
+    ))->toThrow(InvalidGameEventTransition::class, 'This person already has the same or a higher misconduct sanction.');
+
+    $game->recordMisconduct(
+        team: TeamAB::TeamA,
+        subjectType: MisconductSubjectType::Player,
+        subjectId: $player->getKey(),
+        sanction: MisconductSanction::Expulsion,
+    );
+
+    expect($game->fresh()->stateAt()->misconductExpulsionsTeamA)->toBe(2);
 });
 
 test('misconduct counts do not reset when a set ends', function (): void {
