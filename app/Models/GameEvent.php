@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\GameEventType;
+use App\Events\Payloads\CourtSidesSwappedPayload;
+use App\Events\Payloads\DelayPenaltyRecordedPayload;
+use App\Events\Payloads\DelayWarningRecordedPayload;
 use App\Events\Payloads\GameEndedPayload;
 use App\Events\Payloads\GameEventPayload;
+use App\Events\Payloads\ImproperRequestRecordedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
+use App\Events\Payloads\MisconductRecordedPayload;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Events\Payloads\SetEndedPayload;
 use App\Events\Payloads\SetStartedPayload;
@@ -64,8 +69,13 @@ class GameEvent extends Model
                     GameEventType::TossCompleted => TossCompletedPayload::fromArray($data),
                     GameEventType::LineupSubmitted => LineupSubmittedPayload::fromArray($data),
                     GameEventType::RallyEnded => RallyEndedPayload::fromArray($data),
+                    GameEventType::CourtSidesSwapped => CourtSidesSwappedPayload::fromArray($data),
                     GameEventType::SubstitutionCompleted => SubstitutionCompletedPayload::fromArray($data),
                     GameEventType::TimeOutRequested => TimeOutRequestedPayload::fromArray($data),
+                    GameEventType::ImproperRequestRecorded => ImproperRequestRecordedPayload::fromArray($data),
+                    GameEventType::DelayWarningRecorded => DelayWarningRecordedPayload::fromArray($data),
+                    GameEventType::DelayPenaltyRecorded => DelayPenaltyRecordedPayload::fromArray($data),
+                    GameEventType::MisconductRecorded => MisconductRecordedPayload::fromArray($data),
                     GameEventType::SetStarted => SetStartedPayload::fromArray($data),
                     GameEventType::SetEnded => SetEndedPayload::fromArray($data),
                     GameEventType::GameEnded => GameEndedPayload::fromArray($data),

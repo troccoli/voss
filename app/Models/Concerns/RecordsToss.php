@@ -8,14 +8,15 @@ use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Events\Payloads\TossCompletedPayload;
+use App\Models\Game;
 use App\Services\GameState\GameEventRuleValidator;
 
 /**
- * @mixin \App\Models\Game
+ * @mixin Game
  */
 trait RecordsToss
 {
-    public function recordToss(TeamSide $teamA, TeamAB $serving): void
+    public function recordToss(TeamSide $teamA, TeamAB $serving, ?TeamAB $leftTeam = null): void
     {
         app(GameEventRuleValidator::class)->assertCanRecordToss($this);
 
@@ -24,6 +25,7 @@ trait RecordsToss
             'payload' => new TossCompletedPayload(
                 teamA: $teamA,
                 serving: $serving,
+                leftTeam: $leftTeam ?? TeamAB::TeamA,
             ),
         ]);
     }

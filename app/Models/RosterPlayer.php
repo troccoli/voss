@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
+#[Table(name: 'game_player')]
 class RosterPlayer extends Pivot
 {
     #[\Override]

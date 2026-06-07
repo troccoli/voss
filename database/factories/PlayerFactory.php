@@ -44,4 +44,12 @@ class PlayerFactory extends Factory
     {
         return $this->withLocale($this->getLocaleForCountry($code));
     }
+
+    public function named(string $firstName, string $lastName): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+        ]);
+    }
 }

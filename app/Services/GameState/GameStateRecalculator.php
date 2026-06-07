@@ -39,7 +39,7 @@ class GameStateRecalculator
             GameStateSnapshot::query()->create([
                 'game_id' => $game->getKey(),
                 'game_event_id' => $event->getKey(),
-                ...$state->toSnapshotAttributes(),
+                ...$state->toAttributes(),
                 'created_at' => $event->created_at,
             ]);
         }

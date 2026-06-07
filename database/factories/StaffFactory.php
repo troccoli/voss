@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\StaffRole;
 use App\Models\Staff;
 use App\Models\Team;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -26,6 +27,7 @@ class StaffFactory extends Factory
             'team_id' => Team::factory(),
             'first_name' => $this->faker->firstName(),
             'last_name' => $this->faker->lastName(),
+            'role' => $this->faker->randomElement(StaffRole::cases()),
         ];
     }
 
@@ -43,5 +45,40 @@ class StaffFactory extends Factory
     public function forCountry(string $code): static
     {
         return $this->withLocale($this->getLocaleForCountry($code));
+    }
+
+    public function named(string $firstName, string $lastName): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+        ]);
+    }
+
+    public function withRole(StaffRole $role): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => $role,
+        ]);
+    }
+
+    public function asCoach(): static
+    {
+        return $this->withRole(StaffRole::Coach);
+    }
+
+    public function asAssistantCoach(): static
+    {
+        return $this->withRole(StaffRole::AssistantCoach);
+    }
+
+    public function asDoctor(): static
+    {
+        return $this->withRole(StaffRole::Doctor);
+    }
+
+    public function asTherapist(): static
+    {
+        return $this->withRole(StaffRole::Therapist);
     }
 }

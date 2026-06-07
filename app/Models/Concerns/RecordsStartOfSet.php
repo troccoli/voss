@@ -6,10 +6,11 @@ namespace App\Models\Concerns;
 
 use App\Enums\GameEventType;
 use App\Events\Payloads\SetStartedPayload;
+use App\Models\Game;
 use App\Services\GameState\GameEventRuleValidator;
 
 /**
- * @mixin \App\Models\Game
+ * @mixin Game
  */
 trait RecordsStartOfSet
 {

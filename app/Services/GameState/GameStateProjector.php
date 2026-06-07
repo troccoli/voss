@@ -6,8 +6,14 @@ namespace App\Services\GameState;
 
 use App\Data\GameState\GameState;
 use App\Enums\GameEventType;
+use App\Enums\MisconductSanction;
 use App\Enums\TeamAB;
+use App\Events\Payloads\CourtSidesSwappedPayload;
+use App\Events\Payloads\DelayPenaltyRecordedPayload;
+use App\Events\Payloads\DelayWarningRecordedPayload;
+use App\Events\Payloads\ImproperRequestRecordedPayload;
 use App\Events\Payloads\LineupSubmittedPayload;
+use App\Events\Payloads\MisconductRecordedPayload;
 use App\Events\Payloads\RallyEndedPayload;
 use App\Events\Payloads\SubstitutionCompletedPayload;
 use App\Events\Payloads\TimeOutRequestedPayload;
@@ -18,16 +24,24 @@ use Illuminate\Database\Eloquent\Builder;
 
 class GameStateProjector
 {
+    /** @var array<int, TeamAB|null> */
+    private array $tossServingTeamByGame = [];
+
     public function project(GameState $state, GameEvent $event): GameState
     {
         return match ($event->type) {
             GameEventType::TossCompleted => $this->applyTossCompleted($state, $event),
             GameEventType::LineupSubmitted => $this->applyLineupSubmitted($state, $event),
             GameEventType::RallyEnded => $this->applyRallyEnded($state, $event),
+            GameEventType::CourtSidesSwapped => $this->applyCourtSidesSwapped($state, $event),
             GameEventType::SubstitutionCompleted => $this->applySubstitutionCompleted($state, $event),
             GameEventType::TimeOutRequested => $this->applyTimeOutRequested($state, $event),
-            GameEventType::SetStarted => $this->applySetStarted($state),
-            GameEventType::SetEnded => $this->applySetEnded($state),
+            GameEventType::ImproperRequestRecorded => $this->applyImproperRequestRecorded($state, $event),
+            GameEventType::DelayWarningRecorded => $this->applyDelayWarningRecorded($state, $event),
+            GameEventType::DelayPenaltyRecorded => $this->applyDelayPenaltyRecorded($state, $event),
+            GameEventType::MisconductRecorded => $this->applyMisconductRecorded($state, $event),
+            GameEventType::SetStarted => $this->applySetStarted($state, $event),
+            GameEventType::SetEnded => $this->applySetEnded($state, $event),
             GameEventType::GameEnded => $this->applyGameEnded($state),
         };
     }
@@ -58,7 +72,7 @@ class GameStateProjector
         return GameStateSnapshot::query()->create([
             'game_id' => $event->game_id,
             'game_event_id' => $event->getKey(),
-            ...$state->toSnapshotAttributes(),
+            ...$state->toAttributes(),
             'created_at' => $event->created_at,
         ]);
     }
@@ -67,7 +81,27 @@ class GameStateProjector
     {
         /** @var TossCompletedPayload $payload */
         $payload = $event->payload;
+        $state->teamASide = $payload->teamA;
         $state->servingTeam = $payload->serving;
+
+        if ($this->requiresFifthSetToss($state)) {
+            $state->fifthSetLeftTeam = $payload->leftTeam;
+            $state->fifthSetSideSwapped = false;
+        }
+
+        return $state;
+    }
+
+    private function applyCourtSidesSwapped(GameState $state, GameEvent $event): GameState
+    {
+        /** @var CourtSidesSwappedPayload $payload */
+        $payload = $event->payload;
+
+        if ($state->fifthSetLeftTeam !== null) {
+            $state->fifthSetLeftTeam = $this->oppositeTeam($state->fifthSetLeftTeam);
+        }
+
+        $state->fifthSetSideSwapped = true;
 
         return $state;
     }
@@ -76,13 +110,6 @@ class GameStateProjector
     {
         /** @var LineupSubmittedPayload $payload */
         $payload = $event->payload;
-
-        if ($payload->set > $state->setNumber) {
-            $state->setNumber = $payload->set;
-            $state->resetCurrentSetCounters();
-            $state->rotationTeamA = [];
-            $state->rotationTeamB = [];
-        }
 
         if ($payload->team === TeamAB::TeamA) {
             $state->rotationTeamA = $payload->positions;
@@ -97,19 +124,8 @@ class GameStateProjector
     {
         /** @var RallyEndedPayload $payload */
         $payload = $event->payload;
-        $winner = $payload->team;
 
-        if ($winner === TeamAB::TeamA) {
-            $state->scoreTeamA++;
-        } else {
-            $state->scoreTeamB++;
-        }
-
-        if ($state->servingTeam !== null && $state->servingTeam !== $winner) {
-            $this->rotateTeam($state, $winner);
-        }
-
-        $state->servingTeam = $winner;
+        $this->awardRallyTo($state, $payload->team);
 
         return $state;
     }
@@ -130,6 +146,22 @@ class GameStateProjector
         return $state;
     }
 
+    private function applyDelayPenaltyRecorded(GameState $state, GameEvent $event): GameState
+    {
+        /** @var DelayPenaltyRecordedPayload $payload */
+        $payload = $event->payload;
+
+        if ($payload->team === TeamAB::TeamA) {
+            $state->delayPenaltiesTeamA++;
+        } else {
+            $state->delayPenaltiesTeamB++;
+        }
+
+        $this->awardRallyTo($state, $payload->awardedTeam);
+
+        return $state;
+    }
+
     private function applyTimeOutRequested(GameState $state, GameEvent $event): GameState
     {
         /** @var TimeOutRequestedPayload $payload */
@@ -144,18 +176,77 @@ class GameStateProjector
         return $state;
     }
 
-    private function applySetStarted(GameState $state): GameState
+    private function applyImproperRequestRecorded(GameState $state, GameEvent $event): GameState
+    {
+        /** @var ImproperRequestRecordedPayload $payload */
+        $payload = $event->payload;
+
+        if ($payload->team === TeamAB::TeamA) {
+            $state->improperRequestsTeamA++;
+        } else {
+            $state->improperRequestsTeamB++;
+        }
+
+        return $state;
+    }
+
+    private function applyDelayWarningRecorded(GameState $state, GameEvent $event): GameState
+    {
+        /** @var DelayWarningRecordedPayload $payload */
+        $payload = $event->payload;
+
+        if ($payload->team === TeamAB::TeamA) {
+            $state->delayWarningsTeamA++;
+        } else {
+            $state->delayWarningsTeamB++;
+        }
+
+        return $state;
+    }
+
+    private function applyMisconductRecorded(GameState $state, GameEvent $event): GameState
+    {
+        /** @var MisconductRecordedPayload $payload */
+        $payload = $event->payload;
+        $opponent = $payload->team === TeamAB::TeamA ? TeamAB::TeamB : TeamAB::TeamA;
+
+        match ($payload->sanction) {
+            MisconductSanction::Warning => $payload->team === TeamAB::TeamA
+                ? $state->misconductWarningsTeamA++
+                : $state->misconductWarningsTeamB++,
+            MisconductSanction::Penalty => $payload->team === TeamAB::TeamA
+                ? $state->misconductPenaltiesTeamA++
+                : $state->misconductPenaltiesTeamB++,
+            MisconductSanction::Expulsion => $payload->team === TeamAB::TeamA
+                ? $state->misconductExpulsionsTeamA++
+                : $state->misconductExpulsionsTeamB++,
+            MisconductSanction::Disqualification => $payload->team === TeamAB::TeamA
+                ? $state->misconductDisqualificationsTeamA++
+                : $state->misconductDisqualificationsTeamB++,
+        };
+
+        if ($payload->sanction === MisconductSanction::Penalty) {
+            $this->awardRallyTo($state, $opponent);
+        }
+
+        return $state;
+    }
+
+    private function applySetStarted(GameState $state, GameEvent $event): GameState
     {
         $state->setNumber = max(1, $state->setNumber + 1);
         $state->resetCurrentSetCounters();
-        $state->rotationTeamA = [];
-        $state->rotationTeamB = [];
+
+        if ($state->setNumber !== 5 || $state->fifthSetLeftTeam === null) {
+            $state->servingTeam = $this->servingTeamForSet($event->game_id, $state->setNumber) ?? $state->servingTeam;
+        }
+
         $state->setInProgress = true;
 
         return $state;
     }
 
-    private function applySetEnded(GameState $state): GameState
+    private function applySetEnded(GameState $state, GameEvent $event): GameState
     {
         if ($state->scoreTeamA > $state->scoreTeamB) {
             $state->setsWonTeamA++;
@@ -163,12 +254,22 @@ class GameStateProjector
             $state->setsWonTeamB++;
         }
 
-        if ($state->servingTeam !== null) {
-            $state->servingTeam = $state->servingTeam === TeamAB::TeamA
-                ? TeamAB::TeamB
-                : TeamAB::TeamA;
+        $nextSetNumber = max(1, $state->setNumber + 1);
+
+        if ($nextSetNumber === 5 && $state->setsWonTeamA === 2 && $state->setsWonTeamB === 2) {
+            $state->servingTeam = null;
+            $state->fifthSetLeftTeam = null;
+            $state->fifthSetSideSwapped = false;
+        } else {
+            $state->servingTeam = $this->servingTeamForSet($event->game_id, $nextSetNumber) ?? $state->servingTeam;
         }
 
+        $state->scoreTeamA = 0;
+        $state->scoreTeamB = 0;
+        $state->timeoutsTeamA = 0;
+        $state->timeoutsTeamB = 0;
+        $state->rotationTeamA = [];
+        $state->rotationTeamB = [];
         $state->setInProgress = false;
 
         return $state;
@@ -191,6 +292,21 @@ class GameStateProjector
         }
 
         $state->rotationTeamB = $this->rotate($state->rotationTeamB);
+    }
+
+    private function awardRallyTo(GameState $state, TeamAB $winner): void
+    {
+        if ($winner === TeamAB::TeamA) {
+            $state->scoreTeamA++;
+        } else {
+            $state->scoreTeamB++;
+        }
+
+        if ($state->servingTeam !== null && $state->servingTeam !== $winner) {
+            $this->rotateTeam($state, $winner);
+        }
+
+        $state->servingTeam = $winner;
     }
 
     /**
@@ -230,5 +346,59 @@ class GameStateProjector
         $positions[$position] = $playerIn;
 
         return $positions;
+    }
+
+    private function servingTeamForSet(int $gameId, int $setNumber): ?TeamAB
+    {
+        $tossServingTeam = $this->tossServingTeamForGame($gameId);
+
+        if ($tossServingTeam === null) {
+            return null;
+        }
+
+        return $setNumber % 2 === 1
+            ? $tossServingTeam
+            : $this->oppositeTeam($tossServingTeam);
+    }
+
+    private function tossServingTeamForGame(int $gameId): ?TeamAB
+    {
+        if (array_key_exists($gameId, $this->tossServingTeamByGame)) {
+            return $this->tossServingTeamByGame[$gameId];
+        }
+
+        /** @var GameEvent|null $tossEvent */
+        $tossEvent = GameEvent::query()
+            ->where('game_id', $gameId)
+            ->where('type', GameEventType::TossCompleted)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->first();
+
+        if ($tossEvent === null || ! $tossEvent->payload instanceof TossCompletedPayload) {
+            $this->tossServingTeamByGame[$gameId] = null;
+
+            return null;
+        }
+
+        $this->tossServingTeamByGame[$gameId] = $tossEvent->payload->serving;
+
+        return $this->tossServingTeamByGame[$gameId];
+    }
+
+    private function oppositeTeam(TeamAB $team): TeamAB
+    {
+        return $team === TeamAB::TeamA
+            ? TeamAB::TeamB
+            : TeamAB::TeamA;
+    }
+
+    private function requiresFifthSetToss(GameState $state): bool
+    {
+        return ! $state->gameEnded
+            && ! $state->setInProgress
+            && $state->setNumber === 4
+            && $state->setsWonTeamA === 2
+            && $state->setsWonTeamB === 2;
     }
 }

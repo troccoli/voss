@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\TeamAB;
+use App\Enums\TeamSide;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +22,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $timeouts_team_b
  * @property int $substitutions_team_a
  * @property int $substitutions_team_b
+ * @property int $improper_requests_team_a
+ * @property int $improper_requests_team_b
+ * @property int $delay_warnings_team_a
+ * @property int $delay_warnings_team_b
+ * @property int $delay_penalties_team_a
+ * @property int $delay_penalties_team_b
+ * @property int $misconduct_warnings_team_a
+ * @property int $misconduct_warnings_team_b
+ * @property int $misconduct_penalties_team_a
+ * @property int $misconduct_penalties_team_b
+ * @property int $misconduct_expulsions_team_a
+ * @property int $misconduct_expulsions_team_b
+ * @property int $misconduct_disqualifications_team_a
+ * @property int $misconduct_disqualifications_team_b
+ * @property TeamSide|null $team_a_side
+ * @property TeamAB|null $fifth_set_left_team
+ * @property bool $fifth_set_side_swapped
  * @property TeamAB|null $serving_team
  * @property array<int, int> $rotation_team_a
  * @property array<int, int> $rotation_team_b
@@ -50,6 +68,23 @@ class GameStateSnapshot extends Model
             'timeouts_team_b' => 'integer',
             'substitutions_team_a' => 'integer',
             'substitutions_team_b' => 'integer',
+            'improper_requests_team_a' => 'integer',
+            'improper_requests_team_b' => 'integer',
+            'delay_warnings_team_a' => 'integer',
+            'delay_warnings_team_b' => 'integer',
+            'delay_penalties_team_a' => 'integer',
+            'delay_penalties_team_b' => 'integer',
+            'misconduct_warnings_team_a' => 'integer',
+            'misconduct_warnings_team_b' => 'integer',
+            'misconduct_penalties_team_a' => 'integer',
+            'misconduct_penalties_team_b' => 'integer',
+            'misconduct_expulsions_team_a' => 'integer',
+            'misconduct_expulsions_team_b' => 'integer',
+            'misconduct_disqualifications_team_a' => 'integer',
+            'misconduct_disqualifications_team_b' => 'integer',
+            'team_a_side' => TeamSide::class,
+            'fifth_set_left_team' => TeamAB::class,
+            'fifth_set_side_swapped' => 'boolean',
             'serving_team' => TeamAB::class,
             'rotation_team_a' => 'array',
             'rotation_team_b' => 'array',
