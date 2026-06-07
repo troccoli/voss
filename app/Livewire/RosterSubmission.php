@@ -187,10 +187,10 @@ class RosterSubmission extends Component
     public function render(): View
     {
         $activeGame = $this->activeGame();
-        $homePlayers = $activeGame?->homeTeam->players()->orderBy('id')->get() ?? collect();
-        $awayPlayers = $activeGame?->awayTeam->players()->orderBy('id')->get() ?? collect();
-        $homeStaff = $activeGame?->homeTeam->staff()->orderBy('id')->get() ?? collect();
-        $awayStaff = $activeGame?->awayTeam->staff()->orderBy('id')->get() ?? collect();
+        $homePlayers = $activeGame?->homeTeam->players()->orderBy('id')->get() ?? new EloquentCollection;
+        $awayPlayers = $activeGame?->awayTeam->players()->orderBy('id')->get() ?? new EloquentCollection;
+        $homeStaff = $activeGame?->homeTeam->staff()->orderBy('id')->get() ?? new EloquentCollection;
+        $awayStaff = $activeGame?->awayTeam->staff()->orderBy('id')->get() ?? new EloquentCollection;
 
         return view('livewire.roster-submission', [
             'hasSubmittedRosters' => $this->hasSubmittedRosters($activeGame),
@@ -611,16 +611,9 @@ class RosterSubmission extends Component
 
         $selectedStaff = $selectedStaff
             ->map(function (Staff $staff) use (&$assistantCoachCount): array {
-                $roleCode = match ($staff->role) {
-                    StaffRole::Coach => 'C',
-                    StaffRole::AssistantCoach => 'AC'.(++$assistantCoachCount),
-                    StaffRole::Therapist => 'T',
-                    StaffRole::Doctor => 'D',
-                };
-
                 return [
                     'name' => $this->formattedPersonName($staff->last_name, $staff->first_name),
-                    'role' => $roleCode,
+                    'role' => $this->staffRoleCode($staff->role, $assistantCoachCount),
                 ];
             })
             ->values();
@@ -659,6 +652,16 @@ class RosterSubmission extends Component
             StaffRole::AssistantCoach => 1,
             StaffRole::Therapist => 2,
             StaffRole::Doctor => 3,
+        };
+    }
+
+    private function staffRoleCode(StaffRole $role, int &$assistantCoachCount): string
+    {
+        return match ($role) {
+            StaffRole::Coach => 'C',
+            StaffRole::AssistantCoach => 'AC'.(++$assistantCoachCount),
+            StaffRole::Therapist => 'T',
+            StaffRole::Doctor => 'D',
         };
     }
 }

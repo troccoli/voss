@@ -6,26 +6,14 @@ namespace App\Console\Commands;
 
 use App\Models\Game;
 use App\Services\Scoresheet\ScoresheetGenerator;
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
+#[Description('Command description')]
+#[Signature('app:generate-pdf')]
 class GeneratePdf extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    #[\Override]
-    protected $signature = 'app:generate-pdf';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    #[\Override]
-    protected $description = 'Command description';
-
     public function handle(ScoresheetGenerator $generator): void
     {
         /** @var Game $game */
