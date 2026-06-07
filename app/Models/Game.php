@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Data\GameState\GameState;
 use App\Enums\OfficialRole;
 use App\Enums\StaffRole;
+use App\Enums\TeamAB;
 use App\Models\Concerns\RecordsCourtSideSwap;
 use App\Models\Concerns\RecordsEndOfGame;
 use App\Models\Concerns\RecordsEndOfRally;
@@ -26,6 +27,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @property int $championship_id
@@ -39,6 +41,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $division
  * @property string $pool
  * @property string $category
+ * @property bool $rosters_submitted
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read Championship $championship
@@ -79,6 +82,7 @@ class Game extends Model
     {
         return [
             'number' => 'integer',
+            'rosters_submitted' => 'boolean',
             'date_time' => 'immutable_datetime',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
@@ -193,12 +197,64 @@ class Game extends Model
     /**
      * Add a staff member to the match roster.
      */
-    public function addStaff(Staff $staff, StaffRole|string $role): void
+    public function addStaff(Staff $staff, StaffRole|string|null $role = null): void
     {
+        $resolvedRole = $role instanceof StaffRole
+            ? $role
+            : ($role !== null ? StaffRole::from($role) : $staff->role);
+
         $this->staff()->attach($staff, [
             'team_id' => $staff->team_id,
-            'role' => $role,
+            'role' => $resolvedRole,
         ]);
+    }
+
+    /**
+     * @param  array<int, array{player: Player, number: int, is_captain: bool, is_libero: bool}>  $players
+     * @param  array<int, Staff>  $staff
+     */
+    public function replaceRosterForTeam(TeamAB $team, array $players, array $staff): void
+    {
+        $teamId = $team === TeamAB::TeamA ? $this->home_team_id : $this->away_team_id;
+
+        DB::transaction(function () use ($players, $staff, $teamId): void {
+            RosterPlayer::query()
+                ->where('game_id', $this->getKey())
+                ->where('team_id', $teamId)
+                ->delete();
+
+            RosterStaff::query()
+                ->where('game_id', $this->getKey())
+                ->where('team_id', $teamId)
+                ->delete();
+
+            foreach ($players as $playerRoster) {
+                $this->addPlayer(
+                    player: $playerRoster['player'],
+                    number: $playerRoster['number'],
+                    isCaptain: $playerRoster['is_captain'],
+                    isLibero: $playerRoster['is_libero'],
+                );
+            }
+
+            foreach ($staff as $staffMember) {
+                $this->addStaff($staffMember);
+            }
+        });
+    }
+
+    public function hasSubmittedInitialRosters(): bool
+    {
+        return $this->rosters_submitted
+            && $this->homePlayers()->exists()
+            && $this->awayPlayers()->exists();
+    }
+
+    public function markRostersSubmitted(): void
+    {
+        $this->forceFill([
+            'rosters_submitted' => true,
+        ])->save();
     }
 
     /**

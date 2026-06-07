@@ -44,6 +44,7 @@
 
     <div class="flex flex-col items-center">
         <div class="flex items-start justify-center gap-[12rem] lg:gap-[14rem]">
+            @if ($showSanctionControls)
             <div class="hidden w-40 flex-col gap-2 md:flex" data-misconduct-controls="left" data-misconduct-team="{{ $leftTeam->value }}">
                 <flux:heading size="sm" class="text-center">Misconduct</flux:heading>
 
@@ -170,6 +171,7 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <section
                 id="volleyball-court"
@@ -220,6 +222,7 @@
                 @endforeach
             </section>
 
+            @if ($showSanctionControls)
             <div class="hidden w-40 flex-col gap-2 md:flex" data-misconduct-controls="right" data-misconduct-team="{{ $rightTeam->value }}">
                 <flux:heading size="sm" class="text-center">Misconduct</flux:heading>
 
@@ -346,6 +349,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </div>
 
         <div class="mt-6 flex items-start gap-4">

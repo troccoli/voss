@@ -248,6 +248,42 @@ test('team roster omits staff role circles when those roles are not on the roste
         ->assertDontSeeHtml('data-team-roster-staff-role="T"');
 });
 
+test('team roster bench only shows staff roles that were selected during roster submission', function (): void {
+    $game = Game::factory()->create();
+    $homePlayers = Player::factory()->for($game->homeTeam)->count(6)->create();
+    $awayPlayers = Player::factory()->for($game->awayTeam)->count(6)->create();
+    $homeCoach = Staff::factory()->for($game->homeTeam)->asCoach()->create();
+    $homeAssistantCoach = Staff::factory()->for($game->homeTeam)->asAssistantCoach()->create();
+    $homeDoctor = Staff::factory()->for($game->homeTeam)->asDoctor()->create();
+    $homeTherapist = Staff::factory()->for($game->homeTeam)->asTherapist()->create();
+
+    foreach ($homePlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 1);
+    }
+
+    foreach ($awayPlayers as $index => $player) {
+        $game->addPlayer($player, number: $index + 11);
+    }
+
+    $game->addStaff($homeCoach, StaffRole::Coach);
+    $game->addStaff($homeAssistantCoach, StaffRole::AssistantCoach);
+    $game->addStaff($homeDoctor, StaffRole::Doctor);
+
+    Livewire::test(TeamRoster::class, [
+        'gameId' => $game->getKey(),
+        'team' => TeamAB::TeamA,
+        'leftSide' => true,
+    ])
+        ->assertSeeHtml('data-team-roster-staff-role="C"')
+        ->assertSeeHtml('data-team-roster-staff-role="A1"')
+        ->assertSeeHtml('data-team-roster-staff-role="D"')
+        ->assertDontSeeHtml('data-team-roster-staff-role="A2"')
+        ->assertDontSeeHtml('data-team-roster-staff-role="T"');
+
+    expect($game->homeStaff->contains(fn (Staff $staff): bool => $staff->getKey() === $homeTherapist->getKey()))
+        ->toBeFalse();
+});
+
 test('timeout card shows modal trigger when a set is in progress', function (): void {
     $game = gameWithActiveSetForTeamRoster();
 
@@ -763,16 +799,16 @@ function gameWithNumberedRostersForTeamRoster(): Game
     $awayPlayerOne = Player::factory()->for($awayTeam)->named('Dora', 'Young')->create();
     $awayPlayerTwo = Player::factory()->for($awayTeam)->named('Etta', 'Baker')->create();
     $awayLibero = Player::factory()->for($awayTeam)->named('Faye', 'Keeper')->create();
-    $homeCoach = Staff::factory()->for($homeTeam)->create();
-    $homeAssistantCoachOne = Staff::factory()->for($homeTeam)->create();
-    $homeAssistantCoachTwo = Staff::factory()->for($homeTeam)->create();
-    $homeDoctor = Staff::factory()->for($homeTeam)->create();
-    $homeTherapist = Staff::factory()->for($homeTeam)->create();
-    $awayCoach = Staff::factory()->for($awayTeam)->create();
-    $awayAssistantCoachOne = Staff::factory()->for($awayTeam)->create();
-    $awayAssistantCoachTwo = Staff::factory()->for($awayTeam)->create();
-    $awayDoctor = Staff::factory()->for($awayTeam)->create();
-    $awayTherapist = Staff::factory()->for($awayTeam)->create();
+    $homeCoach = Staff::factory()->for($homeTeam)->asCoach()->create();
+    $homeAssistantCoachOne = Staff::factory()->for($homeTeam)->asAssistantCoach()->create();
+    $homeAssistantCoachTwo = Staff::factory()->for($homeTeam)->asAssistantCoach()->create();
+    $homeDoctor = Staff::factory()->for($homeTeam)->asDoctor()->create();
+    $homeTherapist = Staff::factory()->for($homeTeam)->asTherapist()->create();
+    $awayCoach = Staff::factory()->for($awayTeam)->asCoach()->create();
+    $awayAssistantCoachOne = Staff::factory()->for($awayTeam)->asAssistantCoach()->create();
+    $awayAssistantCoachTwo = Staff::factory()->for($awayTeam)->asAssistantCoach()->create();
+    $awayDoctor = Staff::factory()->for($awayTeam)->asDoctor()->create();
+    $awayTherapist = Staff::factory()->for($awayTeam)->asTherapist()->create();
 
     $game->addPlayer($homePlayerOne, number: 12);
     $game->addPlayer($homePlayerTwo, number: 3);

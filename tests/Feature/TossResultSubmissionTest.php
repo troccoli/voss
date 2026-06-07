@@ -6,6 +6,7 @@ use App\Enums\GameEventType;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Events\Payloads\SetStartedPayload;
+use App\Livewire\RosterSubmission;
 use App\Livewire\TossResultSubmission;
 use App\Models\Game;
 use App\Models\GameEvent;
@@ -23,6 +24,7 @@ beforeEach(function (): void {
 
 test('submitting toss result creates a toss completed event', function (): void {
     $game = Game::factory()->create();
+    seedRosterableTeams($game);
 
     Livewire::test(TossResultSubmission::class, ['gameId' => $game->getKey()])
         ->set('teamA', TeamSide::Away->value)
@@ -69,6 +71,7 @@ test('submitting toss result fails when there is no active game', function (): v
 
 test('submitting toss result fails when toss has already been recorded', function (): void {
     $game = Game::factory()->create();
+    seedRosterableTeams($game);
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(TossResultSubmission::class, ['gameId' => $game->getKey()])
@@ -83,6 +86,7 @@ test('submitting toss result fails when toss has already been recorded', functio
 test('submitting toss result records the event against the provided game id', function (): void {
     $targetGame = Game::factory()->create();
     $otherGame = Game::factory()->create();
+    seedRosterableTeams($targetGame);
 
     Livewire::test(TossResultSubmission::class, ['gameId' => $targetGame->getKey()])
         ->set('teamA', TeamSide::Away->value)
@@ -96,13 +100,23 @@ test('submitting toss result records the event against the provided game id', fu
 });
 
 test('toss modal shows home and away team country codes', function (): void {
-    $game = Game::factory()->create();
+    $game = tiedGameReadyForFifthSetToss();
 
     Livewire::test(TossResultSubmission::class, ['gameId' => $game->getKey()])
         ->assertSee($game->homeTeam->country_code)
         ->assertSee($game->awayTeam->country_code)
         ->assertDontSee('Home Team')
         ->assertDontSee('Away Team');
+});
+
+test('initial toss submission fails until rosters have been submitted', function (): void {
+    $game = Game::factory()->create();
+
+    Livewire::test(TossResultSubmission::class, ['gameId' => $game->getKey()])
+        ->set('teamA', TeamSide::Away->value)
+        ->set('serving', TeamSide::Home->value)
+        ->call('submit')
+        ->assertHasErrors(['submit']);
 });
 
 test('toss submit button is hidden when toss has already been recorded', function (): void {
@@ -149,6 +163,24 @@ test('toss submit button is hidden when snapshot state already includes toss dat
         ->assertDontSee('Submit Toss Result')
         ->assertDontSee('Save Toss Result');
 });
+
+function seedRosterableTeams(Game $game): void
+{
+    $homePlayers = Player::factory()->for($game->homeTeam)->count(6)->create();
+    $awayPlayers = Player::factory()->for($game->awayTeam)->count(6)->create();
+
+    $component = Livewire::test(RosterSubmission::class, ['gameId' => $game->getKey()]);
+
+    foreach ($homePlayers as $index => $player) {
+        $component->set("homeRosterInputs.{$player->getKey()}", (string) ($index + 1));
+    }
+
+    foreach ($awayPlayers as $index => $player) {
+        $component->set("awayRosterInputs.{$player->getKey()}", (string) ($index + 11));
+    }
+
+    $component->call('submitRosters')->assertHasNoErrors();
+}
 
 function tiedGameReadyForFifthSetToss(): Game
 {

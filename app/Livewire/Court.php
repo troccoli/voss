@@ -182,6 +182,7 @@ class Court extends Component
      *     rightTeam: TeamAB,
      *     servingTeam: TeamAB|null,
      *     showRosters: bool,
+     *     showSanctionControls: bool,
      *     leftRotation: array<int, int>,
      *     rightRotation: array<int, int>,
      *     leftDelayWarningDisabled: bool,
@@ -204,12 +205,14 @@ class Court extends Component
         $leftTeam = $this->gameSideResolver()->teamOnLeftForState($state);
         $rightTeam = $this->gameSideResolver()->teamOnRightForState($state);
         $showRosters = $game !== null && $this->gameSideResolver()->hasRecordedToss($game);
+        $showSanctionControls = ! $this->isBeforeInitialToss($state, $game);
 
         return [
             'leftTeam' => $leftTeam,
             'rightTeam' => $rightTeam,
             'servingTeam' => $state->servingTeam,
             'showRosters' => $showRosters,
+            'showSanctionControls' => $showSanctionControls,
             'leftRotation' => $this->rotationForTeam($leftTeam),
             'rightRotation' => $this->rotationForTeam($rightTeam),
             'leftDelayWarningDisabled' => $this->hasDelaySanctionFor($leftTeam),
@@ -236,6 +239,16 @@ class Court extends Component
     private function resolvedGameState(): GameState
     {
         return $this->gameState ?? GameState::initial();
+    }
+
+    private function isBeforeInitialToss(GameState $state, ?Game $game): bool
+    {
+        if ($game !== null && $this->gameSideResolver()->hasRecordedToss($game)) {
+            return false;
+        }
+
+        return ! $this->gameSideResolver()->hasRequiredToss($state)
+            && ! $this->gameSideResolver()->requiresFifthSetToss($state);
     }
 
     private function activeGame(): ?Game

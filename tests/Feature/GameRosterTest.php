@@ -34,9 +34,9 @@ test('can override player number in game', function (): void {
 test('a game has match staff', function (): void {
     $game = Game::factory()->create();
     $team = Team::factory()->create();
-    $staff = Staff::factory()->for($team)->create();
+    $staff = Staff::factory()->for($team)->asCoach()->create();
 
-    $game->addStaff($staff, StaffRole::Coach);
+    $game->addStaff($staff);
 
     expect($game->staff)->toHaveCount(1)
         ->and($game->staff->first()->getKey())->toBe($staff->getKey())

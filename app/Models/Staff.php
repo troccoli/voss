@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\StaffRole;
 use Carbon\CarbonImmutable;
 use Database\Factories\StaffFactory;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property int $team_id
  * @property string $first_name
  * @property string $last_name
+ * @property StaffRole $role
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read Team $team
@@ -31,6 +33,7 @@ class Staff extends Model
     protected function casts(): array
     {
         return [
+            'role' => StaffRole::class,
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
         ];

@@ -26,7 +26,9 @@ test('the game page returns a successful response and renders the fixed canvas w
         ->assertSee('id="game-canvas"', false)
         ->assertSee('bg-sky-100')
         ->assertSee('id="volleyball-court"', false)
-        ->assertSee('Submit Toss Result')
+        ->assertSee('Submit rosters')
+        ->assertDontSee('Submit Toss Result')
+        ->assertDontSee('data-scoreboard', false)
         ->assertDontSee('Submit Lineup');
 });
 
@@ -35,7 +37,9 @@ test('the game livewire component renders the court component', function (): voi
 
     Livewire::test(Game::class, ['game' => $game])
         ->assertSeeHtml('id="game-canvas"')
-        ->assertSeeHtml('id="volleyball-court"');
+        ->assertSeeHtml('id="volleyball-court"')
+        ->assertSee('Submit rosters')
+        ->assertDontSeeHtml('data-scoreboard');
 });
 
 test('the game page renders the start set button when both lineups are submitted for the upcoming set', function (): void {

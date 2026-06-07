@@ -64,6 +64,12 @@ class TossResultSubmission extends Component
 
     public function submit(): void
     {
+        if (! $this->isFifthSetToss() && ! $this->hasSubmittedRosters()) {
+            $this->addError('submit', 'Both team rosters must be submitted before the toss.');
+
+            return;
+        }
+
         $this->validate();
 
         if ($this->gameId === null) {
@@ -128,6 +134,8 @@ class TossResultSubmission extends Component
 
         return view('livewire.toss-result-submission', [
             'hasSubmittedToss' => $this->hasSubmittedToss($activeGame),
+            'hasSubmittedRosters' => $this->hasSubmittedRosters($activeGame),
+            'isBeforeInitialToss' => $this->isBeforeInitialToss($activeGame),
             'isFifthSetToss' => $this->isFifthSetToss(),
             'homeTeamCode' => $activeGame?->homeTeam->country_code ?? 'Home Team',
             'awayTeamCode' => $activeGame?->awayTeam->country_code ?? 'Away Team',
@@ -171,6 +179,21 @@ class TossResultSubmission extends Component
     private function isFifthSetToss(): bool
     {
         return $this->gameSideResolver()->requiresFifthSetToss($this->resolvedGameState());
+    }
+
+    private function isBeforeInitialToss(?Game $activeGame = null): bool
+    {
+        $state = $this->resolvedGameState($activeGame);
+
+        return ! $this->gameSideResolver()->hasRequiredToss($state)
+            && ! $this->gameSideResolver()->requiresFifthSetToss($state);
+    }
+
+    private function hasSubmittedRosters(?Game $activeGame = null): bool
+    {
+        $game = $activeGame ?? $this->activeGame();
+
+        return $game?->hasSubmittedInitialRosters() ?? false;
     }
 
     private function teamForSide(TeamSide $teamASide, TeamSide $selectedSide): TeamAB

@@ -89,6 +89,7 @@ class Game extends Component
     public function render(): View
     {
         return view('livewire.game', [
+            'isBeforeInitialToss' => $this->isBeforeInitialToss(),
             'justEndedSetNumber' => $this->justEndedSetNumber,
             'setWinnerCode' => $this->setWinnerCode,
             'finalScoreWinner' => $this->finalScoreWinner,
@@ -109,5 +110,11 @@ class Game extends Component
     private function gameSideResolver(): GameSideResolver
     {
         return app(GameSideResolver::class);
+    }
+
+    private function isBeforeInitialToss(): bool
+    {
+        return ! $this->gameSideResolver()->hasRequiredToss($this->gameState)
+            && ! $this->gameSideResolver()->requiresFifthSetToss($this->gameState);
     }
 }

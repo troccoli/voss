@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Enums\OfficialRole;
-use App\Enums\StaffRole;
 use App\Models\Championship;
 use App\Models\Game;
 use App\Models\Official;
@@ -38,11 +37,11 @@ class DatabaseSeeder extends Seeder
                 ->count(14)
                 ->create();
 
-            Staff::factory()
-                ->for($team)
-                ->forCountry($team->country_code)
-                ->count(5)
-                ->create();
+            Staff::factory()->for($team)->forCountry($team->country_code)->asCoach()->create();
+            Staff::factory()->for($team)->forCountry($team->country_code)->asAssistantCoach()->create();
+            Staff::factory()->for($team)->forCountry($team->country_code)->asAssistantCoach()->create();
+            Staff::factory()->for($team)->forCountry($team->country_code)->asTherapist()->create();
+            Staff::factory()->for($team)->forCountry($team->country_code)->asDoctor()->create();
         });
 
         /** @var Collection<int, Official> $officials */
@@ -55,7 +54,7 @@ class DatabaseSeeder extends Seeder
             ->scheduledAt(now()->addDays(1))
             ->create();
 
-        // Assign officials, players and staff to matches
+        // Assign officials to the match. Leave rosters empty so the UI starts at roster submission.
         $roles = OfficialRole::cases();
         /** @var Collection<int, Official> $shuffledOfficials */
         $shuffledOfficials = $officials
@@ -66,37 +65,6 @@ class DatabaseSeeder extends Seeder
             /** @var Official $official */
             $official = $shuffledOfficials[$index];
             $game->addOfficial($official, $role);
-        }
-
-        // Players and Staff for both teams
-        foreach ([$game->homeTeam, $game->awayTeam] as $team) {
-            $usedNumbers = [];
-            /** @var Player $player */
-            $captain = mt_rand(1, 14);
-            do {
-                $libero1 = mt_rand(1, 14);
-                $libero2 = mt_rand(1, 14);
-            } while ($captain === $libero1 || $captain === $libero2 || $libero1 === $libero2);
-            foreach ($team->players as $index => $player) {
-                $playerNumber = fake()->unique()->numberBetween(1, 99);
-                $game->addPlayer(
-                    player: $player,
-                    number: $playerNumber,
-                    isCaptain: $index === $captain,
-                    isLibero: $index === $libero1 || $index === $libero2
-                );
-            }
-
-            $staffRoles = [
-                StaffRole::Coach,
-                StaffRole::AssistantCoach,
-                StaffRole::AssistantCoach,
-                StaffRole::Therapist,
-                StaffRole::Doctor,
-            ];
-            foreach ($team->staff as $index => $staff) {
-                $game->addStaff(staff: $staff, role: $staffRoles[$index]);
-            }
         }
 
         User::factory()

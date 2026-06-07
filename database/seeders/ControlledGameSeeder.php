@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Enums\OfficialRole;
-use App\Enums\StaffRole;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Models\Championship;
@@ -65,17 +64,19 @@ class ControlledGameSeeder extends Seeder
             ->count(12)
             ->create();
 
-        Staff::factory()
-            ->for($homeTeam)
-            ->forCountry($homeTeam->country_code)
-            ->count(5)
-            ->create();
+        $homeStaff = [
+            Staff::factory()->for($homeTeam)->forCountry($homeTeam->country_code)->asCoach()->create(),
+            Staff::factory()->for($homeTeam)->forCountry($homeTeam->country_code)->asAssistantCoach()->create(),
+            Staff::factory()->for($homeTeam)->forCountry($homeTeam->country_code)->asAssistantCoach()->create(),
+            Staff::factory()->for($homeTeam)->forCountry($homeTeam->country_code)->asDoctor()->create(),
+            Staff::factory()->for($homeTeam)->forCountry($homeTeam->country_code)->asTherapist()->create(),
+        ];
 
-        Staff::factory()
-            ->for($awayTeam)
-            ->forCountry($awayTeam->country_code)
-            ->count(3)
-            ->create();
+        $awayStaff = [
+            Staff::factory()->for($awayTeam)->forCountry($awayTeam->country_code)->asCoach()->create(),
+            Staff::factory()->for($awayTeam)->forCountry($awayTeam->country_code)->asAssistantCoach()->create(),
+            Staff::factory()->for($awayTeam)->forCountry($awayTeam->country_code)->asDoctor()->create(),
+        ];
 
         $game = Game::factory()
             ->for($championship, 'championship')
@@ -113,26 +114,12 @@ class ControlledGameSeeder extends Seeder
             );
         }
 
-        $homeStaffRoles = [
-            StaffRole::Coach,
-            StaffRole::AssistantCoach,
-            StaffRole::AssistantCoach,
-            StaffRole::Doctor,
-            StaffRole::Therapist,
-        ];
-
-        foreach ($homeTeam->staff()->orderBy('id')->get() as $index => $staff) {
-            $game->addStaff($staff, $homeStaffRoles[$index]);
+        foreach ($homeStaff as $staff) {
+            $game->addStaff($staff);
         }
 
-        $awayStaffRoles = [
-            StaffRole::Coach,
-            StaffRole::AssistantCoach,
-            StaffRole::Doctor,
-        ];
-
-        foreach ($awayTeam->staff()->orderBy('id')->get() as $index => $staff) {
-            $game->addStaff($staff, $awayStaffRoles[$index]);
+        foreach ($awayStaff as $staff) {
+            $game->addStaff($staff);
         }
 
         $game->recordToss(TeamSide::Home, TeamAB::TeamA);
