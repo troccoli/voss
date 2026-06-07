@@ -24,7 +24,7 @@ beforeEach(function (): void {
 
 test('submitting toss result creates a toss completed event', function (): void {
     $game = Game::factory()->create();
-    seedRosterableTeams($game);
+    seedTossResultRosterableTeams($game);
 
     Livewire::test(TossResultSubmission::class, ['gameId' => $game->getKey()])
         ->set('teamA', TeamSide::Away->value)
@@ -71,7 +71,7 @@ test('submitting toss result fails when there is no active game', function (): v
 
 test('submitting toss result fails when toss has already been recorded', function (): void {
     $game = Game::factory()->create();
-    seedRosterableTeams($game);
+    seedTossResultRosterableTeams($game);
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(TossResultSubmission::class, ['gameId' => $game->getKey()])
@@ -86,7 +86,7 @@ test('submitting toss result fails when toss has already been recorded', functio
 test('submitting toss result records the event against the provided game id', function (): void {
     $targetGame = Game::factory()->create();
     $otherGame = Game::factory()->create();
-    seedRosterableTeams($targetGame);
+    seedTossResultRosterableTeams($targetGame);
 
     Livewire::test(TossResultSubmission::class, ['gameId' => $targetGame->getKey()])
         ->set('teamA', TeamSide::Away->value)
@@ -164,7 +164,7 @@ test('toss submit button is hidden when snapshot state already includes toss dat
         ->assertDontSee('Save Toss Result');
 });
 
-function seedRosterableTeams(Game $game): void
+function seedTossResultRosterableTeams(Game $game): void
 {
     $homePlayers = Player::factory()->for($game->homeTeam)->count(6)->create();
     $awayPlayers = Player::factory()->for($game->awayTeam)->count(6)->create();
@@ -179,7 +179,11 @@ function seedRosterableTeams(Game $game): void
         $component->set("awayRosterInputs.{$player->getKey()}", (string) ($index + 11));
     }
 
-    $component->call('submitRosters')->assertHasNoErrors();
+    $component
+        ->set('homeCaptainSelection', (string) $homePlayers[0]->getKey())
+        ->set('awayCaptainSelection', (string) $awayPlayers[0]->getKey())
+        ->call('confirmRosters')
+        ->assertHasNoErrors();
 }
 
 function tiedGameReadyForFifthSetToss(): Game
