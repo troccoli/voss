@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Enums\StaffRole;
+use App\Models\Game;
 use App\Models\Staff;
 use App\Models\Team;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -80,5 +81,19 @@ class StaffFactory extends Factory
     public function asTherapist(): static
     {
         return $this->withRole(StaffRole::Therapist);
+    }
+
+    public function forMatch(Game $game): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'game_id' => $game->getKey(),
+        ]);
+    }
+
+    public function rostered(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_rostered' => true,
+        ]);
     }
 }

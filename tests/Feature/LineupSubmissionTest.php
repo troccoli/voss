@@ -12,7 +12,6 @@ use App\Models\Game;
 use App\Models\GameEvent;
 use App\Models\GameStateSnapshot;
 use App\Models\Player;
-use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\View\ViewException;
@@ -45,34 +44,16 @@ function validLineupInput(): array
  */
 function validLineupPositions(): array
 {
-    return [
-        1 => 1,
-        2 => 2,
-        3 => 3,
-        4 => 4,
-        5 => 5,
-        6 => 6,
-    ];
+    return standardLineup();
 }
 
 function prepareGameForLineupSubmission(): Game
 {
-    $homeTeam = Team::factory()->create();
-    $awayTeam = Team::factory()->create();
-    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
+    $game = createCurrentMatch();
+    submitInitialRosters($game);
 
-    $homePlayers = Player::factory()->for($homeTeam)->count(6)->create();
-    foreach ($homePlayers as $index => $player) {
-        $game->addPlayer($player, number: $index + 1);
-    }
-
-    $homeLibero = Player::factory()->for($homeTeam)->create();
+    $homeLibero = Player::factory()->for($game->homeTeam)->create();
     $game->addPlayer($homeLibero, number: 99, isLibero: true);
-
-    $awayPlayers = Player::factory()->for($awayTeam)->count(6)->create();
-    foreach ($awayPlayers as $index => $player) {
-        $game->addPlayer($player, number: $index + 11);
-    }
 
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
@@ -80,9 +61,9 @@ function prepareGameForLineupSubmission(): Game
 }
 
 test('lineup submission is hidden before toss is submitted', function (): void {
-    $game = Game::factory()->create();
+    $game = createCurrentMatch();
 
-    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA, 'gameId' => $game->getKey()])
+    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA])
         ->assertDontSee('Submit Lineup')
         ->assertDontSee('Team A Lineup');
 });
@@ -90,7 +71,7 @@ test('lineup submission is hidden before toss is submitted', function (): void {
 test('lineup submission renders team a button and modal after toss is submitted', function (): void {
     $game = prepareGameForLineupSubmission();
 
-    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA, 'gameId' => $game->getKey()])
+    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA])
         ->assertSee('Submit Lineup')
         ->assertSee('Team A Lineup')
         ->assertSeeHtml('submit-lineup-team_a-left')
@@ -108,7 +89,7 @@ test('lineup submission renders team a button and modal after toss is submitted'
 test('lineup submission renders team b button and modal after toss is submitted', function (): void {
     $game = prepareGameForLineupSubmission();
 
-    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamB, 'gameId' => $game->getKey()])
+    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamB])
         ->assertSee('Submit Lineup')
         ->assertSee('Team B Lineup')
         ->assertSeeHtml('submit-lineup-team_b-left')
@@ -123,16 +104,16 @@ test('lineup submission renders team b button and modal after toss is submitted'
 });
 
 test('lineup submission rejects unsupported team value', function (): void {
-    $game = Game::factory()->create();
+    $game = createCurrentMatch();
 
-    expect(fn (): Testable => Livewire::test(LineupSubmission::class, ['team' => 'invalid', 'gameId' => $game->getKey()]))
+    expect(fn (): Testable => Livewire::test(LineupSubmission::class, ['team' => 'invalid']))
         ->toThrow(ViewException::class);
 });
 
 test('lineup submission modal name includes the court side to avoid stale modal reuse', function (): void {
     $game = prepareGameForLineupSubmission();
 
-    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamB, 'gameId' => $game->getKey(), 'courtSide' => 'right'])
+    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamB, 'courtSide' => 'right'])
         ->assertSeeHtml('submit-lineup-team_b-right')
         ->assertDontSeeHtml('submit-lineup-team_b-left');
 });
@@ -140,7 +121,7 @@ test('lineup submission modal name includes the court side to avoid stale modal 
 test('lineup submission records an event and dispatches a refresh event', function (): void {
     $game = prepareGameForLineupSubmission();
 
-    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA, 'gameId' => $game->getKey()])
+    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA])
         ->set('lineup', validLineupInput())
         ->call('submit')
         ->assertHasNoErrors()
@@ -166,7 +147,7 @@ test('lineup submission requires positive integers', function (): void {
     $lineup = validLineupInput();
     $lineup[1] = '0';
 
-    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA, 'gameId' => $game->getKey()])
+    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA])
         ->set('lineup', $lineup)
         ->call('submit')
         ->assertHasErrors(['submit'])
@@ -178,7 +159,7 @@ test('lineup submission requires all roster numbers to be different', function (
     $lineup = validLineupInput();
     $lineup[2] = '1';
 
-    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA, 'gameId' => $game->getKey()])
+    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA])
         ->set('lineup', $lineup)
         ->call('submit')
         ->assertHasErrors(['submit'])
@@ -192,7 +173,7 @@ test('lineup submission rejects roster numbers not eligible for the selected tea
     $lineup = validLineupInput();
     $lineup[1] = $invalidRosterNumber;
 
-    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA, 'gameId' => $game->getKey()])
+    Livewire::test(LineupSubmission::class, ['team' => TeamAB::TeamA])
         ->set('lineup', $lineup)
         ->call('submit')
         ->assertHasErrors(['submit'])
@@ -204,18 +185,16 @@ test('lineup submission rejects roster numbers not eligible for the selected tea
     'libero roster number' => ['99'],
 ]);
 
-test('lineup submission is aware of the injected game context', function (): void {
+test('lineup submission uses the singleton match while respecting injected game state', function (): void {
     $game = Game::factory()->create();
 
     Livewire::test(LineupSubmission::class, [
         'team' => TeamAB::TeamA,
-        'gameId' => $game->getKey(),
         'gameState' => GameState::fromAttributes([
             'set_number' => 2,
             'serving_team' => TeamAB::TeamB->value,
         ]),
     ])
-        ->assertSet('gameId', $game->getKey())
         ->assertSet('gameState', fn (GameState $gameState): bool => $gameState->setNumber === 2
             && $gameState->servingTeam === TeamAB::TeamB);
 });
@@ -226,7 +205,6 @@ test('lineup submission button is hidden after the lineup is already submitted f
 
     Livewire::test(LineupSubmission::class, [
         'team' => TeamAB::TeamA,
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ])
         ->assertDontSee('Submit Lineup')
@@ -239,7 +217,6 @@ test('lineup submission button remains visible for the other team when only one 
 
     Livewire::test(LineupSubmission::class, [
         'team' => TeamAB::TeamB,
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ])
         ->assertSee('Submit Lineup')
@@ -251,7 +228,6 @@ test('lineup submission is hidden before the fifth set toss is submitted', funct
 
     Livewire::test(LineupSubmission::class, [
         'team' => TeamAB::TeamA,
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ])
         ->assertDontSee('Submit Lineup')
@@ -291,13 +267,11 @@ test('lineup submission visibility follows snapshot state without querying lineu
 
     Livewire::test(LineupSubmission::class, [
         'team' => TeamAB::TeamA,
-        'gameId' => $game->getKey(),
     ])
         ->assertDontSee('Submit Lineup');
 
     Livewire::test(LineupSubmission::class, [
         'team' => TeamAB::TeamB,
-        'gameId' => $game->getKey(),
     ])
         ->assertSee('Submit Lineup')
         ->assertSee('Team B Lineup');
@@ -310,14 +284,7 @@ function tiedLineupGameReadyForFifthSet(): Game
     foreach ([TeamAB::TeamA, TeamAB::TeamB, TeamAB::TeamA, TeamAB::TeamB] as $setWinner) {
         $set = $game->stateAt()->setNumber + 1;
         $game->recordLineup($set, TeamAB::TeamA, validLineupPositions());
-        $game->recordLineup($set, TeamAB::TeamB, [
-            1 => 11,
-            2 => 12,
-            3 => 13,
-            4 => 14,
-            5 => 15,
-            6 => 16,
-        ]);
+        $game->recordLineup($set, TeamAB::TeamB, standardLineup(11));
         $game->recordSetStarted();
 
         for ($index = 0; $index < 25; $index++) {

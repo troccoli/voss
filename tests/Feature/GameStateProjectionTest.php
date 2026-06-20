@@ -111,7 +111,6 @@ test('recalculation job rebuilds snapshots from scratch up to a cutoff time', fu
     Carbon::setTestNow();
 
     dispatch_sync(new RecalculateGameStateSnapshots(
-        gameId: $game->getKey(),
         upTo: '2026-03-07 10:02:30',
     ));
 

@@ -14,5 +14,6 @@ class GameEventObserver
     {
         resolve(GameStateProjector::class)->projectAndStore($gameEvent);
         resolve(GameEventReactor::class)->reactTo($gameEvent);
+        $gameEvent->game->synchronizeStatus();
     }
 }

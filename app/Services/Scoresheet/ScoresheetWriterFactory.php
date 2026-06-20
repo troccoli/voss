@@ -7,6 +7,7 @@ namespace App\Services\Scoresheet;
 use App\Services\Scoresheet\Contracts\ScoresheetSectionWriter;
 use App\Services\Scoresheet\Writers\MatchInfoWriter;
 use App\Services\Scoresheet\Writers\OfficialsWriter;
+use App\Services\Scoresheet\Writers\ResultsWriter;
 use App\Services\Scoresheet\Writers\TeamsWriter;
 use InvalidArgumentException;
 
@@ -18,6 +19,7 @@ class ScoresheetWriterFactory
             'match_info' => app(MatchInfoWriter::class),
             'teams' => app(TeamsWriter::class),
             'officials' => app(OfficialsWriter::class),
+            'results' => app(ResultsWriter::class),
             default => throw new InvalidArgumentException("Unknown writer type: {$type}"),
         };
     }

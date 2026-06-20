@@ -10,21 +10,17 @@ use App\Enums\TeamAB;
 use App\Models\Game;
 use App\Models\Player;
 use App\Models\Staff;
+use App\Services\CurrentMatchResolver;
 use App\Services\GameSideResolver;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
-use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 class RosterSubmission extends Component
 {
-    #[Reactive]
-    #[Locked]
-    public ?int $gameId = null;
-
     #[Reactive]
     public ?GameState $gameState = null;
 
@@ -49,11 +45,6 @@ class RosterSubmission extends Component
     public string $homeCaptainSelection = '';
 
     public string $awayCaptainSelection = '';
-
-    public function mount(?int $gameId = null): void
-    {
-        $this->gameId = $gameId;
-    }
 
     public function updated(string $property): void
     {
@@ -496,25 +487,14 @@ class RosterSubmission extends Component
             return $activeGame->stateAt();
         }
 
-        if ($this->gameId === null) {
-            return $this->gameState ?? GameState::initial();
-        }
-
-        $activeGame = Game::query()->whereKey($this->gameId)->first();
+        $activeGame = $this->activeGame();
 
         return $activeGame?->stateAt() ?? ($this->gameState ?? GameState::initial());
     }
 
     private function activeGame(): ?Game
     {
-        if ($this->gameId === null) {
-            return null;
-        }
-
-        return Game::query()
-            ->with(['homeTeam', 'awayTeam'])
-            ->whereKey($this->gameId)
-            ->first();
+        return app(CurrentMatchResolver::class)->current();
     }
 
     private function gameSideResolver(): GameSideResolver

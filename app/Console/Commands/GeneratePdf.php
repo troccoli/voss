@@ -16,8 +16,7 @@ class GeneratePdf extends Command
 {
     public function handle(ScoresheetGenerator $generator): void
     {
-        /** @var Game $game */
-        $game = Game::query()->first();
+        $game = Game::current();
 
         $pdf = $generator->generate($game);
 

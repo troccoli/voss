@@ -31,7 +31,7 @@ beforeEach(function (): void {
 test('court does not show player lists before toss is submitted', function (): void {
     $game = gameWithNumberedRosters();
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameState(['set_number' => 0])])
+    Livewire::test(Court::class, ['gameState' => gameState(['set_number' => 0])])
         ->assertDontSee('Submit Lineup')
         ->assertDontSeeHtml('data-team-roster-number="3"')
         ->assertDontSeeHtml('data-team-roster-number="12"')
@@ -53,7 +53,7 @@ test('court shows player lists after toss is submitted', function (): void {
     $game = gameWithNumberedRosters();
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameStateWithSubmittedLineups(['set_number' => 1])])
+    Livewire::test(Court::class, ['gameState' => gameStateWithSubmittedLineups(['set_number' => 1])])
         ->assertSeeInOrder([
             '3',
             '12',
@@ -74,7 +74,6 @@ test('court hides players currently on court from roster lists when lineup is pr
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState([
             'set_number' => 1,
             'rotation_team_a' => [1 => 3],
@@ -91,7 +90,7 @@ test('court swaps team sides in sets two three and four', function (): void {
     $game = gameWithNumberedRosters();
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameStateWithSubmittedLineups(['set_number' => 2, 'sets_won_team_a' => 1])])
+    Livewire::test(Court::class, ['gameState' => gameStateWithSubmittedLineups(['set_number' => 2, 'sets_won_team_a' => 1])])
         ->assertSeeInOrder([
             '2',
             '9',
@@ -99,7 +98,7 @@ test('court swaps team sides in sets two three and four', function (): void {
             '12',
         ]);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameStateWithSubmittedLineups(['set_number' => 3, 'sets_won_team_a' => 1, 'sets_won_team_b' => 1])])
+    Livewire::test(Court::class, ['gameState' => gameStateWithSubmittedLineups(['set_number' => 3, 'sets_won_team_a' => 1, 'sets_won_team_b' => 1])])
         ->assertSeeInOrder([
             '3',
             '12',
@@ -107,7 +106,7 @@ test('court swaps team sides in sets two three and four', function (): void {
             '9',
         ]);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameStateWithSubmittedLineups(['set_number' => 4, 'sets_won_team_a' => 2, 'sets_won_team_b' => 1])])
+    Livewire::test(Court::class, ['gameState' => gameStateWithSubmittedLineups(['set_number' => 4, 'sets_won_team_a' => 2, 'sets_won_team_b' => 1])])
         ->assertSeeInOrder([
             '2',
             '9',
@@ -149,7 +148,6 @@ test('court alternates left and right rosters from set one to set four', functio
 
     foreach ($setExpectations as $state) {
         Livewire::test(Court::class, [
-            'gameId' => $game->getKey(),
             'gameState' => gameStateWithSubmittedLineups([
                 'set_number' => $state['set_number'],
                 'sets_won_team_a' => $state['sets_won_team_a'],
@@ -163,7 +161,7 @@ test('court keeps team a on the left in first and fifth sets regardless of toss 
     $game = gameWithNumberedRosters();
     $game->recordToss(TeamSide::Away, TeamAB::TeamA);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameStateWithSubmittedLineups(['set_number' => 1])])
+    Livewire::test(Court::class, ['gameState' => gameStateWithSubmittedLineups(['set_number' => 1])])
         ->assertSeeInOrder([
             '2',
             '9',
@@ -171,7 +169,7 @@ test('court keeps team a on the left in first and fifth sets regardless of toss 
             '12',
         ]);
 
-    Livewire::test(Court::class, ['gameId' => $game->getKey(), 'gameState' => gameStateWithSubmittedLineups(['set_number' => 5, 'sets_won_team_a' => 2, 'sets_won_team_b' => 2])])
+    Livewire::test(Court::class, ['gameState' => gameStateWithSubmittedLineups(['set_number' => 5, 'sets_won_team_a' => 2, 'sets_won_team_b' => 2])])
         ->assertSeeInOrder([
             '2',
             '9',
@@ -185,7 +183,6 @@ test('court shows lineup position one as bottom left for the left side and top r
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState([
             'set_number' => 1,
             'rotation_team_a' => [1 => 12],
@@ -203,7 +200,6 @@ test('court position one anchors follow the side after team swap', function (): 
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState([
             'set_number' => 2,
             'sets_won_team_a' => 1,
@@ -222,7 +218,6 @@ test('court shows serving team position one outside the court on the left side',
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState([
             'set_number' => 1,
             'serving_team' => TeamAB::TeamA->value,
@@ -242,7 +237,6 @@ test('court shows serving team position one outside the court after side swap', 
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState([
             'set_number' => 2,
             'sets_won_team_a' => 1,
@@ -270,7 +264,6 @@ test('court keeps the serving marker on the left side after a set swap', functio
     $game->recordSetStarted();
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ])
         ->assertSeeHtml('data-court-marker="left-team_b-1"')
@@ -292,7 +285,6 @@ test('court keeps serving on the left side after swap even when team b won the p
     $game->recordSetStarted();
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ])
         ->assertSeeHtml('data-court-marker="left-team_b-1"')
@@ -307,7 +299,6 @@ test('court swaps sides as soon as a set ends before the next set starts', funct
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameStateWithSubmittedLineups([
             'set_number' => 1,
             'sets_won_team_a' => 1,
@@ -327,7 +318,6 @@ test('court keeps lineup submission order aligned with left and right sides in s
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState([
             'set_number' => 1,
             'set_in_progress' => false,
@@ -343,7 +333,6 @@ test('court swaps lineup submission order as soon as a set ends before the next 
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState([
             'set_number' => 1,
             'sets_won_team_a' => 1,
@@ -360,7 +349,6 @@ test('court uses the fifth set toss to place the correct team on the left before
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState([
             'set_number' => 4,
             'sets_won_team_a' => 2,
@@ -387,7 +375,6 @@ test('court swaps sides in the fifth set after the 8-point side change', functio
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState([
             'set_number' => 5,
             'sets_won_team_a' => 2,
@@ -410,7 +397,6 @@ test('court renders rally winner controls when set is in progress', function ():
     $game = Game::factory()->create();
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState(['set_number' => 1, 'set_in_progress' => false]),
     ])
         ->assertDontSee('Winner')
@@ -418,7 +404,6 @@ test('court renders rally winner controls when set is in progress', function ():
         ->assertDontSeeHtml('data-rally-winner-button="team_b"');
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState(['set_number' => 1, 'set_in_progress' => true]),
     ])
         ->assertSee('Winner')
@@ -431,7 +416,6 @@ test('court renders misconduct controls on both sides', function (): void {
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameStateWithSubmittedLineups(['set_number' => 1]),
     ])
         ->assertSeeHtml('data-misconduct-controls="left"')
@@ -468,7 +452,6 @@ test('rally winner controls show button only while a set is in progress and game
     $game = Game::factory()->create();
 
     Livewire::test(RallyWinnerControls::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState(['set_number' => 1, 'set_in_progress' => false]),
         'side' => 'left',
     ])
@@ -476,7 +459,6 @@ test('rally winner controls show button only while a set is in progress and game
         ->assertDontSeeHtml('data-rally-winner-button="team_a"');
 
     Livewire::test(RallyWinnerControls::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState(['set_number' => 1, 'set_in_progress' => true]),
         'side' => 'left',
     ])
@@ -484,7 +466,6 @@ test('rally winner controls show button only while a set is in progress and game
         ->assertSeeHtml('data-rally-winner-button="team_a"');
 
     Livewire::test(RallyWinnerControls::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState(['set_number' => 1, 'set_in_progress' => true]),
         'side' => 'right',
     ])
@@ -492,7 +473,6 @@ test('rally winner controls show button only while a set is in progress and game
         ->assertSeeHtml('data-rally-winner-button="team_b"');
 
     Livewire::test(RallyWinnerControls::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState(['set_number' => 5, 'set_in_progress' => true, 'game_ended' => true]),
         'side' => 'left',
     ])
@@ -510,14 +490,12 @@ test('rally winner controls swap sides as soon as sides swap', function (): void
     ]);
 
     Livewire::test(RallyWinnerControls::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $state,
         'side' => 'left',
     ])
         ->assertSeeHtml('data-rally-winner-side-team="left-team_b"');
 
     Livewire::test(RallyWinnerControls::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $state,
         'side' => 'right',
     ])
@@ -528,7 +506,6 @@ test('rally winner controls record rally winner for the selected team and dispat
     $game = gameWithStartedSet();
 
     Livewire::test(RallyWinnerControls::class, [
-        'gameId' => $game->getKey(),
         'gameState' => gameState(['set_number' => 1, 'set_in_progress' => true]),
     ])
         ->assertSeeHtml('data-rally-winner-button="team_a"')
@@ -549,7 +526,6 @@ test('court delay warning button confirms and records a delay warning', function
     $game = gameWithStartedSet();
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ])
         ->call('requestDelayWarning', TeamAB::TeamA->value)
@@ -583,7 +559,6 @@ test('court delay warning button can record a warning between sets', function ()
     expect($betweenSetsState->setInProgress)->toBeFalse();
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $betweenSetsState,
     ])
         ->call('requestDelayWarning', TeamAB::TeamB->value)
@@ -606,7 +581,6 @@ test('court disables the delay warning button when a warning already exists', fu
     $game->recordDelayWarning(TeamAB::TeamA);
 
     $component = Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ]);
 
@@ -621,7 +595,6 @@ test('court delay penalty button confirms and records a repeatable delay penalty
     $game->recordDelayWarning(TeamAB::TeamA);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ])
         ->call('requestDelayPenalty', TeamAB::TeamA->value)
@@ -646,7 +619,6 @@ test('court delay penalty button confirms and records a repeatable delay penalty
         ->and($state->delayPenaltiesTeamA)->toBe(1);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ])
         ->call('requestDelayPenalty', TeamAB::TeamA->value)
@@ -657,7 +629,6 @@ test('court delay penalty button confirms and records a repeatable delay penalty
     expect($game->fresh()->stateAt()->delayPenaltiesTeamA)->toBe(2);
 
     $component = Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ]);
 
@@ -670,7 +641,6 @@ test('court disables the delay penalty button with a lock until a warning exists
     $game = gameWithStartedSet();
 
     $component = Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ])
         ->assertViewHas('leftDelayPenaltyDisabled', true);
@@ -686,10 +656,9 @@ test('court misconduct flow shows rostered players and staff for the team', func
     $staff = Staff::factory()->for($game->homeTeam)->create();
     $game->addStaff($staff, StaffRole::Coach);
 
-    $player = $game->homePlayers()->wherePivot('number', 1)->firstOrFail();
+    $player = $game->homePlayers()->where('number', 1)->firstOrFail();
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ])
         ->call('requestMisconduct', TeamAB::TeamA->value, MisconductSanction::Penalty->value)
@@ -718,10 +687,9 @@ test('court misconduct flow shows rostered players and staff for the team', func
 
 test('court misconduct flow records a sanction against a player after confirmation', function (): void {
     $game = gameWithStartedSet();
-    $player = $game->homePlayers()->wherePivot('number', 1)->firstOrFail();
+    $player = $game->homePlayers()->where('number', 1)->firstOrFail();
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ])
         ->call('requestMisconduct', TeamAB::TeamA->value, MisconductSanction::Penalty->value)
@@ -751,7 +719,6 @@ test('court misconduct flow records a sanction against staff after confirmation'
     $game->addStaff($staff, StaffRole::Coach);
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->stateAt(),
     ])
         ->call('requestMisconduct', TeamAB::TeamA->value, MisconductSanction::Expulsion->value)
@@ -777,7 +744,7 @@ test('court misconduct flow records a sanction against staff after confirmation'
 
 test('court disables minor misconduct with a check once it has been recorded for the team', function (): void {
     $game = gameWithStartedSet();
-    $player = $game->homePlayers()->wherePivot('number', 1)->firstOrFail();
+    $player = $game->homePlayers()->where('number', 1)->firstOrFail();
 
     $game->recordMisconduct(
         team: TeamAB::TeamA,
@@ -787,7 +754,6 @@ test('court disables minor misconduct with a check once it has been recorded for
     );
 
     $component = Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->fresh()->stateAt(),
     ])
         ->assertViewHas('leftMinorMisconductDisabled', true);
@@ -800,7 +766,7 @@ test('court disables minor misconduct with a check once it has been recorded for
 
 test('court misconduct picker marks people unavailable for same or lower sanctions', function (): void {
     $game = gameWithStartedSet();
-    $player = $game->homePlayers()->wherePivot('number', 1)->firstOrFail();
+    $player = $game->homePlayers()->where('number', 1)->firstOrFail();
     $staff = Staff::factory()->for($game->homeTeam)->create();
     $game->addStaff($staff, StaffRole::Coach);
 
@@ -818,7 +784,6 @@ test('court misconduct picker marks people unavailable for same or lower sanctio
     );
 
     $component = Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->fresh()->stateAt(),
     ])
         ->call('requestMisconduct', TeamAB::TeamA->value, MisconductSanction::Penalty->value)
@@ -842,7 +807,6 @@ test('court misconduct picker marks people unavailable for same or lower sanctio
         ->not->toContain('x-mark');
 
     Livewire::test(Court::class, [
-        'gameId' => $game->getKey(),
         'gameState' => $game->fresh()->stateAt(),
     ])
         ->call('requestMisconduct', TeamAB::TeamA->value, MisconductSanction::Expulsion->value)

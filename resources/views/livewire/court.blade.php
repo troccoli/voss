@@ -356,13 +356,11 @@
             <div class="flex w-24 shrink-0 items-start justify-end sm:w-28">
                 <livewire:lineup-submission
                     :team="$leftTeam"
-                    :game-id="$gameId"
                     :game-state="$gameState"
                     court-side="left"
                     :key="'lineup-submission-left-'.$leftTeam->value"
                 />
                 <livewire:rally-winner-controls
-                    :game-id="$gameId"
                     :game-state="$gameState"
                     side="left"
                     :key="'rally-winner-left'"
@@ -373,7 +371,6 @@
                 <div class="flex w-[360px] shrink-0 gap-4 sm:w-[480px] sm:gap-10 md:w-[600px] md:gap-16">
                     <div class="flex min-w-0 flex-1 justify-end">
                         <livewire:team-roster
-                            :game-id="$gameId"
                             :game-state="$gameState"
                             :team="$leftTeam"
                             :left-side="true"
@@ -383,7 +380,6 @@
 
                     <div class="flex min-w-0 flex-1 justify-start">
                         <livewire:team-roster
-                            :game-id="$gameId"
                             :game-state="$gameState"
                             :team="$rightTeam"
                             :left-side="false"
@@ -398,13 +394,11 @@
             <div class="flex w-24 shrink-0 items-start justify-start sm:w-28">
                 <livewire:lineup-submission
                     :team="$rightTeam"
-                    :game-id="$gameId"
                     :game-state="$gameState"
                     court-side="right"
                     :key="'lineup-submission-right-'.$rightTeam->value"
                 />
                 <livewire:rally-winner-controls
-                    :game-id="$gameId"
                     :game-state="$gameState"
                     side="right"
                     :key="'rally-winner-right'"

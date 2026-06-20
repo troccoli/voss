@@ -6,21 +6,25 @@ namespace App\Models;
 
 use Carbon\CarbonImmutable;
 use Database\Factories\PlayerFactory;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
+ * @property int|null $game_id
  * @property int $team_id
  * @property string $first_name
  * @property string $last_name
+ * @property int|null $number
+ * @property bool $is_captain
+ * @property bool $is_libero
+ * @property bool $is_rostered
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read Game|null $game
  * @property-read Team $team
- * @property-read EloquentCollection<int, Game> $games
- * @property-read RosterPlayer $roster
+ * @property-read Player $roster
  */
 class Player extends Model
 {
@@ -34,9 +38,21 @@ class Player extends Model
     protected function casts(): array
     {
         return [
+            'number' => 'integer',
+            'is_captain' => 'boolean',
+            'is_libero' => 'boolean',
+            'is_rostered' => 'boolean',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
         ];
+    }
+
+    /**
+     * @return BelongsTo<Game, $this>
+     */
+    public function game(): BelongsTo
+    {
+        return $this->belongsTo(Game::class);
     }
 
     /**
@@ -48,14 +64,10 @@ class Player extends Model
     }
 
     /**
-     * @return BelongsToMany<Game, $this, RosterPlayer, 'roster'>
+     * @return Attribute<$this, never>
      */
-    public function games(): BelongsToMany
+    protected function roster(): Attribute
     {
-        return $this->belongsToMany(Game::class)
-            ->using(RosterPlayer::class)
-            ->as('roster')
-            ->withPivot('number', 'is_captain', 'is_libero', 'team_id')
-            ->withTimestamps();
+        return Attribute::get(fn (): self => $this);
     }
 }

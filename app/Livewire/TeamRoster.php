@@ -14,20 +14,16 @@ use App\Events\Payloads\SubstitutionCompletedPayload;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
 use App\Models\GameEvent;
+use App\Services\CurrentMatchResolver;
 use App\Services\GameSideResolver;
 use App\Services\ScoresheetDataRepository;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 class TeamRoster extends Component
 {
-    #[Reactive]
-    #[Locked]
-    public int $gameId;
-
     #[Reactive]
     public TeamAB $team = TeamAB::TeamA;
 
@@ -38,13 +34,9 @@ class TeamRoster extends Component
     public ?GameState $gameState = null;
 
     public function mount(
-        ?int $gameId = null,
         TeamAB $team = TeamAB::TeamA,
         bool $leftSide = true,
     ): void {
-        abort_if(is_null($gameId), 404);
-
-        $this->gameId = $gameId;
         $this->team = $team;
         $this->leftSide = $leftSide;
     }
@@ -300,7 +292,7 @@ class TeamRoster extends Component
     #[Computed]
     public function activeGame(): ?Game
     {
-        return Game::query()->find($this->gameId);
+        return app(CurrentMatchResolver::class)->current();
     }
 
     /**

@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\Championship;
+use App\Enums\MatchPhase;
+use App\Enums\TeamSide;
 use App\Models\Game;
 use App\Models\Team;
 use DateTimeInterface;
@@ -27,7 +28,6 @@ class GameFactory extends Factory
         $code = $this->randomCountryCode();
 
         return [
-            'championship_id' => Championship::factory(),
             'home_team_id' => Team::factory(),
             'away_team_id' => Team::factory(),
             'number' => $this->faker->numberBetween(1, 99),
@@ -38,7 +38,23 @@ class GameFactory extends Factory
             'category' => $this->faker->randomElement(['Senior', 'Junior', 'Youth']),
             'pool' => $this->faker->randomElement(['A', 'B', 'C', 'D']),
             'division' => $this->faker->randomElement(['Men', 'Women']),
+            'status' => MatchPhase::Setup,
         ];
+    }
+
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Game $game): void {
+            $game->homeTeam->forceFill([
+                'game_id' => $game->getKey(),
+                'side' => TeamSide::Home,
+            ])->save();
+
+            $game->awayTeam->forceFill([
+                'game_id' => $game->getKey(),
+                'side' => TeamSide::Away,
+            ])->save();
+        });
     }
 
     /**
@@ -90,6 +106,45 @@ class GameFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'date_time' => $dateTime,
+        ]);
+    }
+
+    /**
+     * Leave match details blank so setup must complete them.
+     */
+    public function withoutMatchDetails(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'number' => 1,
+            'country_code' => '',
+            'city' => '',
+            'hall' => '',
+            'date_time' => now(),
+            'category' => '',
+            'pool' => '',
+            'division' => '',
+        ]);
+    }
+
+    public function configuredSetup(): static
+    {
+        $code = 'ITA';
+
+        return $this->withMatchNumber(1)
+            ->withCountryCode($code)
+            ->at('Bologna', 'PalaDozza')
+            ->scheduledAt(now()->addDay()->setTime(20, 30))
+            ->state(fn (array $attributes) => [
+                'category' => 'Senior',
+                'pool' => 'A',
+                'division' => 'Men',
+            ]);
+    }
+
+    public function withStatus(MatchPhase $status): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => $status,
         ]);
     }
 }
