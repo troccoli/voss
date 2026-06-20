@@ -15,6 +15,7 @@ use App\Models\Game;
 use App\Models\GameEvent;
 use App\Models\Player;
 use App\Models\Staff;
+use App\Services\CurrentMatchResolver;
 use App\Services\GameSideResolver;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -23,9 +24,6 @@ use Livewire\Component;
 
 class Court extends Component
 {
-    #[Reactive]
-    public ?int $gameId = null;
-
     #[Reactive]
     public ?GameState $gameState = null;
 
@@ -46,11 +44,6 @@ class Court extends Component
     public ?int $pendingMisconductSubjectId = null;
 
     public ?string $pendingMisconductSubjectLabel = null;
-
-    public function mount(?int $gameId = null): void
-    {
-        $this->gameId = $gameId;
-    }
 
     public function render(): View
     {
@@ -101,12 +94,17 @@ class Court extends Component
 
     public function recordPendingDelayWarning(): void
     {
-        if ($this->pendingDelayWarningTeam === null || $this->gameId === null) {
+        if ($this->pendingDelayWarningTeam === null) {
             return;
         }
 
         $team = TeamAB::from($this->pendingDelayWarningTeam);
-        $game = Game::query()->findSole($this->gameId);
+        $game = $this->activeGame();
+
+        if ($game === null) {
+            return;
+        }
+
         $game->recordDelayWarning($team);
 
         $this->pendingDelayWarningTeam = null;
@@ -121,12 +119,17 @@ class Court extends Component
 
     public function recordPendingDelayPenalty(): void
     {
-        if ($this->pendingDelayPenaltyTeam === null || $this->gameId === null) {
+        if ($this->pendingDelayPenaltyTeam === null) {
             return;
         }
 
         $team = TeamAB::from($this->pendingDelayPenaltyTeam);
-        $game = Game::query()->findSole($this->gameId);
+        $game = $this->activeGame();
+
+        if ($game === null) {
+            return;
+        }
+
         $game->recordDelayPenalty($team);
 
         $this->pendingDelayPenaltyTeam = null;
@@ -146,7 +149,6 @@ class Court extends Component
             || $this->pendingMisconductSanction === null
             || $this->pendingMisconductSubjectType === null
             || $this->pendingMisconductSubjectId === null
-            || $this->gameId === null
         ) {
             return;
         }
@@ -154,7 +156,11 @@ class Court extends Component
         $team = TeamAB::from($this->pendingMisconductTeam);
         $sanction = MisconductSanction::from($this->pendingMisconductSanction);
         $subjectType = MisconductSubjectType::from($this->pendingMisconductSubjectType);
-        $game = Game::query()->findSole($this->gameId);
+        $game = $this->activeGame();
+
+        if ($game === null) {
+            return;
+        }
 
         $game->recordMisconduct($team, $subjectType, $this->pendingMisconductSubjectId, $sanction);
 
@@ -253,11 +259,7 @@ class Court extends Component
 
     private function activeGame(): ?Game
     {
-        if ($this->gameId === null) {
-            return null;
-        }
-
-        return Game::query()->whereKey($this->gameId)->first();
+        return app(CurrentMatchResolver::class)->current();
     }
 
     private function gameSideResolver(): GameSideResolver
@@ -292,7 +294,7 @@ class Court extends Component
 
         return [
             'players' => $players
-                ->orderByPivot('number')
+                ->orderBy('number')
                 ->get()
                 ->map(function (Player $player) use ($game, $team, $sanction): array {
                     $recordedSanction = $sanction === null
@@ -309,7 +311,7 @@ class Court extends Component
                     ];
                 })
                 ->all(),
-            'staff' => $this->staffMisconductSubjects($staff->orderByPivot('id')->get()->all(), $game, $team, $sanction),
+            'staff' => $this->staffMisconductSubjects($staff->orderBy('id')->get()->all(), $game, $team, $sanction),
         ];
     }
 

@@ -2,6 +2,7 @@
 
 use App\Models\Game;
 use App\Models\Team;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -25,6 +26,39 @@ test('a game can be created with default factory', function (): void {
 
     expect($game->homeTeam)->toBeInstanceOf(Team::class)
         ->and($game->awayTeam)->toBeInstanceOf(Team::class);
+});
+
+test('only one game row may exist in the database', function (): void {
+    Game::factory()->create();
+
+    expect(fn (): Game => Game::factory()->create())
+        ->toThrow(QueryException::class)
+        ->and(Game::query()->count())->toBe(1);
+});
+
+test('ensuring the singleton reuses the existing game record', function (): void {
+    $game = Game::ensureSingleton(
+        homeTeamAttributes: [
+            'name' => 'Italy',
+            'country_code' => 'ITA',
+        ],
+        awayTeamAttributes: [
+            'name' => 'Brazil',
+            'country_code' => 'BRA',
+        ],
+    );
+
+    $reusedGame = Game::ensureSingleton(
+        gameAttributes: [
+            'city' => 'Rome',
+        ],
+    );
+
+    expect(Game::query()->count())->toBe(1)
+        ->and($reusedGame->getKey())->toBe($game->getKey())
+        ->and($reusedGame->city)->toBe('Rome')
+        ->and($reusedGame->homeTeam->game_id)->toBe($game->getKey())
+        ->and($reusedGame->awayTeam->game_id)->toBe($game->getKey());
 });
 
 test('a game has a match date time', function (): void {

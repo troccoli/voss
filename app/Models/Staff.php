@@ -7,22 +7,23 @@ namespace App\Models;
 use App\Enums\StaffRole;
 use Carbon\CarbonImmutable;
 use Database\Factories\StaffFactory;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
+ * @property int|null $game_id
  * @property int $team_id
  * @property string $first_name
  * @property string $last_name
  * @property StaffRole $role
+ * @property bool $is_rostered
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read Game|null $game
  * @property-read Team $team
- * @property-read EloquentCollection<int, Game> $games
- * @property-read RosterStaff $roster
+ * @property-read Staff $roster
  */
 class Staff extends Model
 {
@@ -34,9 +35,18 @@ class Staff extends Model
     {
         return [
             'role' => StaffRole::class,
+            'is_rostered' => 'boolean',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
         ];
+    }
+
+    /**
+     * @return BelongsTo<Game, $this>
+     */
+    public function game(): BelongsTo
+    {
+        return $this->belongsTo(Game::class);
     }
 
     /**
@@ -48,14 +58,10 @@ class Staff extends Model
     }
 
     /**
-     * @return BelongsToMany<Game, $this, RosterStaff, 'roster'>
+     * @return Attribute<$this, never>
      */
-    public function games(): BelongsToMany
+    protected function roster(): Attribute
     {
-        return $this->belongsToMany(Game::class)
-            ->using(RosterStaff::class)
-            ->as('roster')
-            ->withPivot('role', 'team_id')
-            ->withTimestamps();
+        return Attribute::get(fn (): self => $this);
     }
 }

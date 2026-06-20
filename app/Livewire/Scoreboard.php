@@ -8,19 +8,15 @@ use App\Data\GameState\GameState;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Models\Game;
+use App\Services\CurrentMatchResolver;
 use App\Services\GameSideResolver;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 class Scoreboard extends Component
 {
-    #[Reactive]
-    #[Locked]
-    public ?int $gameId = null;
-
     #[Reactive]
     public ?GameState $gameState = null;
 
@@ -73,14 +69,7 @@ class Scoreboard extends Component
 
     private function activeGame(): ?Game
     {
-        if ($this->gameId === null) {
-            return null;
-        }
-
-        return Game::query()
-            ->with(['homeTeam', 'awayTeam'])
-            ->whereKey($this->gameId)
-            ->first();
+        return app(CurrentMatchResolver::class)->current();
     }
 
     private function gameSideResolver(): GameSideResolver

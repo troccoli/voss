@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\OfficialRole;
+use App\Models\Game;
 use App\Models\Official;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -28,5 +30,34 @@ class OfficialFactory extends Factory
             'last_name' => fake($this->getLocaleForCountry($code))->lastName(),
             'country_code' => $code,
         ];
+    }
+
+    public function named(string $firstName, string $lastName): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+        ]);
+    }
+
+    public function withCountryCode(string $code): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'country_code' => $code,
+        ]);
+    }
+
+    public function forMatch(Game $game): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'game_id' => $game->getKey(),
+        ]);
+    }
+
+    public function withRole(OfficialRole $role): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => $role,
+        ]);
     }
 }

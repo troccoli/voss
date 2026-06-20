@@ -20,7 +20,7 @@ trait WithLocales
 
     private function randomCountryCode(): string
     {
-        return $this->faker->unique()->randomElement(array_keys($this->countries));
+        return $this->faker->randomElement(array_keys($this->countries));
     }
 
     private function getLocaleForCountry(string $countryCode): string

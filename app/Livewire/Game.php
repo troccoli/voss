@@ -8,6 +8,7 @@ use App\Data\GameState\GameState;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Models\Game as GameModel;
+use App\Services\CurrentMatchResolver;
 use App\Services\GameSideResolver;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -16,8 +17,6 @@ use Livewire\Component;
 
 class Game extends Component
 {
-    public int $gameId;
-
     public GameState $gameState;
 
     public ?int $justEndedSetNumber = null;
@@ -30,15 +29,34 @@ class Game extends Component
 
     public bool $showFifthSetSideChangePrompt = false;
 
-    public function mount(GameModel $game): void
+    public function mount(CurrentMatchResolver $currentMatchResolver): void
     {
-        $this->gameId = $game->getKey();
+        $resolvedGame = $currentMatchResolver->current();
+
+        if ($resolvedGame === null) {
+            $this->redirectRoute('match.setup', navigate: true);
+
+            return;
+        }
+
+        if (! $currentMatchResolver->isSetupComplete($resolvedGame)) {
+            $this->redirectRoute('match.setup', navigate: true);
+
+            return;
+        }
+
         $this->synchronizeGameContext();
     }
 
     #[On('game-event-recorded')]
     public function synchronizeGameContext(): void
     {
+        $game = $this->activeGame();
+
+        if ($game === null) {
+            return;
+        }
+
         $wasSetInProgress = isset($this->gameState) && $this->gameState->setInProgress;
         $previousSetNumber = isset($this->gameState) ? $this->gameState->setNumber : 0;
         $previousSetsWonTeamA = isset($this->gameState) ? $this->gameState->setsWonTeamA : 0;
@@ -46,7 +64,6 @@ class Game extends Component
         $previousScoreTeamB = isset($this->gameState) ? $this->gameState->scoreTeamB : 0;
         $previousShowFifthSetSideChangePrompt = $this->showFifthSetSideChangePrompt;
 
-        $game = GameModel::query()->findSole($this->gameId);
         $this->gameState = $game->stateAt();
         $this->showFifthSetSideChangePrompt = $this->gameSideResolver()->shouldPromptForFifthSetSideSwap($this->gameState);
 
@@ -80,7 +97,12 @@ class Game extends Component
 
     public function acknowledgeFifthSetSideChange(): void
     {
-        $game = GameModel::query()->findSole($this->gameId);
+        $game = $this->activeGame();
+
+        if ($game === null) {
+            return;
+        }
+
         $game->recordCourtSidesSwapped();
         $this->synchronizeGameContext();
         $this->dispatch('game-event-recorded');
@@ -116,5 +138,10 @@ class Game extends Component
     {
         return ! $this->gameSideResolver()->hasRequiredToss($this->gameState)
             && ! $this->gameSideResolver()->requiresFifthSetToss($this->gameState);
+    }
+
+    private function activeGame(): ?GameModel
+    {
+        return app(CurrentMatchResolver::class)->current();
     }
 }

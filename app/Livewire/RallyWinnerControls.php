@@ -8,28 +8,21 @@ use App\Data\GameState\GameState;
 use App\Enums\TeamAB;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
+use App\Services\CurrentMatchResolver;
 use App\Services\GameSideResolver;
 use Illuminate\Contracts\View\View;
-use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 class RallyWinnerControls extends Component
 {
     #[Reactive]
-    #[Locked]
-    public ?int $gameId = null;
-
-    #[Reactive]
     public ?GameState $gameState = null;
 
     public string $side = 'left';
 
-    public function mount(?int $gameId = null, string $side = 'left'): void
+    public function mount(string $side = 'left'): void
     {
-        abort_if($gameId === null, 404);
-
-        $this->gameId = $gameId;
         $this->side = $side;
     }
 
@@ -75,11 +68,7 @@ class RallyWinnerControls extends Component
 
     private function activeGame(): ?Game
     {
-        if ($this->gameId === null) {
-            return null;
-        }
-
-        return Game::query()->whereKey($this->gameId)->first();
+        return app(CurrentMatchResolver::class)->current();
     }
 
     private function gameSideResolver(): GameSideResolver

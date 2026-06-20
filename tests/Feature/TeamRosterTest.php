@@ -28,7 +28,6 @@ test('team roster shows fallback text when there are no players', function (): v
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
     ])
@@ -41,7 +40,6 @@ test('team roster renders team a on the left with number markers only', function
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => submittedLineupState(),
@@ -55,7 +53,6 @@ test('team roster renders team b on the right with number markers only', functio
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamB,
         'leftSide' => false,
         'gameState' => submittedLineupState(),
@@ -70,7 +67,6 @@ test('team roster resolves team a players from toss assignment', function (): vo
     $game->recordToss(TeamSide::Away, TeamAB::TeamA);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => submittedLineupState(),
@@ -85,7 +81,6 @@ test('team roster resolves toss assignment immediately after toss submission', f
     $game->recordToss(TeamSide::Away, TeamAB::TeamA);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => submittedLineupState(),
@@ -100,7 +95,6 @@ test('team roster hides on-court players when lineup rotation exists', function 
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => GameState::fromAttributes([
@@ -117,7 +111,6 @@ test('team roster can render after a second Livewire request', function (): void
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => submittedLineupState(),
@@ -138,7 +131,6 @@ test('team roster shows placeholders when lineup is not submitted', function ():
     }
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
     ])
@@ -153,7 +145,6 @@ test('team roster renders left-side staff role circles in reverse row order for 
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
     ])
@@ -172,7 +163,6 @@ test('team roster renders right-side staff role circles left to right for team b
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamB,
         'leftSide' => false,
     ])
@@ -191,7 +181,6 @@ test('team roster applies left-side staff orientation even when the displayed te
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamB,
         'leftSide' => true,
     ])
@@ -210,7 +199,6 @@ test('team roster applies right-side staff orientation even when the displayed t
     $game = gameWithNumberedRostersForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => false,
     ])
@@ -237,7 +225,6 @@ test('team roster omits staff role circles when those roles are not on the roste
     $game->addStaff($homeDoctor, StaffRole::Doctor);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
     ])
@@ -270,7 +257,6 @@ test('team roster bench only shows staff roles that were selected during roster 
     $game->addStaff($homeDoctor, StaffRole::Doctor);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
     ])
@@ -288,7 +274,6 @@ test('timeout card shows modal trigger when a set is in progress', function (): 
     $game = gameWithActiveSetForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -302,7 +287,6 @@ test('timeout card is not a modal trigger when no set is in progress', function 
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
     ])->assertSeeHtml('data-team-roster-timeouts')
@@ -315,7 +299,6 @@ test('timeout card remains interactive when team has used all timeouts', functio
     $game->recordTimeOut(TeamAB::TeamA);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -327,7 +310,6 @@ test('requesting a timeout dispatches hasTimeoutLeft true when timeouts remain',
     $game = gameWithActiveSetForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -342,7 +324,6 @@ test('requesting a timeout records an improper request when no timeouts remain',
     $game->recordTimeOut(TeamAB::TeamA);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -379,7 +360,6 @@ test('second improper timeout request records a delay warning across sets', func
     expect($game->fresh()->stateAt()->improperRequestsTeamA)->toBe(1);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -405,7 +385,6 @@ test('third improper timeout request records a delay penalty', function (): void
     $game->recordImproperRequest(TeamAB::TeamA, ImproperRequestType::Substitution);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -438,7 +417,6 @@ test('timeout card becomes interactive again for a new set after two timeouts in
     $game->recordSetStarted();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -449,7 +427,6 @@ test('requesting a timeout records the event and dispatches events', function ()
     $game = gameWithActiveSetForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -469,7 +446,6 @@ test('requesting a timeout adds an error when no set is in progress', function (
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
     ])
@@ -483,7 +459,6 @@ test('substitution card shows modal trigger when a set is in progress and substi
     $game = gameWithActiveSetForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -497,7 +472,6 @@ test('substitution card is not a modal trigger when no set is in progress', func
     $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
     ])->assertSeeHtml('data-team-roster-substitutions')
@@ -509,7 +483,6 @@ test('substitution card shows full modal trigger when all 6 substitutions are us
     $state = $game->stateAt();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => GameState::fromAttributes(array_merge($state->toAttributes(), ['substitutions_team_a' => 6])),
@@ -523,7 +496,6 @@ test('requesting a substitution records an improper request when all substitutio
     recordSixSubstitutionsForTeamRoster($game);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -548,7 +520,6 @@ test('second improper substitution request records a delay warning', function ()
     recordSixSubstitutionsForTeamRoster($game);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -574,7 +545,6 @@ test('third improper substitution request records a delay penalty', function ():
     recordSixSubstitutionsForTeamRoster($game);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -597,7 +567,6 @@ test('substitution modal shows on-court and bench player numbers', function (): 
     $game = gameWithActiveSetForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -610,7 +579,6 @@ test('substitution records event and dispatches events', function (): void {
     $game = gameWithActiveSetForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -630,7 +598,6 @@ test('substitution requires both player numbers', function (): void {
     $game = gameWithActiveSetForTeamRoster();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -650,7 +617,6 @@ test('substitution is rejected when team has used all 6 substitutions', function
     }
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -667,7 +633,6 @@ test('substituted player cannot be substituted again in the same set', function 
     $game->recordSubstitution(TeamAB::TeamA, 1, 7);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -679,7 +644,6 @@ test('substituted player cannot be substituted again in the same set', function 
         ->assertDispatched('game-event-recorded');
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->fresh()->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->fresh()->stateAt(),
@@ -697,7 +661,6 @@ test('substitution pair can only swap back once', function (): void {
     $game->recordSubstitution(TeamAB::TeamA, 7, 1);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -714,7 +677,6 @@ test('player with active pair constraint can only be replaced by their partner',
     $game->recordSubstitution(TeamAB::TeamA, 1, 7);
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),
@@ -740,7 +702,6 @@ test('substitution constraints reset between sets', function (): void {
     $game->recordSetStarted();
 
     Livewire::test(TeamRoster::class, [
-        'gameId' => $game->getKey(),
         'team' => TeamAB::TeamA,
         'leftSide' => true,
         'gameState' => $game->stateAt(),

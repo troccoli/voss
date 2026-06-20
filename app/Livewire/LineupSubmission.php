@@ -9,22 +9,18 @@ use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
+use App\Services\CurrentMatchResolver;
 use App\Services\GameSideResolver;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 class LineupSubmission extends Component
 {
-    #[Reactive]
-    #[Locked]
-    public int $gameId;
-
     #[Reactive]
     public TeamAB $team = TeamAB::TeamA;
 
@@ -37,12 +33,9 @@ class LineupSubmission extends Component
     /** @var array<int, string> */
     public array $lineup = [];
 
-    public function mount(TeamAB $team, ?int $gameId = null, string $courtSide = 'left'): void
+    public function mount(TeamAB $team, string $courtSide = 'left'): void
     {
-        abort_if(is_null($gameId), 404);
-
         $this->team = $team;
-        $this->gameId = $gameId;
         $this->courtSide = $courtSide;
         $this->lineup = $this->defaultLineup();
     }
@@ -116,7 +109,7 @@ class LineupSubmission extends Component
     #[Computed]
     public function activeGame(): ?Game
     {
-        return Game::query()->whereKey($this->gameId)->first();
+        return app(CurrentMatchResolver::class)->current();
     }
 
     /**
@@ -170,8 +163,8 @@ class LineupSubmission extends Component
         }
 
         $rosterNumbers = $teamSide === TeamSide::Home
-            ? $game->homePlayers()->wherePivot('is_libero', false)->orderByPivot('number')->pluck('game_player.number')
-            : $game->awayPlayers()->wherePivot('is_libero', false)->orderByPivot('number')->pluck('game_player.number');
+            ? $game->homePlayers()->where('is_libero', false)->orderBy('number')->pluck('players.number')
+            : $game->awayPlayers()->where('is_libero', false)->orderBy('number')->pluck('players.number');
 
         return $rosterNumbers
             ->map(fn (mixed $number): int => (int) $number)

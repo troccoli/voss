@@ -6,18 +6,21 @@ namespace App\Services\Scoresheet\Writers;
 
 use App\Enums\OfficialRole;
 use App\Models\Game;
-use App\Models\Official;
 use App\Services\Scoresheet\Contracts\ScoresheetSectionWriter;
 use App\Services\Scoresheet\ScoresheetPdf;
+use App\Services\ScoresheetDataRepository;
 
 class OfficialsWriter implements ScoresheetSectionWriter
 {
+    public function __construct(
+        private readonly ScoresheetDataRepository $scoresheetDataRepository
+    ) {}
+
     public function write(ScoresheetPdf $pdf, Game $game): void
     {
         $pdf->SetFontSize(10);
-        /** @var Official $official */
-        foreach ($game->officials as $official) {
-            [$x, $y] = match ($official->assignment->role) {
+        foreach ($this->scoresheetDataRepository->officials($game) as $official) {
+            [$x, $y] = match ($official['role']) {
                 OfficialRole::FirstReferee => [93, 253],
                 OfficialRole::SecondReferee => [93, 259],
                 OfficialRole::Scorer => [93, 265],
@@ -29,13 +32,13 @@ class OfficialsWriter implements ScoresheetSectionWriter
             };
             $pdf->SetXY($x, $y);
 
-            $pdf->Write(0, str($official->first_name.' '.$official->last_name)->upper());
+            $pdf->Write(0, str($official['first_name'].' '.$official['last_name'])->upper());
 
-            if (in_array($official->assignment->role, [
+            if (in_array($official['role'], [
                 OfficialRole::FirstReferee, OfficialRole::SecondReferee, OfficialRole::Scorer,
                 OfficialRole::AssistantScorer,
             ])) {
-                [$x, $y] = match ($official->assignment->role) {
+                [$x, $y] = match ($official['role']) {
                     OfficialRole::FirstReferee => [169, 253],
                     OfficialRole::SecondReferee => [169, 259],
                     OfficialRole::Scorer => [169, 265],
@@ -43,7 +46,7 @@ class OfficialsWriter implements ScoresheetSectionWriter
                 };
 
                 $pdf->SetXY($x, $y);
-                $pdf->Write(0, $official->country_code);
+                $pdf->Write(0, $official['country_code']);
             }
         }
 

@@ -10,27 +10,18 @@ use App\Enums\TeamAB;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
 use App\Models\GameEvent;
+use App\Services\CurrentMatchResolver;
 use App\Services\GameSideResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 class StartSetSubmission extends Component
 {
     #[Reactive]
-    #[Locked]
-    public ?int $gameId = null;
-
-    #[Reactive]
     public ?GameState $gameState = null;
-
-    public function mount(?int $gameId = null): void
-    {
-        $this->gameId = $gameId;
-    }
 
     public function startSet(): void
     {
@@ -110,11 +101,7 @@ class StartSetSubmission extends Component
     #[Computed]
     public function activeGame(): ?Game
     {
-        if ($this->gameId === null) {
-            return null;
-        }
-
-        return Game::query()->whereKey($this->gameId)->first();
+        return app(CurrentMatchResolver::class)->current();
     }
 
     #[Computed]

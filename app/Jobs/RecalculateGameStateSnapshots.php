@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Models\Game;
+use App\Services\CurrentMatchResolver;
 use App\Services\GameState\GameStateRecalculator;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,22 +15,18 @@ class RecalculateGameStateSnapshots implements ShouldQueue
     use Queueable;
 
     public function __construct(
-        public int $gameId,
         public ?string $upTo = null,
     ) {}
 
     /**
      * Execute the job.
      */
-    public function handle(GameStateRecalculator $recalculator): void
+    public function handle(GameStateRecalculator $recalculator, CurrentMatchResolver $currentMatchResolver): void
     {
-        /** @var Game $game */
-        $game = Game::query()->findOrFail($this->gameId);
-
         $upTo = $this->upTo === null
             ? null
             : CarbonImmutable::parse($this->upTo);
 
-        $recalculator->recalculate($game, $upTo);
+        $recalculator->recalculate($currentMatchResolver->currentOrFail(), $upTo);
     }
 }

@@ -10,8 +10,6 @@ use App\Livewire\StartSetSubmission;
 use App\Models\Game;
 use App\Models\GameEvent;
 use App\Models\GameStateSnapshot;
-use App\Models\Player;
-use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -27,12 +25,12 @@ test('start set button is visible only when both team lineups are submitted for 
 
     $game->recordLineup(1, TeamAB::TeamA, lineupPositionsForNumbers(1));
 
-    Livewire::test(StartSetSubmission::class, ['gameId' => $game->getKey(), 'gameState' => $game->stateAt()])
+    Livewire::test(StartSetSubmission::class, ['gameState' => $game->stateAt()])
         ->assertDontSee('Start Game');
 
     $game->recordLineup(1, TeamAB::TeamB, lineupPositionsForNumbers(11));
 
-    Livewire::test(StartSetSubmission::class, ['gameId' => $game->getKey(), 'gameState' => $game->stateAt()])
+    Livewire::test(StartSetSubmission::class, ['gameState' => $game->stateAt()])
         ->assertSee('Start Game');
 });
 
@@ -53,7 +51,7 @@ test('start set shows a break countdown after a set ends even when the next line
         $game->recordLineup(2, TeamAB::TeamA, lineupPositionsForNumbers(1));
         $game->recordLineup(2, TeamAB::TeamB, lineupPositionsForNumbers(11));
 
-        Livewire::test(StartSetSubmission::class, ['gameId' => $game->getKey(), 'gameState' => $game->stateAt()])
+        Livewire::test(StartSetSubmission::class, ['gameState' => $game->stateAt()])
             ->assertDontSee('Start Set 2')
             ->assertSee('Next set in')
             ->assertSee('03:00')
@@ -68,7 +66,7 @@ test('start set button records set started event and dispatches refresh event', 
     $game->recordLineup(1, TeamAB::TeamA, lineupPositionsForNumbers(1));
     $game->recordLineup(1, TeamAB::TeamB, lineupPositionsForNumbers(11));
 
-    Livewire::test(StartSetSubmission::class, ['gameId' => $game->getKey(), 'gameState' => $game->stateAt()])
+    Livewire::test(StartSetSubmission::class, ['gameState' => $game->stateAt()])
         ->assertSee('Start Game')
         ->call('startSet')
         ->assertHasNoErrors()
@@ -101,7 +99,7 @@ test('start set cannot be recorded before the break countdown elapses', function
         $game->recordLineup(2, TeamAB::TeamA, lineupPositionsForNumbers(1));
         $game->recordLineup(2, TeamAB::TeamB, lineupPositionsForNumbers(11));
 
-        Livewire::test(StartSetSubmission::class, ['gameId' => $game->getKey(), 'gameState' => $game->stateAt()])
+        Livewire::test(StartSetSubmission::class, ['gameState' => $game->stateAt()])
             ->call('startSet')
             ->assertHasErrors(['startSet']);
 
@@ -125,7 +123,7 @@ test('start set button is only shown for the opening set', function (): void {
     $game->recordLineup(2, TeamAB::TeamA, lineupPositionsForNumbers(1));
     $game->recordLineup(2, TeamAB::TeamB, lineupPositionsForNumbers(11));
 
-    Livewire::test(StartSetSubmission::class, ['gameId' => $game->getKey(), 'gameState' => $game->stateAt()])
+    Livewire::test(StartSetSubmission::class, ['gameState' => $game->stateAt()])
         ->assertDontSee('Start Game')
         ->assertSeeHtml('x-init="$wire.startSet()"');
 });
@@ -149,7 +147,7 @@ test('start set button becomes visible after the break countdown elapses', funct
 
         $this->travel(3)->minutes();
 
-        Livewire::test(StartSetSubmission::class, ['gameId' => $game->getKey(), 'gameState' => $game->stateAt()])
+        Livewire::test(StartSetSubmission::class, ['gameState' => $game->stateAt()])
             ->assertDontSee('Start Game')
             ->assertDontSee('Next set in')
             ->assertSeeHtml('x-init="$wire.startSet()"');
@@ -189,7 +187,7 @@ test('start set button visibility follows snapshot state without querying lineup
         'created_at' => Carbon::now(),
     ]);
 
-    Livewire::test(StartSetSubmission::class, ['gameId' => $game->getKey()])
+    Livewire::test(StartSetSubmission::class)
         ->assertSee('Start Game');
 });
 
@@ -209,7 +207,7 @@ test('start set button stays hidden before the fifth set toss is submitted', fun
         }
     }
 
-    Livewire::test(StartSetSubmission::class, ['gameId' => $game->getKey(), 'gameState' => $game->stateAt()])
+    Livewire::test(StartSetSubmission::class, ['gameState' => $game->stateAt()])
         ->assertDontSee('Start Set 5');
 });
 
@@ -235,7 +233,7 @@ test('start set shows the break countdown before the fifth set toss is submitted
     config()->set('game.between_sets_duration', 180);
 
     $this->freezeSecond(function () use ($game): void {
-        Livewire::test(StartSetSubmission::class, ['gameId' => $game->getKey(), 'gameState' => $game->stateAt()])
+        Livewire::test(StartSetSubmission::class, ['gameState' => $game->stateAt()])
             ->assertDontSee('Start Game')
             ->assertSee('Next set in')
             ->assertSeeHtml('data-set-break-countdown');
@@ -247,32 +245,12 @@ test('start set shows the break countdown before the fifth set toss is submitted
  */
 function lineupPositionsForNumbers(int $start): array
 {
-    return [
-        1 => $start,
-        2 => $start + 1,
-        3 => $start + 2,
-        4 => $start + 3,
-        5 => $start + 4,
-        6 => $start + 5,
-    ];
+    return standardLineup($start);
 }
 
 function gameReadyToStartSet(): Game
 {
-    $homeTeam = Team::factory()->create();
-    $awayTeam = Team::factory()->create();
-    $game = Game::factory()->betweenTeams($homeTeam, $awayTeam)->create();
-
-    $homePlayers = Player::factory()->for($homeTeam)->count(6)->create();
-    foreach ($homePlayers as $index => $player) {
-        $game->addPlayer($player, number: $index + 1);
-    }
-
-    $awayPlayers = Player::factory()->for($awayTeam)->count(6)->create();
-    foreach ($awayPlayers as $index => $player) {
-        $game->addPlayer($player, number: $index + 11);
-    }
-
+    $game = makeReadyCurrentMatch();
     $game->recordToss(TeamSide::Home, TeamAB::TeamA);
 
     return $game;

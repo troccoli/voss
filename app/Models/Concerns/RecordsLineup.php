@@ -65,7 +65,7 @@ trait RecordsLineup
             : ($tossPayload->teamA === TeamSide::Home ? TeamSide::Away : TeamSide::Home);
 
         return $side === TeamSide::Home
-            ? $this->homePlayers()->wherePivot('is_libero', false)->pluck('game_player.number')
-            : $this->awayPlayers()->wherePivot('is_libero', false)->pluck('game_player.number');
+            ? $this->homePlayers()->where('is_libero', false)->pluck('players.number')
+            : $this->awayPlayers()->where('is_libero', false)->pluck('players.number');
     }
 }

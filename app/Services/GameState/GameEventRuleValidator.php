@@ -194,16 +194,16 @@ class GameEventRuleValidator
             $this->fail('This team already has a minor misconduct warning.');
         }
 
-        $teamId = $team === TeamAB::TeamA ? $game->home_team_id : $game->away_team_id;
+        $teamId = $team === TeamAB::TeamA ? $game->homeTeam->getKey() : $game->awayTeam->getKey();
 
         $isRostered = match ($subjectType) {
             MisconductSubjectType::Player => $game->players()
                 ->whereKey($subjectId)
-                ->wherePivot('team_id', $teamId)
+                ->where('team_id', $teamId)
                 ->exists(),
             MisconductSubjectType::Staff => $game->staff()
                 ->whereKey($subjectId)
-                ->wherePivot('team_id', $teamId)
+                ->where('team_id', $teamId)
                 ->exists(),
         };
 

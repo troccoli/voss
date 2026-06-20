@@ -18,14 +18,16 @@ use App\Events\Payloads\RallyEndedPayload;
 use App\Events\Payloads\SubstitutionCompletedPayload;
 use App\Events\Payloads\TimeOutRequestedPayload;
 use App\Events\Payloads\TossCompletedPayload;
+use App\Models\Game;
 use App\Models\GameEvent;
 use App\Models\GameStateSnapshot;
 use Illuminate\Database\Eloquent\Builder;
 
 class GameStateProjector
 {
-    /** @var array<int, TeamAB|null> */
-    private array $tossServingTeamByGame = [];
+    private bool $resolvedTossServingTeam = false;
+
+    private ?TeamAB $tossServingTeam = null;
 
     public function project(GameState $state, GameEvent $event): GameState
     {
@@ -238,7 +240,7 @@ class GameStateProjector
         $state->resetCurrentSetCounters();
 
         if ($state->setNumber !== 5 || $state->fifthSetLeftTeam === null) {
-            $state->servingTeam = $this->servingTeamForSet($event->game_id, $state->setNumber) ?? $state->servingTeam;
+            $state->servingTeam = $this->servingTeamForSet($state->setNumber) ?? $state->servingTeam;
         }
 
         $state->setInProgress = true;
@@ -261,7 +263,7 @@ class GameStateProjector
             $state->fifthSetLeftTeam = null;
             $state->fifthSetSideSwapped = false;
         } else {
-            $state->servingTeam = $this->servingTeamForSet($event->game_id, $nextSetNumber) ?? $state->servingTeam;
+            $state->servingTeam = $this->servingTeamForSet($nextSetNumber) ?? $state->servingTeam;
         }
 
         $state->scoreTeamA = 0;
@@ -348,9 +350,9 @@ class GameStateProjector
         return $positions;
     }
 
-    private function servingTeamForSet(int $gameId, int $setNumber): ?TeamAB
+    private function servingTeamForSet(int $setNumber): ?TeamAB
     {
-        $tossServingTeam = $this->tossServingTeamForGame($gameId);
+        $tossServingTeam = $this->tossServingTeam();
 
         if ($tossServingTeam === null) {
             return null;
@@ -361,29 +363,33 @@ class GameStateProjector
             : $this->oppositeTeam($tossServingTeam);
     }
 
-    private function tossServingTeamForGame(int $gameId): ?TeamAB
+    private function tossServingTeam(): ?TeamAB
     {
-        if (array_key_exists($gameId, $this->tossServingTeamByGame)) {
-            return $this->tossServingTeamByGame[$gameId];
+        if ($this->resolvedTossServingTeam) {
+            return $this->tossServingTeam;
         }
 
+        $game = Game::current();
+
         /** @var GameEvent|null $tossEvent */
-        $tossEvent = GameEvent::query()
-            ->where('game_id', $gameId)
+        $tossEvent = $game->events()
+            ->reorder()
             ->where('type', GameEventType::TossCompleted)
             ->orderBy('created_at')
             ->orderBy('id')
             ->first();
 
         if ($tossEvent === null || ! $tossEvent->payload instanceof TossCompletedPayload) {
-            $this->tossServingTeamByGame[$gameId] = null;
+            $this->resolvedTossServingTeam = true;
+            $this->tossServingTeam = null;
 
             return null;
         }
 
-        $this->tossServingTeamByGame[$gameId] = $tossEvent->payload->serving;
+        $this->resolvedTossServingTeam = true;
+        $this->tossServingTeam = $tossEvent->payload->serving;
 
-        return $this->tossServingTeamByGame[$gameId];
+        return $this->tossServingTeam;
     }
 
     private function oppositeTeam(TeamAB $team): TeamAB

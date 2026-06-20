@@ -23,7 +23,6 @@ test('scoreboard shows team country codes based on team a and team b toss assign
     $teamBCode = $game->homeTeam->country_code;
 
     Livewire::test(Scoreboard::class, [
-        'gameId' => $game->getKey(),
         'gameState' => GameState::fromAttributes([
             'sets_won_team_a' => 0,
             'sets_won_team_b' => 0,
@@ -57,7 +56,6 @@ test('scoreboard swaps left and right teams when completed set count is odd', fu
     $teamBCode = $game->awayTeam->country_code;
 
     Livewire::test(Scoreboard::class, [
-        'gameId' => $game->getKey(),
         'gameState' => GameState::fromAttributes([
             'sets_won_team_a' => 2,
             'sets_won_team_b' => 1,
@@ -118,7 +116,6 @@ test('scoreboard resolves team a side from latest snapshot without requiring tos
     $teamBCode = $game->homeTeam->country_code;
 
     Livewire::test(Scoreboard::class, [
-        'gameId' => $game->getKey(),
         'gameState' => GameState::fromAttributes([
             'sets_won_team_a' => 0,
             'sets_won_team_b' => 0,
@@ -152,7 +149,6 @@ test('scoreboard swaps teams after the fifth set court change', function (): voi
     $teamBCode = $game->awayTeam->country_code;
 
     Livewire::test(Scoreboard::class, [
-        'gameId' => $game->getKey(),
         'gameState' => GameState::fromAttributes([
             'set_number' => 5,
             'sets_won_team_a' => 2,

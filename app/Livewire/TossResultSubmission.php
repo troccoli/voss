@@ -9,20 +9,16 @@ use App\Enums\TeamAB;
 use App\Enums\TeamSide;
 use App\Exceptions\InvalidGameEventTransition;
 use App\Models\Game;
+use App\Services\CurrentMatchResolver;
 use App\Services\GameSideResolver;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
-use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 class TossResultSubmission extends Component
 {
-    #[Reactive]
-    #[Locked]
-    public ?int $gameId = null;
-
     #[Reactive]
     public ?GameState $gameState = null;
 
@@ -31,11 +27,6 @@ class TossResultSubmission extends Component
     public string $left = TeamSide::Home->value;
 
     public string $serving = TeamSide::Home->value;
-
-    public function mount(?int $gameId = null): void
-    {
-        $this->gameId = $gameId;
-    }
 
     /**
      * @return array<string, array<int, mixed>>
@@ -72,13 +63,7 @@ class TossResultSubmission extends Component
 
         $this->validate();
 
-        if ($this->gameId === null) {
-            $this->addError('submit', 'No active game is available to record the toss.');
-
-            return;
-        }
-
-        $activeGame = Game::query()->whereKey($this->gameId)->first();
+        $activeGame = $this->activeGame();
 
         if ($activeGame === null) {
             $this->addError('submit', 'No active game is available to record the toss.');
@@ -155,25 +140,14 @@ class TossResultSubmission extends Component
             return $activeGame->stateAt();
         }
 
-        if ($this->gameId === null) {
-            return $this->gameState ?? GameState::initial();
-        }
-
-        $activeGame = Game::query()->whereKey($this->gameId)->first();
+        $activeGame = $this->activeGame();
 
         return $activeGame?->stateAt() ?? ($this->gameState ?? GameState::initial());
     }
 
     private function activeGame(): ?Game
     {
-        if ($this->gameId === null) {
-            return null;
-        }
-
-        return Game::query()
-            ->with(['homeTeam', 'awayTeam'])
-            ->whereKey($this->gameId)
-            ->first();
+        return app(CurrentMatchResolver::class)->current();
     }
 
     private function isFifthSetToss(): bool
