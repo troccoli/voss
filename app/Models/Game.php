@@ -177,7 +177,11 @@ class Game extends Model
      */
     public function competitionName(): string
     {
-        return Config::string('competition.name');
+        $competition = Competition::current();
+
+        return $competition !== null
+            ? $competition->name
+            : Config::string('competition.name');
     }
 
     public function resetForSetup(): void

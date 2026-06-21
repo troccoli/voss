@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\OfficialRole;
 use App\Livewire\MatchSetup;
+use App\Models\Competition;
 use App\Models\Game;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -23,11 +24,13 @@ test('first load with no match configured redirects to setup and shows the singl
 
     $this->get(route('match.setup'))
         ->assertSuccessful()
+        ->assertSee('Competition details')
         ->assertSee('Create the current match')
-        ->assertSee('Create current match');
+        ->assertSee('Save competition');
 });
 
 test('game redirects to setup when current match setup is incomplete', function (): void {
+    Competition::factory()->named('Nations League Finals')->create();
     createCurrentMatchWithoutDetails();
 
     $this->get(route('game'))
@@ -35,6 +38,7 @@ test('game redirects to setup when current match setup is incomplete', function 
 });
 
 test('setup page shows the next required step for an incomplete current match', function (): void {
+    Competition::factory()->named('Nations League Finals')->create();
     createCurrentMatchWithoutDetails();
 
     $this->get(route('match.setup'))
@@ -43,7 +47,19 @@ test('setup page shows the next required step for an incomplete current match', 
         ->assertDontSee('Open current match');
 });
 
+test('game redirects to setup when the competition details are missing', function (): void {
+    makeReadyCurrentMatch(withCompetition: false);
+
+    $this->get(route('game'))
+        ->assertRedirect(route('match.setup'));
+
+    $this->get(route('match.setup'))
+        ->assertSuccessful()
+        ->assertSee('Competition details');
+});
+
 test('home redirects to the match when setup is ready', function (): void {
+    Competition::factory()->named('Nations League Finals')->create();
     makeReadyCurrentMatch();
 
     $this->get(route('home'))
@@ -51,6 +67,8 @@ test('home redirects to the match when setup is ready', function (): void {
 });
 
 test('setup can create the current match when none exists', function (): void {
+    Competition::factory()->named('Nations League Finals')->create();
+
     Livewire::test(MatchSetup::class)
         ->call('createMatch')
         ->assertSet('step', 'match-details')
@@ -60,6 +78,7 @@ test('setup can create the current match when none exists', function (): void {
 });
 
 test('setup reuses the current match instead of inserting another one', function (): void {
+    Competition::factory()->named('Nations League Finals')->create();
     $game = createCurrentMatchWithoutDetails();
 
     Livewire::test(MatchSetup::class)
@@ -71,6 +90,7 @@ test('setup reuses the current match instead of inserting another one', function
 });
 
 test('setup createMatch reuses a singleton created after the component mounts', function (): void {
+    Competition::factory()->named('Nations League Finals')->create();
     $component = Livewire::test(MatchSetup::class);
 
     $game = createCurrentMatchWithoutDetails();
@@ -84,9 +104,10 @@ test('setup createMatch reuses a singleton created after the component mounts', 
 });
 
 test('setup flow can take a blank current match to a playable ready state', function (): void {
-    createCurrentMatchWithoutDetails();
-
     $component = Livewire::test(MatchSetup::class)
+        ->set('competitionName', 'Nations League Finals')
+        ->call('saveCompetition')
+        ->call('createMatch')
         ->set('matchNumber', '7')
         ->set('matchCountryCode', 'ITA')
         ->set('city', 'Rome')
@@ -132,4 +153,26 @@ test('setup flow can take a blank current match to a playable ready state', func
 
     $this->get(route('game'))
         ->assertSuccessful();
+});
+
+test('competition can be edited inline after it has already been saved', function (): void {
+    $component = Livewire::test(MatchSetup::class)
+        ->set('competitionName', 'Nations League Finals')
+        ->call('saveCompetition')
+        ->call('createMatch')
+        ->assertSet('step', 'match-details');
+
+    $component
+        ->call('openStep', 'competition')
+        ->assertSet('step', 'competition')
+        ->assertSet('editingCompetition', false)
+        ->call('editCompetition')
+        ->assertSet('editingCompetition', true)
+        ->set('competitionName', 'European Competition')
+        ->call('saveCompetition')
+        ->assertSet('competitionName', 'European Competition')
+        ->assertSet('editingCompetition', false)
+        ->assertSet('step', 'match-details');
+
+    expect(Competition::query()->sole()->name)->toBe('European Competition');
 });

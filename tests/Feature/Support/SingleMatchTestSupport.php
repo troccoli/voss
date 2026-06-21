@@ -6,6 +6,7 @@ use App\Enums\MatchPhase;
 use App\Enums\OfficialRole;
 use App\Enums\TeamAB;
 use App\Enums\TeamSide;
+use App\Models\Competition;
 use App\Models\Game;
 use App\Models\Official;
 use App\Models\Player;
@@ -136,8 +137,12 @@ function assignRequiredOfficials(Game $game): Game
     return $game->fresh();
 }
 
-function makeReadyCurrentMatch(): Game
+function makeReadyCurrentMatch(bool $withCompetition = true): Game
 {
+    if ($withCompetition) {
+        Competition::ensureSingleton();
+    }
+
     $game = createCurrentMatch();
 
     submitInitialRosters($game);

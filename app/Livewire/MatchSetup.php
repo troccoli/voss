@@ -8,6 +8,7 @@ use App\Enums\OfficialRole;
 use App\Enums\StaffRole;
 use App\Enums\TeamAB;
 use App\Exceptions\InvalidGameEventTransition;
+use App\Models\Competition;
 use App\Models\Game;
 use App\Models\Official;
 use App\Models\Player;
@@ -16,7 +17,6 @@ use App\Models\Team;
 use App\Services\CurrentMatchResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
@@ -25,6 +25,10 @@ class MatchSetup extends Component
     public ?Game $game = null;
 
     public string $step = 'missing-match';
+
+    public string $competitionName = '';
+
+    public bool $editingCompetition = false;
 
     public string $matchNumber = '';
 
@@ -71,11 +75,46 @@ class MatchSetup extends Component
 
     public function mount(CurrentMatchResolver $currentMatchResolver): void
     {
+        $this->synchronizeCompetitionState();
         $this->synchronizeState($currentMatchResolver->current());
+    }
+
+    public function saveCompetition(): void
+    {
+        $this->competitionName = trim($this->competitionName);
+
+        $validated = $this->validate([
+            'competitionName' => ['required', 'string', 'max:255'],
+        ]);
+
+        $competition = Competition::ensureSingleton();
+        $competition->forceFill([
+            'name' => trim((string) $validated['competitionName']),
+        ])->save();
+
+        $this->editingCompetition = false;
+        $this->synchronizeCompetitionState();
+        $this->synchronizeState($this->game?->fresh(['homeTeam', 'awayTeam', 'officials']));
+    }
+
+    public function editCompetition(): void
+    {
+        if (! Competition::setupComplete()) {
+            return;
+        }
+
+        $this->editingCompetition = true;
+        $this->step = 'competition';
     }
 
     public function createMatch(): void
     {
+        if (! Competition::setupComplete()) {
+            $this->step = 'competition';
+
+            return;
+        }
+
         if ($this->game !== null) {
             $this->synchronizeState($this->game->fresh(['homeTeam', 'awayTeam', 'officials']));
 
@@ -87,7 +126,13 @@ class MatchSetup extends Component
 
     public function openStep(string $step): void
     {
-        if (! in_array($step, ['match-details', 'rosters', 'officials', 'ready'], true)) {
+        if (! in_array($step, ['competition', 'match-details', 'rosters', 'officials', 'ready'], true)) {
+            return;
+        }
+
+        if ($step === 'competition') {
+            $this->step = 'competition';
+
             return;
         }
 
@@ -102,7 +147,15 @@ class MatchSetup extends Component
         }
 
         $requiredStep = $this->resolver()->nextStep($this->game);
-        $availableSteps = ['match-details'];
+        $availableSteps = ['competition'];
+
+        if (! Competition::setupComplete()) {
+            $this->step = 'competition';
+
+            return;
+        }
+
+        $availableSteps[] = 'match-details';
 
         if ($this->game->hasCompleteMatchDetails()) {
             $availableSteps[] = 'rosters';
@@ -290,11 +343,13 @@ class MatchSetup extends Component
     public function render(): View
     {
         return view('livewire.match-setup', [
-            'competitionName' => $this->game?->competitionName() ?? Config::string('competition.name'),
+            'currentCompetitionName' => $this->game?->competitionName() ?? $this->competitionName,
+            'competitionConfigured' => Competition::setupComplete(),
             'currentRequiredStep' => $this->resolver()->nextStep($this->game),
             'isSetupComplete' => $this->game !== null && $this->resolver()->isSetupComplete($this->game),
             'isSetupLocked' => $this->setupLocked(),
             'setupSteps' => [
+                'competition' => 'Competition',
                 'match-details' => 'Match details',
                 'rosters' => 'Team rosters',
                 'officials' => 'Officials',
@@ -306,6 +361,16 @@ class MatchSetup extends Component
     private function synchronizeState(?Game $game): void
     {
         $this->game = $game;
+
+        if (! Competition::setupComplete()) {
+            $this->step = 'competition';
+
+            if ($game === null) {
+                $this->resetFormState();
+            }
+
+            return;
+        }
 
         if ($game === null) {
             $this->step = 'missing-match';
@@ -361,6 +426,15 @@ class MatchSetup extends Component
         $this->homeStaffRows = $this->emptyStaffRows();
         $this->awayStaffRows = $this->emptyStaffRows();
         $this->officialRows = $this->emptyOfficialRows();
+    }
+
+    private function synchronizeCompetitionState(): void
+    {
+        $competition = Competition::current();
+
+        $this->competitionName = $competition !== null
+            ? $competition->name
+            : '';
     }
 
     /**
