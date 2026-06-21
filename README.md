@@ -7,7 +7,7 @@ Instead of storing only the latest match score, it stores each match action as a
 
 The core domain includes:
 
-- Championships and games
+- Competitions and games
 - Teams, players, staff, and officials assigned to a game
 - An event stream (`game_events`) for everything that happens during a match
 - Materialized state snapshots (`game_state_snapshots`) for fast reads

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('games', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('championship_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('competition_id')->constrained()->cascadeOnDelete();
             $table->foreignId('home_team_id')->constrained('teams')->cascadeOnDelete();
             $table->foreignId('away_team_id')->constrained('teams')->cascadeOnDelete();
             $table->unsignedTinyInteger('number');
