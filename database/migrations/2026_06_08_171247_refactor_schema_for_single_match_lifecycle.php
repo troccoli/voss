@@ -101,26 +101,26 @@ return new class extends Migration
             });
 
         Schema::table('games', function (Blueprint $table): void {
-            $table->dropForeign(['championship_id']);
-            $table->dropColumn('championship_id');
+            $table->dropForeign(['competition_id']);
+            $table->dropColumn('competition_id');
         });
 
         Schema::dropIfExists('game_player');
         Schema::dropIfExists('game_staff');
         Schema::dropIfExists('game_official');
-        Schema::dropIfExists('championships');
+        Schema::dropIfExists('competitions');
     }
 
     public function down(): void
     {
-        Schema::create('championships', function (Blueprint $table): void {
+        Schema::create('competitions', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
             $table->timestamps();
         });
 
         Schema::table('games', function (Blueprint $table): void {
-            $table->foreignId('championship_id')->nullable()->after('id')->constrained()->cascadeOnDelete();
+            $table->foreignId('competition_id')->nullable()->after('id')->constrained()->cascadeOnDelete();
         });
 
         Schema::create('game_official', function (Blueprint $table): void {

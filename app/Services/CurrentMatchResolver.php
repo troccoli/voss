@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\MatchPhase;
+use App\Models\Competition;
 use App\Models\Game;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\MultipleRecordsFoundException;
@@ -40,6 +41,10 @@ class CurrentMatchResolver
 
     public function landingRouteName(): string
     {
+        if (! Competition::setupComplete()) {
+            return 'match.setup';
+        }
+
         $currentGame = $this->current();
 
         if ($currentGame === null) {
@@ -53,6 +58,10 @@ class CurrentMatchResolver
 
     public function nextStep(?Game $game = null): string
     {
+        if (! Competition::setupComplete()) {
+            return 'competition';
+        }
+
         $currentGame = $game ?? $this->current();
 
         if ($currentGame === null) {
@@ -82,6 +91,8 @@ class CurrentMatchResolver
     {
         $currentGame = $game ?? $this->current();
 
-        return $currentGame !== null && $currentGame->status !== MatchPhase::Setup;
+        return Competition::setupComplete()
+            && $currentGame !== null
+            && $currentGame->status !== MatchPhase::Setup;
     }
 }
